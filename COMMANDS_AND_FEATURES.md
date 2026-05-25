@@ -99,7 +99,7 @@ Conjunto de comandos restritos a usuários com permissão de `Gerenciar Mensagen
 
 | Subcomando | Parâmetros | O que faz |
 | :--- | :--- | :--- |
-| **`dropar`** | `item` (String, Obrigatório)<br>`quantidade` (Int, Opcional, default: `1`) | Busca as informações de um item no catálogo da API e cria um embed com um botão **Coletar Item** (`pegar_loot_<id>`). O primeiro jogador a clicar no botão recolhe o loot publicamente. |
+| **`dropar`** | `item` (String, Obrigatório)<br>`quantidade` (Int, Opcional, default: `1`) | Busca as informações de um item no catálogo da API e cria um embed com um botão **Coletar Item** (`pegar_loot_<id>_<qtd>`). O primeiro jogador a clicar no botão tem seu personagem ativo resolvido pelo Discord ID e o item é adicionado automaticamente ao seu inventário no site de Arkandia, desabilitando o botão para os demais. |
 | **`bestiario`**| `nome` (String, Obrigatório) | Consulta secreta de ficha. Busca os dados de um NPC ou monstro do Bestiário diretamente na API de Arkandia e exibe seus atributos e lore. |
 
 ### `/narrar` (Narração Imersiva & Interpretação)

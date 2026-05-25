@@ -106,6 +106,11 @@ Chaveado por `message.id` (ID da mensagem do mapa ativo), armazena a referência
 ### 7. Mestres Interpretando (`mestresNarrando` - `Map`)
 Chaveado pela string combinada `${channelId}-${userId}`, este Map armazena os dados de identidade (nome e URL de avatar) que o Mestre está emulando ativamente naquele canal. Se uma entrada existir para o autor da mensagem no canal em questão, a mensagem de texto padrão é deletada e re-enviada via Webhook sob a identidade guardada em tempo real.
 
+### 8. Controle de Coleta de Loot (`lootsEmProcessamento` & `lootsColetados` - `Set`)
+Utilizados para garantir integridade transacional na coleta de recompensas (botão do comando `/mestre dropar`):
+*   `lootsEmProcessamento`: Conjunto de `message.id` das coletas de item cujo processo da API (resolução + inserção POST) está em andamento. Bloqueia cliques concorrentes ou duplicados de forma imediata.
+*   `lootsColetados`: Conjunto de `message.id` das mensagens de loot que já foram totalmente coletadas por algum jogador. Previne que itens sejam resgatados mais de uma vez.
+
 ---
 
 ## 🎨 Engine de Renderização 2D (VTT)
@@ -147,6 +152,8 @@ Todas as requisições para `https://www.ernas.com.br/api/public/v1` exigem o he
     *   `/itens/:ref` suporta UUID, slug e nome.
 3.  **NPCs e Bestiário:**
     *   Para o sistema de impersonação (`/narrar habilitar` e `/cena npc_entrar`), o bot tenta carregar os dados de `/npcs/:ref` e, caso dê 404, recorre ao `/bestiario/:ref` para criaturas selvagens.
+4.  **Inserção no Inventário:**
+    *   Ao clicar no botão de coleta de drop, o bot efetua um `POST /personagens/:id/inventario/adicionar` passando o `item_id` e a `quantidade` para popular o inventário do jogador em tempo real no site do jogo, utilizando cabeçalhos de controle e autenticação (`X-API-Key` e `Idempotency-Key` com UUID v4 gerado no ato).
 
 ---
 

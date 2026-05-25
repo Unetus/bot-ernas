@@ -31,6 +31,8 @@ let renderTimers = new Map();
 const arenasDraft = new Map();
 const timersTurno = new Map();
 const mestresNarrando = new Map();
+const lootsEmProcessamento = new Set();
+const lootsColetados = new Set();
 
 const MAPAS_ARENA = [
     { id: 'coliseu', nome: 'Coliseu de Vermécia', colunas: 12, linhas: 10, fundoUrl: './mapas-arena/Coliseu de Vermécia.png' },
@@ -478,9 +480,89 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.isButton() && interaction.customId.startsWith('pegar_loot_')) {
-        const embedOriginal = EmbedBuilder.from(interaction.message.embeds[0]).setColor(0x2ECC71).setFooter({ text: `Coletado.` });
-        await interaction.update({ content: `🎉 **${interaction.user.toString()}** coletou o item!`, embeds: [embedOriginal], components: [] });
-        return;
+        const msgId = interaction.message.id;
+
+        // 1. Verificar se o loot já foi coletado
+        if (lootsColetados.has(msgId)) {
+            return await interaction.reply({ content: '❌ Este loot já foi coletado por outro jogador!', ephemeral: true });
+        }
+
+        // 2. Verificar se está em processamento
+        if (lootsEmProcessamento.has(msgId)) {
+            return await interaction.reply({ content: '⏳ Este loot está sendo coletado neste momento. Tente novamente em alguns segundos.', ephemeral: true });
+        }
+
+        // Marcar como em processamento para travar cliques concorrentes
+        lootsEmProcessamento.add(msgId);
+
+        await interaction.deferReply({ ephemeral: true });
+
+        const parts = interaction.customId.split('_');
+        const itemId = parts[2];
+        const qtd = parseInt(parts[3] || '1', 10);
+
+        try {
+            // 3. Buscar o personagem do jogador pelo Discord ID
+            let personagem;
+            try {
+                const resUser = await axios.get(`${ARKANDIA_API}/personagens/discord/${interaction.user.id}`, { headers: { 'X-API-Key': API_KEY } });
+                personagem = resUser.data;
+            } catch (errUser) {
+                lootsEmProcessamento.delete(msgId);
+                if (errUser.response?.status === 404) {
+                    return await interaction.editReply('❌ Você não possui um personagem ativo cadastrado no site de Arkandia. Por favor, vincule seu Discord no site antes de coletar o loot.');
+                }
+                return await interaction.editReply(`❌ Erro ao buscar seu personagem na API: ${errUser.response?.data?.error || errUser.message}`);
+            }
+
+            // 4. Adicionar o item ao inventário do personagem via POST
+            const { randomUUID } = require('crypto');
+            const idempotencyKey = randomUUID();
+
+            try {
+                const resPost = await axios.post(
+                    `${ARKANDIA_API}/personagens/${personagem.id}/inventario/adicionar`,
+                    { item_id: itemId, quantidade: qtd },
+                    {
+                        headers: {
+                            'X-API-Key': API_KEY,
+                            'Content-Type': 'application/json',
+                            'Idempotency-Key': idempotencyKey,
+                            'User-Agent': 'rpg-bot/1.0'
+                        }
+                    }
+                );
+
+                if (resPost.data.ok) {
+                    // Marcar como coletado e remover de em processamento
+                    lootsColetados.add(msgId);
+                    lootsEmProcessamento.delete(msgId);
+
+                    // Atualiza a mensagem original para desabilitar o botão e mostrar quem coletou
+                    const embedOriginal = EmbedBuilder.from(interaction.message.embeds[0])
+                        .setColor(0x2ECC71)
+                        .setFooter({ text: `Coletado por ${personagem.nome}` });
+
+                    await interaction.message.edit({
+                        content: `🎉 **${interaction.user.toString()}** (${personagem.nome}) coletou o item e ele foi adicionado ao seu inventário no site!`,
+                        embeds: [embedOriginal],
+                        components: []
+                    });
+
+                    return await interaction.editReply(`✅ Você coletou **${resPost.data.item_nome} (x${qtd})** com sucesso! O item já está no seu inventário do site.`);
+                } else {
+                    lootsEmProcessamento.delete(msgId);
+                    return await interaction.editReply(`❌ Erro da API ao adicionar o item: ${resPost.data.error || 'Erro desconhecido'}`);
+                }
+            } catch (errPost) {
+                lootsEmProcessamento.delete(msgId);
+                return await interaction.editReply(`❌ Erro ao registrar o item no seu inventário: ${errPost.response?.data?.error || errPost.message}`);
+            }
+        } catch (e) {
+            lootsEmProcessamento.delete(msgId);
+            console.error('Erro na coleta de loot:', e);
+            return await interaction.editReply('❌ Ocorreu um erro interno ao processar a coleta do loot.');
+        }
     }
 
     if (interaction.isButton() && interaction.customId === 'missao_pronto') {
@@ -1286,7 +1368,7 @@ client.on('interactionCreate', async interaction => {
                     if (item.imagem_url) embed.setThumbnail(item.imagem_url);
                     
                     const row = new ActionRowBuilder().addComponents(
-                        new ButtonBuilder().setCustomId(`pegar_loot_${item.id}`).setLabel('Coletar Item').setStyle(ButtonStyle.Primary)
+                        new ButtonBuilder().setCustomId(`pegar_loot_${item.id}_${qtd}`).setLabel('🎁 Coletar Item').setStyle(ButtonStyle.Success)
                     );
                     
                     await interaction.channel.send({ embeds: [embed], components: [row] });
