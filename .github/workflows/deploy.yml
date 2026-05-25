@@ -1,0 +1,36 @@
+name: Deploy RPG Bot
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 137.131.222.150
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          source: "index.js,package.json,package-lock.json,mapa.png,mapa_config.json,mapas-arena/"
+          target: "/home/ubuntu/bot"
+          rm: false
+
+      - name: SSH and Restart Bot
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 137.131.222.150
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd ~/bot
+            npm install --omit=dev
+            pm2 restart rpg-bot

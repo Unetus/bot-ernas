@@ -1,0 +1,1436 @@
+# Arkandia — API Pública v1
+
+Documentação da API pública do Arkandia. Use pra integrar bots Discord, dashboards externos, ferramentas de comunidade etc.
+
+---
+
+## Visão Geral
+
+- **Base URL:** `https://www.ernas.com.br/api/public/v1`
+- **Auth:** header `X-API-Key` + scopes granulares por operação
+- **Métodos:** `GET` (read) e `POST` (writes em libras e inventário — exigem scope + idempotency)
+- **Formato:** JSON
+- **CORS:** liberado pra qualquer origem (`*`)
+- **Rate limit:** 120 req/min/key pra qualquer chamada + **10 writes/min/key** adicional pra POSTs
+- **Versionamento:** `/v1/` — mudanças breaking só em `/v2/`
+- **Runas:** **não há endpoint nem scope** pra mexer em Runas por design (cash real, MercadoPago no pipeline). Só painel Dev/GM.
+
+---
+
+## Autenticação
+
+Toda request precisa enviar o header `X-API-Key` com a key fornecida.
+
+```bash
+curl -H "X-API-Key: ark_pub_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+     https://www.ernas.com.br/api/public/v1/rankings/poder?limit=10
+```
+
+### Erros de auth
+
+| Status | Significado |
+|-------:|-------------|
+| `401` | Header `X-API-Key` ausente, key inválida, revogada ou em formato errado |
+| `403` | Key válida mas **sem scope** necessário pra essa operação (ex: tentou debitar Libras com key que só tem `read`) |
+
+```json
+{ "error": "Missing X-API-Key header" }
+{ "error": "Invalid API key" }
+{ "error": "Missing required scope: currency:libras:write" }
+```
+
+---
+
+## Scopes (permissões)
+
+Cada API key tem um array de **scopes** que define o que ela pode fazer. Toda key recebe `read` automaticamente — é o mínimo pra qualquer GET funcionar. Writes exigem scope dedicado, escolhido na criação da key pelo Dev.
+
+| Scope | Permite |
+|---|---|
+| `read` | **Default obrigatório.** Todos os GETs (catálogos, personagens, rankings, eventos, missões). |
+| `inventory:write` | POSTs `/personagens/[id]/inventario/{adicionar,remover}`. Cap **100 unidades/op**. |
+| `currency:libras:write` | POSTs `/personagens/[id]/libras/{creditar,debitar}`. Cap **100.000 Libras/op**. |
+
+**Por que Runas não tem scope?** Runas são cash real (premium, MercadoPago no pipeline). API externa nunca toca em Runas por design — só painel Dev ou GM dentro do site. Bot Discord que quiser dar Runas pra alguém precisa cadastrar via painel manualmente.
+
+Pedir nova key com scopes específicos é responsabilidade do Dev — peça especificamente o que precisa.
+
+---
+
+## Rate Limit
+
+Limit **duplo**, ambos sliding window:
+
+| Limiter | Limite | Aplica em |
+|---|---|---|
+| Geral | 120 req/min/key | Qualquer chamada (GET ou POST) |
+| Write | **+ 10 req/min/key** | POSTs (additional sobre o geral — write conta nos 2) |
+
+A defesa dupla limita o blast radius se uma key vazar: mesmo com key roubada, o atacante consegue no máximo **10 operações mutantes por minuto** antes de bater no 429.
+
+Headers de resposta:
+- `X-RateLimit-Limit: 120`
+- `X-RateLimit-Remaining: 87`
+- `X-RateLimit-Reset: 1715798400000` (timestamp ms)
+- `X-RateLimit-Limit-Write: 10` (só em POSTs)
+- `X-RateLimit-Remaining-Write: 7` (só em POSTs)
+
+Quando excedido:
+```json
+{ "error": "Rate limit exceeded. Limit: 120 requests per minute." }
+{ "error": "Write rate limit exceeded. Limit: 10 write operations per minute." }
+```
+- Status: `429 Too Many Requests`
+- Header: `Retry-After: 30` (segundos pra tentar de novo)
+
+Requests **sem header `X-API-Key`** caem num rate limit por IP (60/min) — então não dá pra fazer scrapping antes de receber a key.
+
+---
+
+## Idempotency (POSTs)
+
+Toda mutação (POST) **exige** o header `Idempotency-Key` com um **UUID v4** único pra cada operação distinta.
+
+```
+Idempotency-Key: 9f2b1c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d
+```
+
+### Por que é obrigatória
+
+Você credita 500 Libras pra um jogador. O servidor processa, mas o request **falha em responder** (timeout, conexão caiu, 5xx temporário). Seu bot tem retry automático. **Sem idempotency, o jogador receberia 1000 Libras** em vez de 500. Com retry exponencial, vira 1500, 2000.
+
+Com idempotency, o servidor guarda `(key_id, idempotency_key) → response_json`. Se o mesmo UUID chegar de novo, **devolve a resposta cacheada sem re-executar a operação**. Cliente recebe a mesma resposta que recebeu da primeira vez, sem dobrar o crédito.
+
+### Como gerar o UUID
+
+```js
+// Node.js 14.17+
+import { randomUUID } from 'crypto'
+const idempotencyKey = randomUUID()
+
+// Browser moderno
+const idempotencyKey = crypto.randomUUID()
+```
+
+### Quando reusar vs gerar novo
+
+- **Mesma operação lógica** (retry de uma falha) → **reuse o mesmo UUID**. Esse é o ponto.
+- **Operação diferente** (segunda compra do mesmo jogador) → **gere UUID novo**, senão o servidor responde com o resultado da primeira compra e ignora a segunda.
+
+### Resposta cacheada
+
+Retry com mesmo UUID retorna o mesmo body da primeira resposta, mas com flag `idempotency_replay: true`:
+
+```json
+{ "ok": true, "novo_saldo": 1500, "valor_creditado": 500, "idempotency_replay": true }
+```
+
+### Validade
+
+Cache mantido por **24h** (depois o cron purga). Retry após 24h re-executa a operação — então retries longos devem usar UUID novo.
+
+### Sem header → 400
+
+```json
+{ "error": "Idempotency-Key header obrigatório (UUID)" }
+```
+
+---
+
+## Paginação
+
+Endpoints de listagem aceitam `limit` e `offset`. Limites por endpoint:
+
+| Endpoint | Default | Max |
+|----------|--------:|----:|
+| `/personagens/buscar` | 20 | 50 |
+| `/rankings/poder` | 20 | 100 |
+| `/rankings/nivel` | 20 | 100 |
+| `/rankings/guildas` | 10 | 50 |
+| `/rankings/arena` | 20 | 100 |
+| `/skills` | 50 | 200 |
+| `/itens` | 50 | 200 |
+| `/pergaminhos` | 50 | 100 |
+| `/maestrias` | 50 | 100 |
+| `/npcs` | 50 | 100 |
+| `/bestiario` | 50 | 100 |
+
+Endpoints sem `limit/offset` (`/eventos/ativos`, `/missoes/abertas`, `/guildas/:id`, `/personagens/:nomeOuId`) retornam o conjunto completo.
+
+Resposta paginada padrão:
+```json
+{ "total": 152, "limit": 50, "offset": 0, "skills": [ ... ] }
+```
+
+---
+
+## Endpoints
+
+### Personagens
+
+#### `GET /personagens/:nomeOuId`
+
+Ficha pública completa de um personagem. Aceita **nome** (case-insensitive) ou **UUID** no mesmo path. UUID é o jeito estável (não muda se jogador renomear) — use pra refetchar; nome serve pra primeira resolução.
+
+Pra resolver via Habbo nick ou Discord, ver endpoints abaixo.
+
+**Path params:**
+- `nomeOuId` — nome (URL-encoded) **ou** UUID do personagem
+
+**Resposta:**
+```json
+{
+  "id": "uuid",
+  "nome": "Aragorn",
+  "titulo": "Caçador das Sombras",
+  "classe": "espadachim",
+  "raca": "humano",
+  "origem": "vermecia",
+  "estamento": "casa-sieghart",
+  "nivel": 47,
+  "xp_total": 184500,
+  "rank": "A",
+  "rating_arena_max": 1450,
+  "retrato_url": "https://...",
+  "avatar_url": "https://...",
+  "moldura_icone": "rank_a",
+  "background": "...história do personagem...",
+  "criado_em": "2026-01-15T10:00:00Z",
+  "indice_poder": 32450,
+  "indice_poder_faixa": 4,
+  "indice_poder_cor": "#8B5CF6",
+  "build": {
+    "slot_racial": "uuid-skill",
+    "slot_1": "uuid-skill",
+    "slot_2": null,
+    "slot_3": null,
+    "slot_4": null,
+    "slot_5": null,
+    "slot_6": null,
+    "slot_7": null
+  },
+  "build_skills": [
+    { "slot": "racial", "id": "uuid", "nome": "Reflexo Inato", "tipo": "passiva", "origem": "classe", "classe": "humano", "grau": 1, "descricao": "...", "imagem_url": "..." },
+    { "slot": "1", "id": "uuid", "nome": "Corte Veloz", "tipo": "ativa", "origem": "classe", "classe": "espadachim", "grau": 3, "descricao": "...", "imagem_url": "..." }
+  ],
+  "skills_adquiridas": [
+    { "id": "...", "nome": "Corte Veloz", "tipo": "ativa", "origem": "classe", "classe": "espadachim", "grau": 3, "descricao": "...", "imagem_url": "..." }
+  ],
+  "pergaminhos": [
+    { "id": "...", "nome": "Eco de Musashi", "figura": "musashi", "raridade": "lendario", "imagem_url": "...", "imagem_figura_url": "...", "nivel_estrelas": 3 }
+  ],
+  "maestrias": [
+    { "id": "...", "nome": "Caminho da Espada", "raridade": "epico", "designio": "marcial", "imagem_url": "..." }
+  ],
+  "equipamento": [
+    { "slot": "arma_principal", "id": "...", "nome": "Lâmina do Trovão", "categoria": "arma", "raridade": "lendario", "grau": 18, "imagem_url": "..." }
+  ],
+  "conquistas": {
+    "bronze": 5,
+    "prata": 3,
+    "ouro": 2,
+    "total_desbloqueadas": 10,
+    "total_tiers": 19
+  }
+}
+```
+
+**Erros:** `404` se personagem não existe ou está inativo.
+
+**⚠ Atenção — `build_skills` vs `skills_adquiridas`:**
+- **`build_skills`** = skills **EQUIPADAS** na build do personagem agora (max 8: 1 racial + 7 livres). Slots vazios são omitidos. **É isso que você usa pra mostrar "skills equipadas" num bot/UI.**
+- **`build`** = mesmas skills mas como **IDs brutos** por slot (`slot_racial`, `slot_1`, ..., `slot_7`). Útil pra correlacionar com catálogo. Slots vazios = `null`.
+- **`skills_adquiridas`** = **acervo completo** — todas as skills que o personagem aprendeu na vida (de pergaminhos despertados, maestrias dominadas, compradas da classe, encantamentos de itens). Pode ser bem maior que `build_skills` (jogador tem várias skills mas só pode equipar 8). **NÃO é "equipadas"** — bug clássico de quem assume que sim.
+
+---
+
+#### `GET /personagens/buscar?q=&limit=&offset=`
+
+Busca paginada por substring no nome.
+
+**Query params:**
+- `q` (obrigatório, 2–100 chars) — substring de busca
+- `limit` (default 20, max 50) — quantidade
+- `offset` (default 0) — offset paginação
+
+**Resposta:**
+```json
+{
+  "query": "ara",
+  "total": 7,
+  "limit": 20,
+  "offset": 0,
+  "personagens": [
+    { "id": "...", "nome": "Aragorn", "titulo": "...", "classe": "...", "raca": "...", "nivel": 47, "rank": "A", "avatar_url": "...", "moldura_icone": "..." }
+  ]
+}
+```
+
+---
+
+#### `GET /personagens/habbo/:nick`
+
+Resolve o personagem **ativo** do user dono do nick Habbo informado. Útil pra bot Discord que recebe nick do Habbo e quer puxar a ficha sem precisar saber o nome do personagem.
+
+**Path params:**
+- `nick` — Habbo nick exato (case-insensitive). 1-25 chars, alfanumérico + `_`, `.`, `-`.
+
+**Resposta:** mesmo payload do `/personagens/:nomeOuId`, com campo extra:
+```json
+{
+  "id": "...",
+  "nome": "Aragorn",
+  "...": "...",
+  "resolvido_por": { "tipo": "habbo_nick", "valor": "kurtprod" }
+}
+```
+
+**Erros:**
+- `400` se nick tem formato inválido
+- `404` se nick não cadastrado, ou user existe mas não tem personagem ativo
+
+---
+
+#### `GET /personagens/discord/:idOuUsername`
+
+Resolve o personagem **ativo** do user que fez login via Discord OAuth. Aceita 2 formatos:
+
+- **Discord user ID** (snowflake numérico, 17–19 dígitos): `/personagens/discord/289927100465676288`
+- **Discord username**: `/personagens/discord/sowjetdream` ou `/personagens/discord/sowjetdream%230`
+
+**Discord ID é mais estável** (não muda nunca) — usar como chave primária no bot. Username muda se o user trocar; aceita com ou sem discriminator (Discord migrou pra usernames únicos com `#0`).
+
+**Path params:**
+- `idOuUsername` — snowflake numérico OU username (2–32 chars + `#NNNN` opcional)
+
+**Resposta:** mesmo payload do `/personagens/:nomeOuId`, com campo extra:
+```json
+{
+  "id": "...",
+  "nome": "Aragorn",
+  "...": "...",
+  "resolvido_por": { "tipo": "discord_id", "valor": "289927100465676288" }
+}
+```
+(`tipo` é `"discord_id"` se foi snowflake, `"discord_username"` se foi username)
+
+**Erros:**
+- `400` se identifier tem formato inválido
+- `404` se Discord ID/username não cadastrado, user não logou via Discord, ou não tem personagem ativo
+
+---
+
+### Rankings
+
+#### `GET /rankings/poder?limit=`
+
+Top N personagens por índice de poder (calculado em tempo real). Pesado — recomenda cache do lado do bot.
+
+**Query params:**
+- `limit` (default 20, max 100)
+
+**Resposta:**
+```json
+{
+  "ranking": "poder",
+  "limit": 20,
+  "personagens": [
+    {
+      "posicao": 1,
+      "id": "...",
+      "nome": "Aragorn",
+      "titulo": "...",
+      "classe": "espadachim",
+      "raca": "humano",
+      "rank": "S",
+      "nivel": 78,
+      "avatar_url": "...",
+      "moldura_icone": "...",
+      "poder": 145000,
+      "faixa": 6
+    }
+  ]
+}
+```
+
+#### `GET /rankings/nivel?limit=`
+
+Top N por nível (ordenado por nível desc, xp_total desc).
+
+```json
+{ "ranking": "nivel", "limit": 20, "personagens": [{ "posicao": 1, ... }] }
+```
+
+#### `GET /rankings/guildas?limit=`
+
+Top N guildas por XP total acumulado (ranking permanente).
+
+**Query params:**
+- `limit` (default 10, max 50)
+
+```json
+{
+  "ranking": "guildas",
+  "limit": 10,
+  "guildas": [
+    {
+      "posicao": 1,
+      "id": "...",
+      "nome": "Cavaleiros Vermelhos",
+      "sigla": "CVM",
+      "lider_id": "...",
+      "criada_em": "...",
+      "xp_total_guilda": 1284500,
+      "banco_libras": 45000,
+      "descricao": "...",
+      "emblema_url": "...",
+      "membros_count": 8
+    }
+  ]
+}
+```
+
+#### `GET /rankings/arena?limit=`
+
+Top N rating Arena (ranking permanente — `arena_rating` é per-character, atualizado a cada partida). A `temporada` retornada é só metadata da janela vigente.
+
+```json
+{
+  "ranking": "arena",
+  "limit": 20,
+  "temporada": {
+    "id": "...",
+    "ano": 2026,
+    "mes": 5,
+    "inicio_em": "2026-05-01T00:00:00Z",
+    "fim_em": "2026-06-01T00:00:00Z"
+  },
+  "personagens": [
+    {
+      "posicao": 1,
+      "personagem_id": "...",
+      "rating": 1850,
+      "vitorias": 24,
+      "derrotas": 6,
+      "partidas": 30,
+      "torneios_vencidos": 2,
+      "nome": "Aragorn",
+      "titulo": "...",
+      "classe": "...",
+      "raca": "...",
+      "rank": "S",
+      "nivel": 78,
+      "avatar_url": "...",
+      "moldura_icone": "..."
+    }
+  ]
+}
+```
+
+Se não há temporada vigente (entre datas), `temporada: null` mas `personagens` continua populado com os top ratings históricos.
+
+---
+
+### Guildas
+
+#### `GET /guildas/:id`
+
+Info pública de uma guilda específica.
+
+**Path params:**
+- `id` — UUID da guilda
+
+**Resposta:**
+```json
+{
+  "id": "...",
+  "nome": "Cavaleiros Vermelhos",
+  "sigla": "CVM",
+  "descricao": "...",
+  "emblema_url": "...",
+  "criada_em": "...",
+  "modo_entrada": "aberta",
+  "xp_total_guilda": 1284500,
+  "banco_libras": 45000,
+  "membros_count": 8,
+  "lider": {
+    "personagem_id": "...",
+    "nome": "Lord Cassian",
+    "classe": "...",
+    "raca": "...",
+    "nivel": 80,
+    "rank": "SS",
+    "avatar_url": "...",
+    "moldura_icone": "..."
+  },
+  "membros": [
+    {
+      "personagem_id": "...",
+      "cargo": "lider",
+      "cargo_titulo": "Comandante Supremo",
+      "entrou_em": "...",
+      "nome": "...",
+      "classe": "...",
+      "...": "..."
+    }
+  ],
+  "perks_ativos": [
+    { "perk_key": "bencao_treinamento", "ativado_em": "...", "expira_em": "..." }
+  ],
+  "contratos_recentes": [
+    { "tipo": "...", "progresso": 5, "meta": 10, "concluido": false, "semana_inicio": "..." }
+  ]
+}
+```
+
+**Erros:** `400` se `id` não é UUID válido. `404` se guilda não existe.
+
+---
+
+### Catálogos
+
+#### `GET /skills?classe=&origem=&tipo=&grau=&busca=&limit=&offset=`
+
+Catálogo de skills com filtros.
+
+**Query params (todos opcionais):**
+- `classe` — slug (ex: `espadachim`, `mago`)
+- `origem` — `classe` | `pergaminho` | `maestria` | `item`
+- `tipo` — `ativa` | `passiva` | `inata`
+- `grau` — int 1–20
+- `busca` — substring em nome (2–100 chars)
+- `limit` (default 50, max 200), `offset`
+
+**Resposta:**
+```json
+{
+  "total": 152,
+  "limit": 50,
+  "offset": 0,
+  "skills": [
+    {
+      "id": "...",
+      "nome": "Corte Veloz",
+      "tipo": "ativa",
+      "origem": "classe",
+      "classe": "espadachim",
+      "grau": 3,
+      "nivel_min": 1,
+      "custo_runas": 110,
+      "descricao": "...markdown da descrição...",
+      "imagem_url": "..."
+    }
+  ]
+}
+```
+
+#### `GET /itens?categoria=&raridade=&grau=&busca=&so_assinatura=&limit=&offset=`
+
+Catálogo de itens.
+
+**Query params:**
+- `categoria` — `arma` | `armadura` | `acessorio` | `consumivel` | `material` | `insignia` | `chave` | `maestria` | `encantamento`
+- `raridade` — `comum` | `raro` | `epico` | `lendario` | `mitico`
+- `grau` — int 1–20
+- `busca` — substring
+- `so_assinatura=true` — exclui os 1.480 itens forjados via molde×lingote (só itens-assinatura especiais)
+- `limit` (default 50, max 200), `offset`
+
+**Resposta:**
+```json
+{
+  "total": 1903,
+  "limit": 50, "offset": 0,
+  "itens": [
+    {
+      "id": "...",
+      "slug": "lamina-do-trovao",
+      "nome": "Lâmina do Trovão",
+      "categoria": "arma",
+      "raridade": "lendario",
+      "grau": 18,
+      "descricao": "...",
+      "imagem_url": "...",
+      "especial": true,
+      "classes_permitidas": ["espadachim", "lanceiro"]
+    }
+  ]
+}
+```
+
+#### `GET /itens/:ref`
+
+Lookup individual de um item. Aceita 3 formatos no path:
+- **UUID**: `/itens/550e8400-...` (mais estável)
+- **slug** (lowercase + hyphens): `/itens/pedra-refinamento` (UNIQUE no catálogo, **recomendado pra integrações**)
+- **nome** (case-insensitive): `/itens/Pedra%20de%20Refinamento`
+
+Resolução: UUID → slug → nome (case-insensitive). Se houver múltiplos com mesmo nome (raro), retorna o de raridade mais baixa primeiro + lista os outros em `multiplos_matches`.
+
+**Resposta:**
+```json
+{
+  "id": "...",
+  "slug": "pedra-refinamento",
+  "nome": "Pedra de Refinamento",
+  "categoria": "material",
+  "raridade": "raro",
+  "grau": null,
+  "descricao": "...",
+  "imagem_url": "https://...",
+  "especial": false,
+  "classes_permitidas": null,
+  "usos_max": null,
+  "resolvido_por": { "tipo": "slug_ou_nome", "valor": "Pedra de Refinamento" }
+}
+```
+
+Se houve ambiguidade:
+```json
+{
+  "id": "...item-1...",
+  "nome": "Espada Curta",
+  "...": "...",
+  "multiplos_matches": [
+    { "id": "...item-2...", "nome": "Espada Curta", "raridade": "raro" }
+  ]
+}
+```
+
+**Erros:** `400` ref vazia/encoding inválido, `404` item não existe.
+
+#### `GET /pergaminhos?raridade=&busca=&invocavel=&limit=&offset=`
+
+Catálogo de pergaminhos com skills associadas.
+
+**Resposta:**
+```json
+{
+  "total": 87,
+  "limit": 50, "offset": 0,
+  "pergaminhos": [
+    {
+      "id": "...",
+      "nome": "Eco de Musashi",
+      "figura": "musashi",
+      "raridade": "lendario",
+      "descricao": "...",
+      "invocavel": true,
+      "imagem_url": "...",
+      "imagem_figura_url": "...",
+      "voz_url": "...",
+      "pergaminho_skills": [
+        {
+          "skill_id": "...",
+          "ordem": 1,
+          "custo_insignias": 10,
+          "skills_catalogo": {
+            "id": "...", "nome": "Sopro do Aço", "tipo": "ativa", "grau": 8, "descricao": "...", "imagem_url": "..."
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### `GET /maestrias?raridade=&designio=&classe=&busca=&limit=&offset=`
+
+Catálogo de maestrias.
+
+**Query params:**
+- `designio` — `marcial` | `elemental` | `cinetica` | `vital` | `mimetica` | `espiritual` | `arcana` | `psiquica` | `conceitual` | `incomum`
+- `classe` — slug (filtra `classe_exclusiva`)
+- (demais iguais aos outros catálogos)
+
+**Resposta:**
+```json
+{
+  "total": 24,
+  "limit": 50, "offset": 0,
+  "maestrias": [
+    {
+      "id": "...",
+      "nome": "Caminho da Espada",
+      "descricao": "...",
+      "raridade": "epico",
+      "designio": "marcial",
+      "classe_exclusiva": "espadachim",
+      "raca_exclusiva": null,
+      "requer_maestria_id": null,
+      "imagem_url": "...",
+      "maestria_skills": [
+        {
+          "skill_id": "...",
+          "ordem": 1,
+          "nivel_min": 5,
+          "skills_catalogo": { "id": "...", "nome": "...", "tipo": "ativa", "grau": 8, "descricao": "...", "imagem_url": "..." }
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### NPCs (Cânones)
+
+NPCs canônicos do mundo — personagens fixos com retrato, lore e identidade. Pensado pra integrações de RP (bot Discord impersonando voz de NPC, anúncios in-character, etc).
+
+#### `GET /npcs?regiao=&rank=&afiliacao=&busca=&limit=&offset=`
+
+Catálogo paginado.
+
+**Query params:**
+- `regiao` — slug da região (ex: `vermecia`, `lost-lands`)
+- `rank` — `D` | `C` | `B` | `A` | `S` | `SS`
+- `afiliacao` — substring (ex: `casa-sieghart`)
+- `busca` — substring em nome **ou** título
+- `limit` (default 50, max 100), `offset`
+
+**Resposta:**
+```json
+{
+  "total": 38,
+  "limit": 50, "offset": 0,
+  "npcs": [
+    {
+      "id": "...",
+      "slug": "guram-mestre-ferreiro",
+      "nome": "Guram",
+      "titulo": "Mestre Ferreiro",
+      "raca": "anão",
+      "classe": "ferreiro",
+      "regiao": "vermecia",
+      "afiliacao": "Forja de Vermécia",
+      "rank": "A",
+      "retrato_url": "https://...",
+      "lore": "...markdown...",
+      "flavor_text": "Cada martelada é uma oração ao éter."
+    }
+  ]
+}
+```
+
+#### `GET /npcs/:ref`
+
+Lookup individual. Aceita 3 formatos no path:
+- **UUID**: `/npcs/550e8400-...` (mais estável)
+- **slug** (lowercase + hyphens): `/npcs/guram-mestre-ferreiro` (**recomendado pro bot Discord**)
+- **nome** (case-insensitive): `/npcs/Guram`
+
+Resolução: UUID → slug → nome. UMA query com OR.
+
+**Resposta:**
+```json
+{
+  "id": "...",
+  "slug": "guram-mestre-ferreiro",
+  "nome": "Guram",
+  "titulo": "Mestre Ferreiro",
+  "raca": "anão",
+  "classe": "ferreiro",
+  "regiao": "vermecia",
+  "afiliacao": "Forja de Vermécia",
+  "rank": "A",
+  "retrato_url": "https://...",
+  "lore": "...história completa em markdown...",
+  "flavor_text": "Cada martelada é uma oração ao éter.",
+  "criado_em": "...",
+  "atualizado_em": "...",
+  "resolvido_por": { "tipo": "slug_ou_nome", "valor": "Guram" }
+}
+```
+
+Tudo que o bot precisa pra impersonar um NPC via webhook do Discord (`username = nome + " " + titulo`, `avatar_url = retrato_url`, `content = mensagem do GM`).
+
+**Erros:** `400` ref vazia/encoding inválido, `404` NPC não existe ou inativo.
+
+---
+
+### Bestiário (Criaturas)
+
+Catálogo de criaturas do mundo — feras, ancestrais e entidades míticas com lore e ilustração. Mesma pegada do `/npcs` mas pra criaturas em vez de NPCs nomeados.
+
+#### `GET /bestiario?tipo=&classificacao=&classificacao_min=&busca=&limit=&offset=`
+
+Catálogo paginado, ordenado por `classificacao` desc + `nome` asc (mais perigosas primeiro).
+
+**Query params:**
+- `tipo` — `silvestre` | `aquatico` | `voador` | `ancestral` | `mitico`
+- `classificacao` — int 1–5 (filtro exato)
+- `classificacao_min` — int 1–5 (filtro `>=`, ex: `3` retorna épicas+lendárias+míticas)
+- `busca` — substring em nome (2–100 chars)
+- `limit` (default 50, max 100), `offset`
+
+**Resposta:**
+```json
+{
+  "total": 42,
+  "limit": 50, "offset": 0,
+  "bestiario": [
+    {
+      "id": "...",
+      "slug": "lobo-das-sombras",
+      "nome": "Lobo das Sombras",
+      "tipo": "silvestre",
+      "classificacao": 3,
+      "ilustracao_url": "https://...",
+      "lore": "...markdown..."
+    }
+  ]
+}
+```
+
+**Mapa classificacao → tier visual** (mesmo padrão de raridade do jogo, usado pelo guidebook in-game):
+
+| Classificação | Tier |
+|--------------:|------|
+| 5 | mítico |
+| 4 | lendário |
+| 3 | épico |
+| 2 | raro |
+| 1 | comum |
+
+#### `GET /bestiario/:ref`
+
+Lookup individual. Aceita 3 formatos no path:
+- **UUID**: `/bestiario/550e8400-...` (mais estável)
+- **slug** (lowercase + hyphens): `/bestiario/lobo-das-sombras` (**recomendado pro bot Discord**)
+- **nome** (case-insensitive): `/bestiario/Lobo%20das%20Sombras`
+
+Resolução: UUID → slug → nome. UMA query com OR.
+
+**Resposta:**
+```json
+{
+  "id": "...",
+  "slug": "lobo-das-sombras",
+  "nome": "Lobo das Sombras",
+  "tipo": "silvestre",
+  "classificacao": 3,
+  "ilustracao_url": "https://...",
+  "lore": "...história completa em markdown...",
+  "criado_em": "...",
+  "atualizado_em": "...",
+  "resolvido_por": { "tipo": "slug_ou_nome", "valor": "Lobo das Sombras" }
+}
+```
+
+**Erros:** `400` ref vazia/encoding inválido, `404` criatura não existe ou inativa.
+
+---
+
+### Eventos & Missões
+
+#### `GET /eventos/ativos`
+
+Eventos sazonais correntes (status = `ativo`). O campo `config` é filtrado por tipo pra não vazar curva de probabilidade nem fórmulas de balanceamento — bot recebe só os campos que fazem sentido pro jogador.
+
+**Resposta:**
+```json
+{
+  "total": 2,
+  "eventos": [
+    {
+      "id": "...",
+      "slug": "lucky-wheel-mai-26",
+      "tipo": "lucky_wheel",
+      "nome": "Roleta da Sorte",
+      "descricao": "...",
+      "banner_url": "...",
+      "status": "ativo",
+      "inicio_em": "2026-05-01T00:00:00Z",
+      "fim_em": "2026-05-04T00:00:00Z",
+      "config": {
+        "custo_runas": 100,
+        "slots": [
+          { "nome": "1.000 Libras", "tipo": "libras" },
+          { "nome": "Ficha Dourada", "tipo": "ficha" }
+        ],
+        "milestones": [...]
+      }
+    }
+  ]
+}
+```
+
+Tipos possíveis: `recarga`, `mge`, `lucky_wheel`, `boss_mundial`. Schema do `config` varia por tipo (sempre subset do interno):
+
+| Tipo | Campos expostos |
+|---|---|
+| `recarga` | `milestones[].reais`, `milestones[].recompensa` |
+| `mge` | `insignia_id`, `dias_tematicos` |
+| `lucky_wheel` | `custo_runas`, `slots[].nome+tipo` (sem peso), `milestones` |
+| `boss_mundial` | `boss_nome`, `hp_total` |
+
+#### `GET /missoes/abertas?incluir_arcos=`
+
+Missões com inscrição aberta no quadro. Filtra automaticamente:
+1. `status='aberta'`
+2. `inscricao_ate > now()` (missões com prazo expirado mas ainda não fechadas pelo cron são excluídas)
+3. Por default, `arco_id IS NULL` — missões parte de arco narrativo são ocultadas porque jogador inscreve via arco, não via missão individual.
+
+**Query params:**
+- `incluir_arcos` (default `false`) — se `true`, traz também as missões parte de arco
+
+**Resposta:**
+```json
+{
+  "total": 5,
+  "incluir_arcos": false,
+  "missoes": [
+    {
+      "id": "...",
+      "nome": "Caverna Perdida",
+      "tipo": "dungeon",
+      "descricao": "...",
+      "status": "aberta",
+      "vagas": 5,
+      "vagas_preenchidas": 3,
+      "vagas_restantes": 2,
+      "parte_de_arco": false,
+      "horario_sessao": "2026-05-10T20:00:00Z",
+      "inscricao_ate": "2026-05-10T19:00:00Z",
+      "plataforma": "habbo",
+      "risco_morte": "baixo",
+      "nivel_minimo": 20,
+      "rank_minimo": "C",
+      "classes_permitidas": null,
+      "origens_permitidas": null,
+      "estamentos_permitidos": null,
+      "guildas_permitidas": null,
+      "assinaturas_permitidas": null,
+      "guilda_exclusiva": null,
+      "dungeon_id": "...",
+      "arco_id": null,
+      "criado_em": "..."
+    }
+  ]
+}
+```
+
+#### `GET /missoes/:id/inscritos`
+
+Lista os personagens inscritos numa missão específica, separados em **confirmados** (com vaga garantida) e **fila de espera** (promovidos automaticamente quando confirmado desiste ou GM expande vagas).
+
+**Path params:**
+- `id` — UUID da missão (vem do `id` retornado em `/missoes/abertas`)
+
+**Resposta:**
+```json
+{
+  "missao_id": "...",
+  "missao_nome": "Caverna Perdida",
+  "status": "aberta",
+  "vagas": 5,
+  "vagas_preenchidas": 3,
+  "vagas_restantes": 2,
+  "total_inscritos": 4,
+  "total_confirmados": 3,
+  "total_fila_espera": 1,
+  "confirmados": [
+    {
+      "inscricao_id": "...",
+      "status": "confirmado",
+      "posicao_fila": null,
+      "inscrito_em": "2026-05-10T15:30:00Z",
+      "personagem": {
+        "id": "...",
+        "nome": "Aragorn",
+        "titulo": "Caçador das Sombras",
+        "classe": "espadachim",
+        "raca": "humano",
+        "nivel": 47,
+        "rank": "A",
+        "avatar_url": "https://...",
+        "moldura_icone": "rank_a",
+        "discord_id": "187348111729885184"
+      }
+    }
+  ],
+  "fila_espera": [
+    {
+      "inscricao_id": "...",
+      "status": "fila_espera",
+      "posicao_fila": 1,
+      "inscrito_em": "2026-05-10T16:00:00Z",
+      "personagem": { "...": "..." }
+    }
+  ]
+}
+```
+
+**Ordenação:**
+- `confirmados`: por `inscrito_em` ASC (ordem de inscrição)
+- `fila_espera`: por `posicao_fila` ASC (próximo a ser promovido em 1º)
+
+**`discord_id`** — snowflake do Discord do dono do personagem. Útil pra bot taguear `<@${discord_id}>` em mensagens. Retorna `null` se o user logou via outro provider OAuth (Google, etc) em vez de Discord. **NÃO é PII sensível**: é o ID público que o user compartilhou ao logar via OAuth Discord — mesma info disponível em qualquer guild do Discord onde ele esteja.
+
+**Privacidade preservada:** nunca retorna `user_id` (UUID interno do Supabase), email, ou qualquer outro dado pessoal. Apenas identidade pública do personagem + Discord ID quando aplicável.
+
+**Erros:** `400` se `id` não é UUID válido. `404` se missão não existe.
+
+---
+
+## Mutações (POST)
+
+Todos os endpoints abaixo:
+- Exigem `X-API-Key` com o scope listado
+- Exigem `Idempotency-Key: <uuid>` no header
+- Logam em `transacoes_libras` (no caso de Libras) com `tipo='api_publica'`, `descricao` prefixada com `[API <nome-da-key>]` e `referencia_id = api_keys.id`
+- Aparecem no audit log (`api_publica_audit`) com hash sha256 do payload (plaintext nunca armazenado)
+- Contam contra `+ 10 writes/min/key` adicional
+
+### Libras
+
+#### `POST /personagens/:id/libras/creditar`
+
+Credita Libras no saldo do dono do personagem. Atomic via RPC Postgres (sem race condition).
+
+**Scope:** `currency:libras:write`
+**Cap:** `valor` máximo 100.000 por chamada
+
+**Path params:**
+- `id` — UUID do personagem (não nome — `id` aqui é estável)
+
+**Headers:**
+```
+X-API-Key: ark_pub_xxx
+Content-Type: application/json
+Idempotency-Key: <uuid-v4>
+```
+
+**Body:**
+```json
+{ "valor": 500, "descricao": "Recompensa de sessão #142" }
+```
+
+**Resposta `200`:**
+```json
+{
+  "ok": true,
+  "personagem_id": "550e8400-...",
+  "personagem_nome": "Aragorn",
+  "valor_creditado": 500,
+  "novo_saldo": 12450
+}
+```
+
+**Erros:**
+- `400` body inválido (valor fora do range 1–100.000, descricao vazia/muito longa, etc), Idempotency-Key ausente ou não-UUID
+- `401` X-API-Key ausente/inválida
+- `403` key sem scope `currency:libras:write`
+- `404` personagem não encontrado ou inativo
+- `429` rate limit (geral ou write)
+
+---
+
+#### `POST /personagens/:id/libras/debitar`
+
+Debita Libras do saldo. **Atomic + bloqueio de saldo negativo** no RPC — se o jogador não tem saldo suficiente, retorna `402` sem fazer nada.
+
+**Scope:** `currency:libras:write`
+**Cap:** `valor` máximo 100.000 por chamada
+
+**Body:**
+```json
+{ "valor": 150, "descricao": "Custo de inscrição em torneio" }
+```
+
+**Resposta `200`:** mesma estrutura do creditar (com `valor_debitado` em vez de `valor_creditado`).
+
+**Resposta `402 Payment Required`** (saldo insuficiente):
+```json
+{ "error": "Saldo de Libras insuficiente", "personagem_id": "550e8400-..." }
+```
+
+A transação é logada em `transacoes_libras` com `valor` **negativo** (convenção do projeto).
+
+---
+
+### Inventário
+
+#### `POST /personagens/:id/inventario/adicionar`
+
+Adiciona N unidades de um item ao inventário. **Categoria-aware**: armas/armaduras (categorias de instância única) viram **N rows separadas** com `quantidade=1` cada, pra preservar estado individual (encantamentos, grau, etc). Demais categorias stackam normalmente.
+
+**Scope:** `inventory:write`
+**Cap:** `quantidade` máxima 100 por chamada
+
+Aceita **`item_id` (UUID)** OU **`slug` (string)** — exatamente um dos dois, não ambos.
+
+**Body (com item_id):**
+```json
+{ "item_id": "550e8400-...", "quantidade": 1 }
+```
+
+**Body (com slug):**
+```json
+{ "slug": "pedra-refinamento", "quantidade": 5 }
+```
+
+**Resposta `200`:**
+```json
+{
+  "ok": true,
+  "personagem_id": "...",
+  "item_id": "...",
+  "item_nome": "Pedra de Refinamento",
+  "item_slug": "pedra-refinamento",
+  "quantidade_adicionada": 5
+}
+```
+
+**Erros:**
+- `400` body inválido (envia ambos `item_id` e `slug`, quantidade fora de 1–100, etc), Idempotency-Key ausente
+- `403` key sem scope `inventory:write`
+- `404` personagem não encontrado, ou item não existe no catálogo
+
+---
+
+#### `POST /personagens/:id/inventario/remover`
+
+Remove N unidades de **uma row específica** do inventário. Exige `inventario_id` (não `item_id`) porque armas/armaduras têm múltiplas rows com mesmo `item_id` (instâncias únicas) e o caller precisa escolher qual.
+
+**Como descobrir o `inventario_id`:** consulte a ficha completa via `GET /personagens/:nomeOuId` e use o `inventario.id` da row exata que quer mexer (futuro — endpoint de listagem direta do inventário ainda não existe; por ora extraia da ficha completa).
+
+**Scope:** `inventory:write`
+**Cap:** `quantidade` máxima 100 por chamada
+
+**Body:**
+```json
+{ "inventario_id": "a3f4...", "quantidade": 1 }
+```
+
+**Resposta `200`:**
+```json
+{
+  "ok": true,
+  "personagem_id": "...",
+  "inventario_id": "a3f4...",
+  "item_id": "...",
+  "quantidade_removida": 1,
+  "quantidade_restante": 4,
+  "row_deletada": false
+}
+```
+
+Se `quantidade_restante == 0` e não há reservas ativas em marketplace/negociações, `row_deletada: true` e a row é apagada do banco.
+
+**Erros:**
+- `400` body inválido, Idempotency-Key ausente
+- `402` quantidade indisponível (retorna `disponivel`, `reservado`, `total` no body pra cliente entender)
+- `403` key sem scope `inventory:write`, OU `inventario_id` pertence a outro personagem (anti-IDOR)
+- `404` `inventario_id` não encontrado
+- `409` item está **equipado** — desequipar pelo painel do jogador antes de remover. Item equipado bloqueia remoção pra não bagunçar build/silhueta. Também `409` se houver race condition (alguém debitou entre a leitura e o update)
+
+---
+
+## Códigos de status
+
+| Status | Significado |
+|-------:|-------------|
+| `200` | Sucesso |
+| `400` | Query/path/body inválidos, ou Idempotency-Key ausente em POST |
+| `401` | Sem `X-API-Key` ou key inválida/revogada |
+| `402` | Saldo de Libras insuficiente OU quantidade de item indisponível |
+| `403` | Key sem scope necessário OU anti-IDOR (row de outro personagem) |
+| `404` | Recurso não existe |
+| `409` | Item equipado (no remover) ou race condition |
+| `429` | Rate limit excedido (geral ou write) |
+| `500` | Erro interno (logado server-side, contate dono da API) |
+
+---
+
+## Boas práticas
+
+### Cache do lado cliente
+- Catálogos (skills, itens, pergaminhos, maestrias) mudam pouco. Cache de 5–15 min.
+- Personagem individual pode mudar a cada minuto. Cache curto (30s–60s).
+- Rankings recalculam em tempo real. Cache de 1–2 min é razoável.
+
+### Paginação
+Endpoints com `limit`/`offset` retornam `total` no payload. Use pra calcular total de páginas.
+
+### Tratamento de erros
+Sempre teste `status === 200` antes de assumir payload. Erros vêm com `{ error: "...", detail?: {...} }`.
+
+### Timeouts
+Configure timeout de 10s no cliente HTTP. Endpoints como `/rankings/poder` agregam dados de centenas de personagens — pode levar 1–3s.
+
+### Identificação do bot
+Recomendado enviar `User-Agent: discord-bot-NOME/versao` pra ajudar diagnóstico.
+
+---
+
+## Exemplo de integração (Discord.js)
+
+```js
+import 'dotenv/config'
+import fetch from 'node-fetch'
+
+const ARKANDIA_API = 'https://www.ernas.com.br/api/public/v1'
+const API_KEY = process.env.ARKANDIA_API_KEY
+
+async function fetchArkandia(path) {
+  const res = await fetch(`${ARKANDIA_API}${path}`, {
+    headers: { 'X-API-Key': API_KEY, 'User-Agent': 'meu-bot/1.0' },
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error ?? `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+// Helper pra POSTs com idempotency. Gera UUID novo a cada chamada
+// — pra retries do mesmo bot, embrulhe num retry-helper que reusa
+// o mesmo idempotencyKey (ver exemplo abaixo).
+import { randomUUID } from 'crypto'
+
+async function postArkandia(path, body, idempotencyKey = randomUUID()) {
+  const res = await fetch(`${ARKANDIA_API}${path}`, {
+    method: 'POST',
+    headers: {
+      'X-API-Key': API_KEY,
+      'Content-Type': 'application/json',
+      'Idempotency-Key': idempotencyKey,
+      'User-Agent': 'meu-bot/1.0',
+    },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error ?? `HTTP ${res.status}`)
+  }
+  return res.json()
+}
+
+// /ficha <nome>: lookup por nome do personagem
+client.on('interactionCreate', async (i) => {
+  if (!i.isChatInputCommand() || i.commandName !== 'ficha') return
+  const nome = i.options.getString('nome', true)
+
+  try {
+    const personagem = await fetchArkandia(`/personagens/${encodeURIComponent(nome)}`)
+    await i.reply({ embeds: [montarEmbed(personagem)] })
+  } catch (err) {
+    await i.reply({ content: `Erro: ${err.message}`, ephemeral: true })
+  }
+})
+
+// /minhaficha: resolve direto pelo Discord ID do user que digitou
+// (mais conveniente — user não precisa lembrar nome do personagem)
+client.on('interactionCreate', async (i) => {
+  if (!i.isChatInputCommand() || i.commandName !== 'minhaficha') return
+
+  try {
+    const personagem = await fetchArkandia(`/personagens/discord/${i.user.id}`)
+    await i.reply({ embeds: [montarEmbed(personagem)] })
+  } catch (err) {
+    if (err.message.includes('não cadastrado')) {
+      await i.reply({ content: 'Você ainda não criou conta em Arkandia.', ephemeral: true })
+    } else {
+      await i.reply({ content: `Erro: ${err.message}`, ephemeral: true })
+    }
+  }
+})
+
+// /habbo <nick>: resolve por nick do Habbo
+client.on('interactionCreate', async (i) => {
+  if (!i.isChatInputCommand() || i.commandName !== 'habbo') return
+  const nick = i.options.getString('nick', true)
+
+  try {
+    const personagem = await fetchArkandia(`/personagens/habbo/${encodeURIComponent(nick)}`)
+    await i.reply({ embeds: [montarEmbed(personagem)] })
+  } catch (err) {
+    await i.reply({ content: `Erro: ${err.message}`, ephemeral: true })
+  }
+})
+
+function montarEmbed(p) {
+  return {
+    title: `${p.nome} — ${p.titulo ?? ''}`,
+    description: `**${p.classe}** ${p.raca}\n**Nível ${p.nivel}** · Rank **${p.rank}** · Poder **${p.indice_poder.toLocaleString('pt-BR')}**`,
+    color: parseInt(p.indice_poder_cor.replace('#', ''), 16),
+    thumbnail: { url: p.avatar_url ?? '' },
+    fields: [
+      { name: 'Conquistas', value: `🥉 ${p.conquistas.bronze} · 🥈 ${p.conquistas.prata} · 🥇 ${p.conquistas.ouro}`, inline: true },
+      { name: 'Build', value: `${p.build_skills.length}/8 equipadas`, inline: true },
+      { name: 'Acervo', value: String(p.skills_adquiridas.length), inline: true },
+      { name: 'Pergaminhos', value: String(p.pergaminhos.length), inline: true },
+    ],
+  }
+}
+
+// /npc falar nome:"Guram" mensagem:"Olá!": bot impersona NPC via webhook.
+// Pega retrato + nome oficial da API, cria webhook temporário no canal,
+// envia mensagem como se fosse o NPC, depois deleta o webhook.
+import { WebhookClient } from 'discord.js'
+
+client.on('interactionCreate', async (i) => {
+  if (!i.isChatInputCommand() || i.commandName !== 'npc') return
+  if (i.options.getSubcommand() !== 'falar') return
+
+  const nomeNpc = i.options.getString('nome', true)
+  const mensagem = i.options.getString('mensagem', true)
+
+  try {
+    const npc = await fetchArkandia(`/npcs/${encodeURIComponent(nomeNpc)}`)
+
+    // Cria webhook descartável no canal
+    const webhook = await i.channel.createWebhook({
+      name: `${npc.nome}${npc.titulo ? ' · ' + npc.titulo : ''}`,
+      avatar: npc.retrato_url,
+      reason: 'NPC RP via /npc falar',
+    })
+
+    await webhook.send({ content: mensagem })
+    await webhook.delete()  // limpa imediatamente — usar token-only se quiser persistir
+
+    await i.reply({ content: `✦ ${npc.nome} falou.`, ephemeral: true })
+  } catch (err) {
+    if (err.message.includes('não encontrado')) {
+      await i.reply({ content: `NPC "${nomeNpc}" não cadastrado em Arkandia.`, ephemeral: true })
+    } else {
+      await i.reply({ content: `Erro: ${err.message}`, ephemeral: true })
+    }
+  }
+})
+
+// /mestre dropar item:"Pedra de Refinamento" quantidade:2: anuncia loot
+// com embed cinematográfico + botão "Pegar Loot" interativo.
+import { ButtonBuilder, ButtonStyle, ActionRowBuilder } from 'discord.js'
+
+const COR_RARIDADE = {
+  comum: 0x6B7280, raro: 0x3B82F6, epico: 0x8B5CF6,
+  lendario: 0xF59E0B, mitico: 0xC41E3A,
+}
+
+client.on('interactionCreate', async (i) => {
+  if (!i.isChatInputCommand() || i.commandName !== 'mestre') return
+  if (i.options.getSubcommand() !== 'dropar') return
+
+  const nomeItem = i.options.getString('item', true)
+  const qtd = i.options.getInteger('quantidade') ?? 1
+
+  try {
+    const item = await fetchArkandia(`/itens/${encodeURIComponent(nomeItem)}`)
+
+    const embed = {
+      title: `${item.nome}${qtd > 1 ? ` ×${qtd}` : ''}`,
+      description: item.descricao ?? '*item misterioso*',
+      color: COR_RARIDADE[item.raridade] ?? 0x6B7280,
+      thumbnail: { url: item.imagem_url ?? '' },
+      fields: [
+        { name: 'Categoria', value: item.categoria, inline: true },
+        { name: 'Raridade', value: item.raridade.toUpperCase(), inline: true },
+        ...(item.grau ? [{ name: 'Grau', value: String(item.grau), inline: true }] : []),
+      ],
+      footer: { text: `Loot anunciado por ${i.user.username}` },
+    }
+
+    const botao = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`pegar-loot:${item.id}:${qtd}`)
+        .setLabel('🎁 Pegar Loot')
+        .setStyle(ButtonStyle.Success)
+    )
+
+    await i.reply({ embeds: [embed], components: [botao] })
+  } catch (err) {
+    if (err.message.includes('não encontrado')) {
+      await i.reply({ content: `Item "${nomeItem}" não existe no catálogo.`, ephemeral: true })
+    } else {
+      await i.reply({ content: `Erro: ${err.message}`, ephemeral: true })
+    }
+  }
+})
+
+// /pagar discord:@user valor:500 motivo:"recompensa da sessão #142"
+// Exemplo de POST com idempotency. Resolve o personagem do user pelo
+// Discord ID, depois credita Libras com retry seguro.
+//
+// IMPORTANTE: a key precisa ter scope `currency:libras:write`.
+client.on('interactionCreate', async (i) => {
+  if (!i.isChatInputCommand() || i.commandName !== 'pagar') return
+
+  const discordUser = i.options.getUser('discord', true)
+  const valor = i.options.getInteger('valor', true)
+  const motivo = i.options.getString('motivo', true)
+
+  try {
+    // 1. Resolve personagem pelo Discord ID
+    const personagem = await fetchArkandia(`/personagens/discord/${discordUser.id}`)
+
+    // 2. UUID único pra essa operação. Se você precisar retry, REUSE
+    //    esse mesmo UUID — servidor devolve a resposta cacheada sem
+    //    creditar de novo. Aqui gera novo a cada slash command.
+    const idemp = randomUUID()
+
+    // 3. Credita Libras. Body validado: valor em 1..100_000, descricao 1..200.
+    const resp = await postArkandia(
+      `/personagens/${personagem.id}/libras/creditar`,
+      { valor, descricao: motivo },
+      idemp,
+    )
+
+    const replay = resp.idempotency_replay ? ' (retry — operação já tinha sido processada)' : ''
+    await i.reply({
+      content: `✦ Creditadas **${valor.toLocaleString('pt-BR')} Libras** pra **${personagem.nome}**. Novo saldo: ${resp.novo_saldo.toLocaleString('pt-BR')}${replay}`,
+    })
+  } catch (err) {
+    // 402 saldo insuficiente (no debitar), 403 sem scope, 404 personagem
+    // não cadastrado, 429 rate limit. Mensagem genérica e segura aqui.
+    await i.reply({ content: `Erro: ${err.message}`, ephemeral: true })
+  }
+})
+
+// Padrão de retry com idempotency. Use isso pra operações financeiras
+// que NÃO podem duplicar em caso de timeout/falha temporária.
+async function postComRetry(path, body, maxTentativas = 3) {
+  const idemp = randomUUID() // gerado UMA VEZ, reusado em todas as tentativas
+  let ultimoErro
+  for (let i = 0; i < maxTentativas; i++) {
+    try {
+      return await postArkandia(path, body, idemp)
+    } catch (err) {
+      ultimoErro = err
+      // Não retry em 4xx semânticos (saldo insuf, sem scope, etc).
+      if (/4\d\d/.test(err.message) && !err.message.includes('429')) throw err
+      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, i))) // backoff
+    }
+  }
+  throw ultimoErro
+}
+```
+
+---
+
+## Mudanças & versionamento
+
+Versão atual: **v1**.
+
+Mudanças não-breaking (adições de campos, novos endpoints, novos query params opcionais) podem acontecer sem aviso prévio em `/v1/`.
+
+Mudanças breaking (remoção de campo, mudança de tipo, mudança de path) só acontecem em `/v2/`. `/v1/` continua respondendo.
+
+Quando uma versão é descontinuada, fica avisado com 90 dias de antecedência via:
+- Header `Sunset: <data>` em respostas
+- Comunicação por canal direto com donos de keys ativas
+
+---
+
+## Suporte
+
+Problemas? Contate o dono da API ou abra issue no repo do Arkandia. Inclua:
+- Endpoint chamado
+- Query params
+- Status retornado
+- Header `X-RateLimit-*` se relevante
+- Timestamp aproximado da request
+
+A key revelada na criação NÃO pode ser recuperada — se perder, peça revogação da antiga e geração de uma nova.
