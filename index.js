@@ -249,7 +249,7 @@ function getCabecalhoCena(cena) {
         const ativo = cena.players[cena.turnoAtual];
         let cabecalho = `⚔ **COMBATE INICIADO! (Rodada ${cena.rodada})**\nÉ o turno de: **${ativo.name}**. Mova sua peça ou realize sua ação!`;
         if (cena.tempoTurnoMs && cena.fimTurnoTimestamp) {
-            cabecalho += `\n⧖ Tempo restante: <t:${Math.floor(cena.fimTurnoTimestamp / 1000)}:R>`;
+            cabecalho += `\n⧖ Tempo de Turno: ${cena.tempoTurnoMs / 1000}s (Acaba <t:${Math.floor(cena.fimTurnoTimestamp / 1000)}:R>)`;
         }
         return cabecalho;
     }
@@ -696,6 +696,64 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.isModalSubmit()) {
+        if (interaction.customId.startsWith('preview_resize_submit_')) {
+            const previewId = interaction.customId.replace('preview_resize_submit_', '');
+            const cena = cenasAtivas.get(previewId);
+            if (!cena) return await interaction.reply({ content: '✗ Preview expirada.', ephemeral: true });
+            
+            const colunas = parseInt(interaction.fields.getTextInputValue('colunas_input'), 10);
+            const linhas = parseInt(interaction.fields.getTextInputValue('linhas_input'), 10);
+            
+            if (colunas > 0 && linhas > 0) {
+                cena.colunas = colunas;
+                cena.linhas = linhas;
+                
+                for (const p of cena.players) {
+                    p.x = Math.min(p.x, colunas - 1);
+                    p.y = Math.min(p.y, linhas - 1);
+                }
+            }
+
+            await interaction.deferUpdate();
+            const bufferPreview = await renderMap(cena);
+            const attachmentPreview = new AttachmentBuilder(bufferPreview, { name: 'preview.png' });
+            await interaction.editReply({ files: [attachmentPreview] });
+            return;
+        }
+
+        if (interaction.customId.startsWith('preview_pos_submit_')) {
+            const previewId = interaction.customId.replace('preview_pos_submit_', '');
+            const cena = cenasAtivas.get(previewId);
+            if (!cena) return await interaction.reply({ content: '✗ Preview expirada.', ephemeral: true });
+
+            for (let i = 0; i < cena.players.length; i++) {
+                try {
+                    const coord = interaction.fields.getTextInputValue(`pos_input_${i}`).toUpperCase().trim();
+                    const letras = coord.match(/[A-Z]+/);
+                    const numeros = coord.match(/[0-9]+/);
+                    if (letras && numeros) {
+                        let letra = letras[0];
+                        let nx = 0;
+                        for (let j = 0; j < letra.length; j++) {
+                            nx = nx * 26 + (letra.charCodeAt(j) - 64);
+                        }
+                        nx -= 1;
+                        let ny = parseInt(numeros[0], 10) - 1;
+                        if (nx >= 0 && ny >= 0 && nx < cena.colunas && ny < cena.linhas) {
+                            cena.players[i].x = nx;
+                            cena.players[i].y = ny;
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            await interaction.deferUpdate();
+            const bufferPreview = await renderMap(cena);
+            const attachmentPreview = new AttachmentBuilder(bufferPreview, { name: 'preview.png' });
+            await interaction.editReply({ files: [attachmentPreview] });
+            return;
+        }
+
         if (interaction.customId === 'modal_mover_coord_submit') {
             const coord = interaction.fields.getTextInputValue('coord_input').toUpperCase().trim();
             const cena = cenasAtivas.get(interaction.channelId);
@@ -731,6 +789,60 @@ client.on('interactionCreate', async interaction => {
         }
         return;
     }
+    if (interaction.isButton() && interaction.customId.startsWith('preview_resize_')) {
+        const previewId = interaction.customId.replace('preview_resize_', '');
+        const cena = cenasAtivas.get(previewId);
+        if (!cena) return await interaction.reply({ content: '✗ Preview expirada.', ephemeral: true });
+
+        const modal = new ModalBuilder().setCustomId(`preview_resize_submit_${previewId}`).setTitle('Redimensionar Mapa');
+        const colInput = new TextInputBuilder().setCustomId('colunas_input').setLabel('Colunas (Largura)').setStyle(TextInputStyle.Short).setValue(cena.colunas.toString()).setRequired(true);
+        const linInput = new TextInputBuilder().setCustomId('linhas_input').setLabel('Linhas (Altura)').setStyle(TextInputStyle.Short).setValue(cena.linhas.toString()).setRequired(true);
+        modal.addComponents(new ActionRowBuilder().addComponents(colInput), new ActionRowBuilder().addComponents(linInput));
+        
+        await interaction.showModal(modal);
+        return;
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('preview_pos_')) {
+        const previewId = interaction.customId.replace('preview_pos_', '');
+        const cena = cenasAtivas.get(previewId);
+        if (!cena) return await interaction.reply({ content: '✗ Preview expirada.', ephemeral: true });
+
+        const modal = new ModalBuilder().setCustomId(`preview_pos_submit_${previewId}`).setTitle('Mover Jogadores');
+        for (let i = 0; i < Math.min(cena.players.length, 5); i++) {
+            const p = cena.players[i];
+            const letra = String.fromCharCode(65 + p.x);
+            const numero = p.y + 1;
+            const posInput = new TextInputBuilder().setCustomId(`pos_input_${i}`).setLabel(`Posição de ${p.name} (ex: A1)`).setStyle(TextInputStyle.Short).setValue(`${letra}${numero}`).setRequired(true);
+            modal.addComponents(new ActionRowBuilder().addComponents(posInput));
+        }
+        
+        await interaction.showModal(modal);
+        return;
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('preview_start_')) {
+        const previewId = interaction.customId.replace('preview_start_', '');
+        const cena = cenasAtivas.get(previewId);
+        if (!cena) return await interaction.reply({ content: '✗ Preview expirada.', ephemeral: true });
+
+        await interaction.deferUpdate();
+
+        cena.isPreview = false;
+        cena.estado = 'COMBATE';
+        
+        const cid = cena.channelIdOriginal;
+        cenasAtivas.set(cid, cena);
+        cenasAtivas.delete(previewId);
+
+        const channel = interaction.guild.channels.cache.get(cid);
+        if (channel) {
+            await repintarMapaNovo(channel, cena);
+        }
+
+        await interaction.editReply({ content: '✅ Arena inicializada e enviada para o canal oficial!', components: [] });
+        return;
+    }
 
     if (interaction.isButton() && interaction.customId.startsWith('arena_ban_')) {
         const draft = arenasDraft.get(interaction.message.id);
@@ -754,23 +866,30 @@ client.on('interactionCreate', async interaction => {
             const attachment = new AttachmentBuilder(buffer, { name: 'draft.png' });
 
             const embedOriginal = EmbedBuilder.from(interaction.message.embeds[0])
-                .setDescription(`**${mapaBanido.nome}** foi banido.\n\n❖ O mapa escolhido foi: **${mapaEscolhido.nome}**! Inicializando arena...`);
+                .setDescription(`**${mapaBanido.nome}** foi banido.\n\n❖ O mapa escolhido foi: **${mapaEscolhido.nome}**! O Mestre está configurando o mapa...`);
             await interaction.update({ embeds: [embedOriginal], files: [attachment], components: [] });
 
-            const cid = interaction.channelId;
-            cenasAtivas.set(cid, {
+            const previewId = "preview_" + interaction.message.id;
+            let fundoUsado = mapaEscolhido.fundoUrl;
+            if (fs.existsSync(fundoUsado.replace('.png', ' - Tabletop Version.png'))) {
+                fundoUsado = fundoUsado.replace('.png', ' - Tabletop Version.png');
+            }
+
+            cenasAtivas.set(previewId, {
+                isPreview: true,
                 linhas: mapaEscolhido.linhas,
                 colunas: mapaEscolhido.colunas,
-                fundoUrl: mapaEscolhido.fundoUrl,
-                estado: 'ABERTA',
+                fundoUrl: fundoUsado,
+                estado: 'CONFIGURACAO',
                 rodada: 1,
                 turnoAtual: 0,
                 players: [],
                 msgId: null,
-                tempoTurnoMs: draft.tempoTurnoMs
+                tempoTurnoMs: draft.tempoTurnoMs,
+                channelIdOriginal: interaction.channelId
             });
 
-            const cena = cenasAtivas.get(cid);
+            const cena = cenasAtivas.get(previewId);
             
             try {
                 for (let i = 0; i < draft.capitaes.length; i++) {
@@ -789,8 +908,16 @@ client.on('interactionCreate', async interaction => {
                 }
             } catch(e) { console.error('Erro ao adicionar jogadores na arena', e); }
 
-            cena.estado = 'COMBATE';
-            await repintarMapaNovo(interaction.channel, cena);
+            const bufferPreview = await renderMap(cena);
+            const attachmentPreview = new AttachmentBuilder(bufferPreview, { name: 'preview.png' });
+            
+            const rowSetup = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId(`preview_resize_${previewId}`).setLabel('⌖ Redimensionar').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId(`preview_pos_${previewId}`).setLabel('⌖ Mover Jogadores').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId(`preview_start_${previewId}`).setLabel('⚔ Iniciar Oficial').setStyle(ButtonStyle.Success)
+            );
+
+            await interaction.followUp({ content: `⚙ **Preview do Mestre:** Configure as posições e o tamanho do mapa tabletop antes de enviar aos jogadores.`, files: [attachmentPreview], components: [rowSetup], ephemeral: true });
             return;
         }
 
