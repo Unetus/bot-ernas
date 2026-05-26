@@ -183,7 +183,7 @@ async function renderDraft(draft) {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 36px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('🏆 Arena - Picks & Bans', canvasWidth / 2, 50);
+    ctx.fillText('❖ Arena - Picks & Bans', canvasWidth / 2, 50);
 
     const cols = 3;
     const mapW = 300;
@@ -247,13 +247,13 @@ async function renderDraft(draft) {
 function getCabecalhoCena(cena) {
     if (cena.estado === 'COMBATE') {
         const ativo = cena.players[cena.turnoAtual];
-        let cabecalho = `⚔️ **COMBATE INICIADO! (Rodada ${cena.rodada})**\nÉ o turno de: **${ativo.name}**. Mova sua peça ou realize sua ação!`;
+        let cabecalho = `⚔ **COMBATE INICIADO! (Rodada ${cena.rodada})**\nÉ o turno de: **${ativo.name}**. Mova sua peça ou realize sua ação!`;
         if (cena.tempoTurnoMs && cena.fimTurnoTimestamp) {
-            cabecalho += `\n⏳ Tempo restante: <t:${Math.floor(cena.fimTurnoTimestamp / 1000)}:R>`;
+            cabecalho += `\n⧖ Tempo restante: <t:${Math.floor(cena.fimTurnoTimestamp / 1000)}:R>`;
         }
         return cabecalho;
     }
-    return `🗺️ **MAPA TÁTICO INICIADO!**\nUse \`/cena entrar\` para participar. Modos: livre.`;
+    return `❖ **MAPA TÁTICO INICIADO!**\nUse \`/cena entrar\` para participar. Modos: livre.`;
 }
 
 function iniciarTimerTurno(channel, cena) {
@@ -264,7 +264,7 @@ function iniciarTimerTurno(channel, cena) {
     const timer = setTimeout(async () => {
         if (cena.estado !== 'COMBATE') return;
         try {
-            await channel.send(`⏳ O tempo de **${cena.players[cena.turnoAtual].name}** se esgotou! Passando o turno automaticamente.`);
+            await channel.send(`⧖ O tempo de **${cena.players[cena.turnoAtual].name}** se esgotou! Passando o turno automaticamente.`);
             do {
                 cena.turnoAtual++;
                 if (cena.turnoAtual >= cena.players.length) {
@@ -281,14 +281,14 @@ function iniciarTimerTurno(channel, cena) {
 
 function getCenaBotoes(cena) {
     const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('move_up').setEmoji('⬆️').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('move_down').setEmoji('⬇️').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('move_left').setEmoji('⬅️').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('move_right').setEmoji('➡️').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('modal_mover_coord').setEmoji('📍').setLabel('Mover (Coord.)').setStyle(ButtonStyle.Primary)
+        new ButtonBuilder().setCustomId('move_up').setLabel('▲').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('move_down').setLabel('▼').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('move_left').setLabel('◀').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('move_right').setLabel('▶').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('modal_mover_coord').setLabel('⌖ Mover (Coord.)').setStyle(ButtonStyle.Primary)
     );
     const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('passar_turno').setEmoji('⏭️').setLabel('Passar Turno').setStyle(ButtonStyle.Danger)
+        new ButtonBuilder().setCustomId('passar_turno').setLabel('» Passar Turno').setStyle(ButtonStyle.Danger)
     );
     return [row, row2];
 }
@@ -381,7 +381,7 @@ const commands = [
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 client.once('ready', async () => { 
-    console.log(`✅ Bot logado como ${client.user.tag}!`);
+    console.log(`✓ Bot logado como ${client.user.tag}!`);
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); 
 });
 
@@ -389,17 +389,17 @@ client.on('interactionCreate', async interaction => {
     // BOTÕES DE CENA (MOVER)
     if (interaction.isButton() && interaction.customId.startsWith('move_')) {
         const cena = cenasAtivas.get(interaction.channelId);
-        if (!cena) return await interaction.reply({ content: '❌ Nenhuma cena ativa.', ephemeral: true });
+        if (!cena) return await interaction.reply({ content: '✗ Nenhuma cena ativa.', ephemeral: true });
 
         const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
-        if (pIndex === -1) return await interaction.reply({ content: '❌ Você não está no tabuleiro.', ephemeral: true });
+        if (pIndex === -1) return await interaction.reply({ content: '✗ Você não está no tabuleiro.', ephemeral: true });
 
         const token = cena.players[pIndex];
-        if (token.incapacitado) return await interaction.reply({ content: '❌ Você está incapacitado e não pode se mover.', ephemeral: true });
+        if (token.incapacitado) return await interaction.reply({ content: '✗ Você está incapacitado e não pode se mover.', ephemeral: true });
 
         // Validação de Turno
         if (cena.estado === 'COMBATE' && cena.turnoAtual !== pIndex) {
-            return await interaction.reply({ content: `❌ Não é o seu turno! Agora é o turno de **${cena.players[cena.turnoAtual].name}**.`, ephemeral: true });
+            return await interaction.reply({ content: `✗ Não é o seu turno! Agora é o turno de **${cena.players[cena.turnoAtual].name}**.`, ephemeral: true });
         }
 
         const dir = interaction.customId.replace('move_', '');
@@ -415,11 +415,11 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.isButton() && interaction.customId === 'passar_turno') {
         const cena = cenasAtivas.get(interaction.channelId);
-        if (!cena || cena.estado !== 'COMBATE') return await interaction.reply({ content: '❌ Não há combate ativo.', ephemeral: true });
+        if (!cena || cena.estado !== 'COMBATE') return await interaction.reply({ content: '✗ Não há combate ativo.', ephemeral: true });
 
         const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
         if (pIndex === -1 || cena.turnoAtual !== pIndex) {
-            return await interaction.reply({ content: `❌ Não é o seu turno!`, ephemeral: true });
+            return await interaction.reply({ content: `✗ Não é o seu turno!`, ephemeral: true });
         }
 
         await interaction.deferUpdate();
@@ -438,15 +438,15 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.isButton() && interaction.customId === 'modal_mover_coord') {
         const cena = cenasAtivas.get(interaction.channelId);
-        if (!cena) return await interaction.reply({ content: '❌ Nenhuma cena ativa.', ephemeral: true });
+        if (!cena) return await interaction.reply({ content: '✗ Nenhuma cena ativa.', ephemeral: true });
 
         const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
-        if (pIndex === -1) return await interaction.reply({ content: '❌ Você não está no tabuleiro.', ephemeral: true });
+        if (pIndex === -1) return await interaction.reply({ content: '✗ Você não está no tabuleiro.', ephemeral: true });
 
-        if (cena.players[pIndex].incapacitado) return await interaction.reply({ content: '❌ Você está incapacitado e não pode se mover.', ephemeral: true });
+        if (cena.players[pIndex].incapacitado) return await interaction.reply({ content: '✗ Você está incapacitado e não pode se mover.', ephemeral: true });
 
         if (cena.estado === 'COMBATE' && cena.turnoAtual !== pIndex) {
-            return await interaction.reply({ content: `❌ Não é o seu turno!`, ephemeral: true });
+            return await interaction.reply({ content: `✗ Não é o seu turno!`, ephemeral: true });
         }
 
         const modal = new ModalBuilder().setCustomId('modal_mover_coord_submit').setTitle('Mover para Coordenada');
@@ -459,20 +459,20 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.isStringSelectMenu() && interaction.customId === 'select_skill') {
         const cacheData = skillsCache.get(interaction.message.id);
-        if (!cacheData) return interaction.reply({ content: '❌ Cache expirado.', ephemeral: true });
+        if (!cacheData) return interaction.reply({ content: '✗ Cache expirado.', ephemeral: true });
 
         const skillId = interaction.values[0];
         const skill = cacheData.skills.find(s => s.id === skillId);
         
         const skillEmbed = new EmbedBuilder()
-            .setColor(0x3498DB)
-            .setTitle(`✨ ${skill.nome} (Grau ${skill.grau})`)
+            .setColor(0x2B4C7E)
+            .setTitle(`✦ ${skill.nome} (Grau ${skill.grau})`)
             .setDescription(`**Tipo:** ${skill.tipo} | **Origem:** ${skill.origem}\n\n${skill.descricao}`);
         
         if (skill.imagem_url) skillEmbed.setThumbnail(skill.imagem_url);
         
         const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`conjurar_skill_${skill.id}`).setLabel('Conjurar Skill ✨').setStyle(ButtonStyle.Success)
+            new ButtonBuilder().setCustomId(`conjurar_skill_${skill.id}`).setLabel('✦ Conjurar Skill').setStyle(ButtonStyle.Success)
         );
 
         await interaction.update({ embeds: [skillEmbed], components: [interaction.message.components[0], row] });
@@ -484,12 +484,12 @@ client.on('interactionCreate', async interaction => {
 
         // 1. Verificar se o loot já foi coletado
         if (lootsColetados.has(msgId)) {
-            return await interaction.reply({ content: '❌ Este loot já foi coletado por outro jogador!', ephemeral: true });
+            return await interaction.reply({ content: '✗ Este loot já foi coletado por outro jogador!', ephemeral: true });
         }
 
         // 2. Verificar se está em processamento
         if (lootsEmProcessamento.has(msgId)) {
-            return await interaction.reply({ content: '⏳ Este loot está sendo coletado neste momento. Tente novamente em alguns segundos.', ephemeral: true });
+            return await interaction.reply({ content: '⧖ Este loot está sendo coletado neste momento. Tente novamente em alguns segundos.', ephemeral: true });
         }
 
         // Marcar como em processamento para travar cliques concorrentes
@@ -510,9 +510,9 @@ client.on('interactionCreate', async interaction => {
             } catch (errUser) {
                 lootsEmProcessamento.delete(msgId);
                 if (errUser.response?.status === 404) {
-                    return await interaction.editReply('❌ Você não possui um personagem ativo cadastrado no site de Arkandia. Por favor, vincule seu Discord no site antes de coletar o loot.');
+                    return await interaction.editReply('✗ Você não possui um personagem ativo cadastrado no site de Arkandia. Por favor, vincule seu Discord no site antes de coletar o loot.');
                 }
-                return await interaction.editReply(`❌ Erro ao buscar seu personagem na API: ${errUser.response?.data?.error || errUser.message}`);
+                return await interaction.editReply(`✗ Erro ao buscar seu personagem na API: ${errUser.response?.data?.error || errUser.message}`);
             }
 
             // 4. Adicionar o item ao inventário do personagem via POST
@@ -540,39 +540,39 @@ client.on('interactionCreate', async interaction => {
 
                     // Atualiza a mensagem original para desabilitar o botão e mostrar quem coletou
                     const embedOriginal = EmbedBuilder.from(interaction.message.embeds[0])
-                        .setColor(0x2ECC71)
+                        .setColor(0x2E5A36)
                         .setFooter({ text: `Coletado por ${personagem.nome}` });
 
                     await interaction.message.edit({
-                        content: `🎉 **${interaction.user.toString()}** (${personagem.nome}) coletou o item e ele foi adicionado ao seu inventário no site!`,
+                        content: `✦ **${interaction.user.toString()}** (${personagem.nome}) coletou o item e ele foi adicionado ao seu inventário no site!`,
                         embeds: [embedOriginal],
                         components: []
                     });
 
-                    return await interaction.editReply(`✅ Você coletou **${resPost.data.item_nome} (x${qtd})** com sucesso! O item já está no seu inventário do site.`);
+                    return await interaction.editReply(`✓ Você coletou **${resPost.data.item_nome} (x${qtd})** com sucesso! O item já está no seu inventário do site.`);
                 } else {
                     lootsEmProcessamento.delete(msgId);
-                    return await interaction.editReply(`❌ Erro da API ao adicionar o item: ${resPost.data.error || 'Erro desconhecido'}`);
+                    return await interaction.editReply(`✗ Erro da API ao adicionar o item: ${resPost.data.error || 'Erro desconhecido'}`);
                 }
             } catch (errPost) {
                 lootsEmProcessamento.delete(msgId);
-                return await interaction.editReply(`❌ Erro ao registrar o item no seu inventário: ${errPost.response?.data?.error || errPost.message}`);
+                return await interaction.editReply(`✗ Erro ao registrar o item no seu inventário: ${errPost.response?.data?.error || errPost.message}`);
             }
         } catch (e) {
             lootsEmProcessamento.delete(msgId);
             console.error('Erro na coleta de loot:', e);
-            return await interaction.editReply('❌ Ocorreu um erro interno ao processar a coleta do loot.');
+            return await interaction.editReply('✗ Ocorreu um erro interno ao processar a coleta do loot.');
         }
     }
 
     if (interaction.isButton() && interaction.customId === 'missao_pronto') {
         const missao = missoesPreparacao.get(interaction.message.id);
-        if (!missao) return await interaction.reply({ content: '❌ Não há nenhuma missão em preparação nesta mensagem.', ephemeral: true });
+        if (!missao) return await interaction.reply({ content: '✗ Não há nenhuma missão em preparação nesta mensagem.', ephemeral: true });
 
         const pIndex = missao.jogadores.findIndex(p => p.id === interaction.user.id);
-        if (pIndex === -1) return await interaction.reply({ content: '❌ Você não faz parte desta missão.', ephemeral: true });
+        if (pIndex === -1) return await interaction.reply({ content: '✗ Você não faz parte desta missão.', ephemeral: true });
 
-        if (missao.jogadores[pIndex].pronto) return await interaction.reply({ content: '✅ Você já está pronto.', ephemeral: true });
+        if (missao.jogadores[pIndex].pronto) return await interaction.reply({ content: '✓ Você já está pronto.', ephemeral: true });
 
         missao.jogadores[pIndex].pronto = true;
 
@@ -580,7 +580,7 @@ client.on('interactionCreate', async interaction => {
         let descricao = `Os jogadores abaixo foram convocados. Confirme que você está pronto!\n\n`;
         let todosProntos = true;
         for (const p of missao.jogadores) {
-            const status = p.pronto ? '✅' : '❌';
+            const status = p.pronto ? '[x]' : '[ ]';
             descricao += `${status} **[${p.nomePersonagem}]** <@${p.id}>\n`;
             if (!p.pronto) todosProntos = false;
         }
@@ -595,12 +595,12 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.isStringSelectMenu() && interaction.customId === 'config_mapa_categorias') {
-        if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageMessages)) return await interaction.reply({ content: '❌ Somente Mestres.', ephemeral: true });
+        if (!interaction.memberPermissions.has(PermissionFlagsBits.ManageMessages)) return await interaction.reply({ content: '✗ Somente Mestres.', ephemeral: true });
         
         mapaConfig = interaction.values;
         fs.writeFileSync('mapa_config.json', JSON.stringify(mapaConfig, null, 2), 'utf8');
         
-        await interaction.update({ content: `✅ **Configuração Salva!**\nO mapa agora exibe ${mapaConfig.length} região(ões) configurada(s).`, components: [] });
+        await interaction.update({ content: `✓ **Configuração Salva!**\nO mapa agora exibe ${mapaConfig.length} região(ões) configurada(s).`, components: [] });
         return;
     }
 
@@ -613,8 +613,8 @@ client.on('interactionCreate', async interaction => {
             .sort((a, b) => a.position - b.position)
             .first(25);
             
-        const options = categorias.map(c => ({ label: c.name.substring(0, 100), value: c.id, emoji: '🌍' }));
-        if (options.length === 0) return await interaction.reply({ content: '❌ Nenhuma região configurada no servidor.', ephemeral: true });
+        const options = categorias.map(c => ({ label: `❖ ${c.name.substring(0, 95)}`, value: c.id }));
+        if (options.length === 0) return await interaction.reply({ content: '✗ Nenhuma região configurada no servidor.', ephemeral: true });
         
         const select = new StringSelectMenuBuilder()
             .setCustomId('select_mapa_categoria')
@@ -631,9 +631,9 @@ client.on('interactionCreate', async interaction => {
         const destinoId = interaction.values[0];
         const destino = interaction.guild.channels.cache.get(destinoId);
         
-        if (!destino) return await interaction.update({ content: '❌ A região selecionada não existe mais.', components: [] });
+        if (!destino) return await interaction.update({ content: '✗ A região selecionada não existe mais.', components: [] });
         
-        await interaction.update({ content: '⏳ Viajando...', components: [] });
+        await interaction.update({ content: '⧖ Viajando...', components: [] });
         
         const oldChannels = interaction.guild.channels.cache.filter(c => c.type === ChannelType.GuildText || c.type === ChannelType.GuildCategory);
         for (const [id, ch] of oldChannels) {
@@ -646,15 +646,15 @@ client.on('interactionCreate', async interaction => {
         try {
             await destino.permissionOverwrites.create(interaction.user.id, { ViewChannel: true });
             
-            await interaction.editReply({ content: `✅ **Você viajou para a região ${destino.name}!** Todos os locais da área revelaram-se para você na barra lateral.` });
+            await interaction.editReply({ content: `✓ **Você viajou para a região ${destino.name}!** Todos os locais da área revelaram-se para você na barra lateral.` });
         } catch (e) {
-            await interaction.editReply({ content: `❌ Erro ao viajar. Certifique-se que o bot tem permissão de "Gerenciar Canais" e "Gerenciar Cargos" no servidor.` });
+            await interaction.editReply({ content: `✗ Erro ao viajar. Certifique-se que o bot tem permissão de "Gerenciar Canais" e "Gerenciar Cargos" no servidor.` });
         }
         return;
     }
 
     if (interaction.isButton() && interaction.customId === 'btn_mapa_sair') {
-        await interaction.reply({ content: '⏳ Saindo da região...', ephemeral: true });
+        await interaction.reply({ content: '⧖ Saindo da região...', ephemeral: true });
         
         const oldChannels = interaction.guild.channels.cache.filter(c => c.type === ChannelType.GuildText || c.type === ChannelType.GuildCategory);
         let removed = 0;
@@ -669,9 +669,9 @@ client.on('interactionCreate', async interaction => {
         }
         
         if (removed > 0) {
-            await interaction.editReply({ content: `✅ **Você saiu da área de Roleplay.** A região onde você estava foi ocultada da barra lateral.` });
+            await interaction.editReply({ content: `✓ **Você saiu da área de Roleplay.** A região onde você estava foi ocultada da barra lateral.` });
         } else {
-            await interaction.editReply({ content: `ℹ️ Você não estava em nenhuma região restrita no momento.` });
+            await interaction.editReply({ content: `ℹ Você não estava em nenhuma região restrita no momento.` });
         }
         return;
     }
@@ -680,35 +680,35 @@ client.on('interactionCreate', async interaction => {
         const skillId = interaction.customId.replace('conjurar_skill_', '');
         const cacheData = skillsCache.get(interaction.message.id);
         
-        if (!cacheData) return interaction.reply({ content: '❌ Essa mensagem expirou.', ephemeral: true });
+        if (!cacheData) return interaction.reply({ content: '✗ Essa mensagem expirou.', ephemeral: true });
 
         const skill = cacheData.skills.find(s => s.id === skillId);
-        if (!skill) return interaction.reply({ content: '❌ Skill não encontrada.', ephemeral: true });
+        if (!skill) return interaction.reply({ content: '✗ Skill não encontrada.', ephemeral: true });
 
         const embedSkill = EmbedBuilder.from(interaction.message.embeds[0]);
 
         await interaction.channel.send({ 
-            content: `✨ **${cacheData.personagem.nome}** está canalizando sua energia e conjura a skill **[${skill.nome}]**!`, 
+            content: `✦ **${cacheData.personagem.nome}** está canalizando sua energia e conjura a skill **[${skill.nome}]**!`, 
             embeds: [embedSkill] 
         });
         
-        return await interaction.reply({ content: '✅ Skill conjurada publicamente!', ephemeral: true });
+        return await interaction.reply({ content: '✓ Skill conjurada publicamente!', ephemeral: true });
     }
 
     if (interaction.isModalSubmit()) {
         if (interaction.customId === 'modal_mover_coord_submit') {
             const coord = interaction.fields.getTextInputValue('coord_input').toUpperCase().trim();
             const cena = cenasAtivas.get(interaction.channelId);
-            if (!cena) return await interaction.reply({ content: '❌ Nenhuma cena ativa.', ephemeral: true });
+            if (!cena) return await interaction.reply({ content: '✗ Nenhuma cena ativa.', ephemeral: true });
 
             const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
-            if (pIndex === -1) return await interaction.reply({ content: '❌ Você não está no tabuleiro.', ephemeral: true });
+            if (pIndex === -1) return await interaction.reply({ content: '✗ Você não está no tabuleiro.', ephemeral: true });
 
             const token = cena.players[pIndex];
 
             const letras = coord.match(/[A-Z]+/);
             const numeros = coord.match(/[0-9]+/);
-            if (!letras || !numeros) return await interaction.reply({ content: '❌ Coordenada inválida. Use o formato Letra+Número (ex: A1).', ephemeral: true });
+            if (!letras || !numeros) return await interaction.reply({ content: '✗ Coordenada inválida. Use o formato Letra+Número (ex: A1).', ephemeral: true });
 
             let letra = letras[0];
             let nx = 0;
@@ -719,7 +719,7 @@ client.on('interactionCreate', async interaction => {
             let ny = parseInt(numeros[0], 10) - 1;
 
             if (nx < 0 || ny < 0 || nx >= cena.colunas || ny >= cena.linhas) {
-                return await interaction.reply({ content: '❌ Coordenada fora dos limites do mapa.', ephemeral: true });
+                return await interaction.reply({ content: '✗ Coordenada fora dos limites do mapa.', ephemeral: true });
             }
 
             token.x = nx;
@@ -734,14 +734,14 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.isButton() && interaction.customId.startsWith('arena_ban_')) {
         const draft = arenasDraft.get(interaction.message.id);
-        if (!draft) return await interaction.reply({ content: '❌ Este draft já terminou ou expirou.', ephemeral: true });
+        if (!draft) return await interaction.reply({ content: '✗ Este draft já terminou ou expirou.', ephemeral: true });
 
         const capitaoAtual = draft.capitaes[draft.turnoCapitao];
-        if (interaction.user.id !== capitaoAtual) return await interaction.reply({ content: `❌ Não é a sua vez! É a vez de <@${capitaoAtual}>.`, ephemeral: true });
+        if (interaction.user.id !== capitaoAtual) return await interaction.reply({ content: `✗ Não é a sua vez! É a vez de <@${capitaoAtual}>.`, ephemeral: true });
 
         const mapaId = interaction.customId.replace('arena_ban_', '');
         const mapaIndex = draft.mapasRestantes.findIndex(m => m.id === mapaId);
-        if (mapaIndex === -1) return await interaction.reply({ content: '❌ Este mapa já foi banido.', ephemeral: true });
+        if (mapaIndex === -1) return await interaction.reply({ content: '✗ Este mapa já foi banido.', ephemeral: true });
 
         const mapaBanido = draft.mapasRestantes.splice(mapaIndex, 1)[0];
         draft.turnoCapitao = draft.turnoCapitao === 0 ? 1 : 0;
@@ -754,7 +754,7 @@ client.on('interactionCreate', async interaction => {
             const attachment = new AttachmentBuilder(buffer, { name: 'draft.png' });
 
             const embedOriginal = EmbedBuilder.from(interaction.message.embeds[0])
-                .setDescription(`**${mapaBanido.nome}** foi banido.\n\n🏆 O mapa escolhido foi: **${mapaEscolhido.nome}**! Inicializando arena...`);
+                .setDescription(`**${mapaBanido.nome}** foi banido.\n\n❖ O mapa escolhido foi: **${mapaEscolhido.nome}**! Inicializando arena...`);
             await interaction.update({ embeds: [embedOriginal], files: [attachment], components: [] });
 
             const cid = interaction.channelId;
@@ -819,7 +819,7 @@ client.on('interactionCreate', async interaction => {
     if (interaction.commandName === 'arena') {
         const sub = interaction.options.getSubcommand();
         const isMaster = interaction.memberPermissions.has(PermissionFlagsBits.ManageMessages);
-        if (!isMaster) return await interaction.reply({ content: '❌ Somente Mestres.', ephemeral: true });
+        if (!isMaster) return await interaction.reply({ content: '✗ Somente Mestres.', ephemeral: true });
 
         if (sub === 'iniciar') {
             const jogadoresRaw = interaction.options.getString('jogadores');
@@ -829,11 +829,11 @@ client.on('interactionCreate', async interaction => {
             const matches = [...jogadoresRaw.matchAll(regex)];
             const capitaesIds = matches.map(m => m[1]).slice(0, 2);
 
-            if (capitaesIds.length < 2) return await interaction.reply({ content: '❌ Você precisa mencionar pelo menos 2 jogadores (@J1 @J2) para serem os capitães do Draft.', ephemeral: true });
+            if (capitaesIds.length < 2) return await interaction.reply({ content: '✗ Você precisa mencionar pelo menos 2 jogadores (@J1 @J2) para serem os capitães do Draft.', ephemeral: true });
 
             const embed = new EmbedBuilder()
-                .setColor(0xE74C3C)
-                .setTitle('⚔️ Arena - Fase de Picks & Bans')
+                .setColor(0x8B0000)
+                .setTitle('⚔ Arena - Fase de Picks & Bans')
                 .setDescription(`Capitães: <@${capitaesIds[0]}> e <@${capitaesIds[1]}>\nTempo de Turno: ${tempoTurno}s\n\nÉ a vez de <@${capitaesIds[0]}> banir um mapa!`);
 
             const rows = [];
@@ -881,10 +881,10 @@ client.on('interactionCreate', async interaction => {
                     } catch(e){}
                 }
                 cenasAtivas.delete(cid);
-                return await interaction.reply({ content: '✅ Arena encerrada e o combate foi finalizado com sucesso!' });
+                return await interaction.reply({ content: '✓ Arena encerrada e o combate foi finalizado com sucesso!' });
             }
 
-            return await interaction.reply({ content: '❌ Nenhuma arena ou combate ativo encontrado neste canal.', ephemeral: true });
+            return await interaction.reply({ content: '✗ Nenhuma arena ou combate ativo encontrado neste canal.', ephemeral: true });
         }
         return;
     }
@@ -897,7 +897,7 @@ client.on('interactionCreate', async interaction => {
         const isMaster = interaction.memberPermissions.has(PermissionFlagsBits.ManageMessages);
         
         if (interaction.commandName === 'narrar') {
-            if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
+            if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
             const sub = interaction.options.getSubcommand();
             const cid = interaction.channelId;
             const key = `${cid}-${interaction.user.id}`;
@@ -934,7 +934,7 @@ client.on('interactionCreate', async interaction => {
                         }
                     }
                 } catch(e) {
-                    return await interaction.editReply(`❌ Nem NPC nem criatura do Bestiário foram encontrados com o nome "${nomeInput}".`);
+                    return await interaction.editReply(`✗ Nem NPC nem criatura do Bestiário foram encontrados com o nome "${nomeInput}".`);
                 }
             }
 
@@ -943,7 +943,7 @@ client.on('interactionCreate', async interaction => {
                     mestresNarrando.delete(key);
                     return await interaction.editReply('👤 **Modo Interpretação Desabilitado!**\nSuas mensagens voltaram ao normal.');
                 }
-                return await interaction.editReply('ℹ️ Você não está interpretando nenhum NPC ou Narrador neste canal.');
+                return await interaction.editReply('ℹ Você não está interpretando nenhum NPC ou Narrador neste canal.');
             }
         }
 
@@ -952,7 +952,7 @@ client.on('interactionCreate', async interaction => {
             const cid = interaction.channelId;
 
             if (sub === 'iniciar') {
-                if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
+                if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
                 const colunas = interaction.options.getInteger('colunas');
                 const linhas = interaction.options.getInteger('linhas');
                 const fundo = interaction.options.getAttachment('fundo');
@@ -962,31 +962,31 @@ client.on('interactionCreate', async interaction => {
                     estado: 'ABERTA', rodada: 1, turnoAtual: 0, players: [], msgId: null
                 });
                 await repintarMapaNovo(interaction.channel, cenasAtivas.get(cid));
-                return await interaction.editReply('✅ Cena ABERTA. Jogadores já podem entrar.');
+                return await interaction.editReply('✓ Cena ABERTA. Jogadores já podem entrar.');
             }
 
             const cena = cenasAtivas.get(cid);
-            if (!cena) return await interaction.editReply('❌ Nenhuma cena ativa.');
+            if (!cena) return await interaction.editReply('✗ Nenhuma cena ativa.');
 
             if (sub === 'fechar') {
-                if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
+                if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
                 cena.estado = 'FECHADA';
-                return await interaction.editReply('✅ Cena FECHADA. Ninguém mais entra.');
+                return await interaction.editReply('✓ Cena FECHADA. Ninguém mais entra.');
             }
 
             if (sub === 'combate_iniciar') {
-                if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
-                if (cena.players.length === 0) return await interaction.editReply('❌ Não há ninguém na cena.');
+                if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
+                if (cena.players.length === 0) return await interaction.editReply('✗ Não há ninguém na cena.');
                 cena.estado = 'COMBATE';
                 cena.rodada = 1;
                 cena.turnoAtual = 0;
                 await repintarMapaNovo(interaction.channel, cena);
-                return await interaction.editReply('✅ Combate INICIADO! Ordem de turnos trancada.');
+                return await interaction.editReply('✓ Combate INICIADO! Ordem de turnos trancada.');
             }
 
             if (sub === 'combate_proximo') {
-                if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
-                if (cena.estado !== 'COMBATE') return await interaction.editReply('❌ O Combate não está ativo. Use `/cena combate_iniciar` primeiro.');
+                if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
+                if (cena.estado !== 'COMBATE') return await interaction.editReply('✗ O Combate não está ativo. Use `/cena combate_iniciar` primeiro.');
 
                 // Roda o turno até achar alguém vivo
                 do {
@@ -998,37 +998,37 @@ client.on('interactionCreate', async interaction => {
                 } while (cena.players[cena.turnoAtual].incapacitado && cena.players.some(p => !p.incapacitado));
 
                 await repintarMapaNovo(interaction.channel, cena);
-                return await interaction.editReply(`✅ Passou para o turno de **${cena.players[cena.turnoAtual].name}**.`);
+                return await interaction.editReply(`✓ Passou para o turno de **${cena.players[cena.turnoAtual].name}**.`);
             }
 
             if (sub === 'mover_livre') {
-                if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
+                if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
                 const nToken = interaction.options.getString('nome_token').toLowerCase();
                 const pos = parsePosicao(interaction.options.getString('posicao'));
-                if (!pos) return await interaction.editReply('❌ Coordenada inválida.');
+                if (!pos) return await interaction.editReply('✗ Coordenada inválida.');
                 
                 const token = cena.players.find(p => p.name.toLowerCase().includes(nToken));
-                if (!token) return await interaction.editReply(`❌ Ninguém com "${nToken}" no nome foi encontrado.`);
+                if (!token) return await interaction.editReply(`✗ Ninguém com "${nToken}" no nome foi encontrado.`);
 
                 token.x = Math.max(0, Math.min(cena.colunas - 1, pos.x));
                 token.y = Math.max(0, Math.min(cena.linhas - 1, pos.y));
                 atualizarMapaDebounced(interaction.channel, cena);
-                return await interaction.editReply(`✅ Movimentou ${token.name}.`);
+                return await interaction.editReply(`✓ Movimentou ${token.name}.`);
             }
 
             if (sub === 'status_vida') {
-                if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
+                if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
                 const nToken = interaction.options.getString('nome_token').toLowerCase();
                 const token = cena.players.find(p => p.name.toLowerCase().includes(nToken));
-                if (!token) return await interaction.editReply(`❌ Ninguém com "${nToken}" no nome foi encontrado.`);
+                if (!token) return await interaction.editReply(`✗ Ninguém com "${nToken}" no nome foi encontrado.`);
 
                 token.incapacitado = !token.incapacitado;
                 atualizarMapaDebounced(interaction.channel, cena);
-                return await interaction.editReply(`✅ Status de ${token.name} mudado para: ${token.incapacitado ? 'Incapacitado 💀' : 'Vivo ❤️'}.`);
+                return await interaction.editReply(`✓ Status de ${token.name} mudado para: ${token.incapacitado ? 'Incapacitado 💀' : 'Vivo ❤️'}.`);
             }
 
             if (sub === 'encerrar') {
-                if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
+                if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
                 if (cena.msgId) {
                     if (timersTurno.has(cena.msgId)) {
                         clearTimeout(timersTurno.get(cena.msgId));
@@ -1037,64 +1037,64 @@ client.on('interactionCreate', async interaction => {
                     try { await (await interaction.channel.messages.fetch(cena.msgId)).delete(); } catch(e){}
                 }
                 cenasAtivas.delete(cid);
-                return await interaction.editReply('✅ Cena apagada.');
+                return await interaction.editReply('✓ Cena apagada.');
             }
 
             if (sub === 'entrar') {
-                if (cena.estado !== 'ABERTA') return await interaction.editReply('❌ Esta cena já foi fechada pelo mestre.');
-                if (cena.players.find(x => x.discordId === interaction.user.id)) return await interaction.editReply('❌ Você já está nela!');
+                if (cena.estado !== 'ABERTA') return await interaction.editReply('✗ Esta cena já foi fechada pelo mestre.');
+                if (cena.players.find(x => x.discordId === interaction.user.id)) return await interaction.editReply('✗ Você já está nela!');
                 
                 try {
                     const res = await axios.get(`${ARKANDIA_API}/personagens/discord/${interaction.user.id}`, { headers: { 'X-API-Key': API_KEY } });
                     cena.players.push({ discordId: interaction.user.id, name: res.data.nome, avatarUrl: res.data.avatar_url || 'https://i.imgur.com/vHqB3q0.png', x: 0, y: 0, isNpc: false, incapacitado: false });
                     atualizarMapaDebounced(interaction.channel, cena);
-                    return await interaction.editReply(`✅ Você entrou na cena.`);
-                } catch(e) { return await interaction.editReply(`❌ Erro ao buscar ficha.`); }
+                    return await interaction.editReply(`✓ Você entrou na cena.`);
+                } catch(e) { return await interaction.editReply(`✗ Erro ao buscar ficha.`); }
             }
 
             if (sub === 'npc_entrar') {
-                if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
+                if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
                 const pos = parsePosicao(interaction.options.getString('posicao'));
-                if (!pos) return await interaction.editReply('❌ Coordenada inválida.');
+                if (!pos) return await interaction.editReply('✗ Coordenada inválida.');
                 const nomeInput = interaction.options.getString('nome');
                 try {
                     try {
                         const res = await axios.get(`${ARKANDIA_API}/npcs/${encodeURIComponent(nomeInput)}`, { headers: { 'X-API-Key': API_KEY } });
                         cena.players.push({ discordId: 'npc_'+Date.now(), name: res.data.nome, avatarUrl: res.data.retrato_url || 'https://i.imgur.com/vHqB3q0.png', x: pos.x, y: pos.y, isNpc: true, incapacitado: false });
                         atualizarMapaDebounced(interaction.channel, cena);
-                        return await interaction.editReply(`✅ NPC colocado.`);
+                        return await interaction.editReply(`✓ NPC colocado.`);
                     } catch (eNpc) {
                         if (eNpc.response?.status === 404) {
                             const resBestia = await axios.get(`${ARKANDIA_API}/bestiario/${encodeURIComponent(nomeInput)}`, { headers: { 'X-API-Key': API_KEY } });
                             cena.players.push({ discordId: 'npc_'+Date.now(), name: resBestia.data.nome, avatarUrl: resBestia.data.ilustracao_url || 'https://i.imgur.com/vHqB3q0.png', x: pos.x, y: pos.y, isNpc: true, incapacitado: false });
                             atualizarMapaDebounced(interaction.channel, cena);
-                            return await interaction.editReply(`✅ Criatura do Bestiário colocada.`);
+                            return await interaction.editReply(`✓ Criatura do Bestiário colocada.`);
                         } else {
                             throw eNpc;
                         }
                     }
-                } catch(e) { return await interaction.editReply(`❌ Nem NPC nem criatura do Bestiário foram encontrados com o nome "${nomeInput}".`); }
+                } catch(e) { return await interaction.editReply(`✗ Nem NPC nem criatura do Bestiário foram encontrados com o nome "${nomeInput}".`); }
             }
 
             if (sub === 'mover') {
                 const pos = parsePosicao(interaction.options.getString('posicao'));
-                if (!pos) return await interaction.editReply('❌ Coordenada inválida.');
+                if (!pos) return await interaction.editReply('✗ Coordenada inválida.');
                 const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
-                if (pIndex === -1) return await interaction.editReply('❌ Você não está no mapa!');
+                if (pIndex === -1) return await interaction.editReply('✗ Você não está no mapa!');
                 
-                if (cena.players[pIndex].incapacitado) return await interaction.editReply('❌ Você está incapacitado.');
-                if (cena.estado === 'COMBATE' && cena.turnoAtual !== pIndex) return await interaction.editReply(`❌ Não é o seu turno!`);
+                if (cena.players[pIndex].incapacitado) return await interaction.editReply('✗ Você está incapacitado.');
+                if (cena.estado === 'COMBATE' && cena.turnoAtual !== pIndex) return await interaction.editReply(`✗ Não é o seu turno!`);
 
                 cena.players[pIndex].x = pos.x;
                 cena.players[pIndex].y = pos.y;
                 atualizarMapaDebounced(interaction.channel, cena);
-                return await interaction.editReply(`✅ Movimentou.`);
+                return await interaction.editReply(`✓ Movimentou.`);
             }
         }
 
         if (interaction.commandName === 'missao') {
             const sub = interaction.options.getSubcommand();
-            if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
+            if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
 
             if (sub === 'preparar') {
                 const nome = interaction.options.getString('nome');
@@ -1103,13 +1103,13 @@ client.on('interactionCreate', async interaction => {
                     const resMissoes = await axios.get(`${ARKANDIA_API}/missoes/abertas?incluir_arcos=true`, { headers: { 'X-API-Key': API_KEY } });
                     const missaoEncontrada = resMissoes.data.missoes.find(m => m.nome.toLowerCase() === nome.toLowerCase());
                     
-                    if (!missaoEncontrada) return await interaction.editReply(`❌ Missão "${nome}" não encontrada nas missões abertas.`);
+                    if (!missaoEncontrada) return await interaction.editReply(`✗ Missão "${nome}" não encontrada nas missões abertas.`);
 
                     const resInscritos = await axios.get(`${ARKANDIA_API}/missoes/${missaoEncontrada.id}/inscritos`, { headers: { 'X-API-Key': API_KEY } });
                     const confirmados = resInscritos.data.confirmados;
 
                     if (!confirmados || confirmados.length === 0) {
-                        return await interaction.editReply(`❌ A missão "${missaoEncontrada.nome}" não possui nenhum jogador confirmado na API.`);
+                        return await interaction.editReply(`✗ A missão "${missaoEncontrada.nome}" não possui nenhum jogador confirmado na API.`);
                     }
 
                     const jogadores = confirmados.map(c => {
@@ -1119,16 +1119,16 @@ client.on('interactionCreate', async interaction => {
                     }).filter(p => p.id !== 'desconhecido');
 
                     if (jogadores.length === 0) {
-                        return await interaction.editReply(`❌ Nenhum jogador confirmado possui um Discord ID atrelado na API.`);
+                        return await interaction.editReply(`✗ Nenhum jogador confirmado possui um Discord ID atrelado na API.`);
                     }
 
                     const embed = new EmbedBuilder()
-                        .setColor(0x9B59B6)
-                        .setTitle(`🛡️ Preparação de Missão: ${missaoEncontrada.nome}`)
-                        .setDescription(`Os jogadores confirmados pela API foram convocados. Confirme que você está pronto!\n\n` + jogadores.map(p => `❌ **[${p.nomePersonagem}]** <@${p.id}>`).join('\n'));
+                        .setColor(0x4A2B7E)
+                        .setTitle(`❖ Preparação de Missão: ${missaoEncontrada.nome}`)
+                        .setDescription(`Os jogadores confirmados pela API foram convocados. Confirme que você está pronto!\n\n` + jogadores.map(p => `[ ] **[${p.nomePersonagem}]** <@${p.id}>`).join('\n'));
 
                     const row = new ActionRowBuilder().addComponents(
-                        new ButtonBuilder().setCustomId('missao_pronto').setLabel('PRONTO').setEmoji('✅').setStyle(ButtonStyle.Success)
+                        new ButtonBuilder().setCustomId('missao_pronto').setLabel('✓ PRONTO').setStyle(ButtonStyle.Success)
                     );
 
                     const mencoesStr = jogadores.map(p => `<@${p.id}>`).join(' ');
@@ -1141,9 +1141,9 @@ client.on('interactionCreate', async interaction => {
                         channelId: interaction.channelId
                     });
 
-                    return await interaction.editReply('✅ HUD de preparação criada 100% via API!');
+                    return await interaction.editReply('✓ HUD de preparação criada 100% via API!');
                 } catch (e) {
-                    return await interaction.editReply(`❌ Erro ao comunicar com a API do Arkandia. ${e.message}`);
+                    return await interaction.editReply(`✗ Erro ao comunicar com a API do Arkandia. ${e.message}`);
                 }
             }
 
@@ -1160,7 +1160,7 @@ client.on('interactionCreate', async interaction => {
                     }
                 }
 
-                if (!missao) return await interaction.editReply(`❌ Não há nenhuma missão chamada "${nomeMissao}" em preparação neste canal.`);
+                if (!missao) return await interaction.editReply(`✗ Não há nenhuma missão chamada "${nomeMissao}" em preparação neste canal.`);
 
                 try {
                     const velhaMsg = await interaction.channel.messages.fetch(missao.msgId);
@@ -1170,15 +1170,15 @@ client.on('interactionCreate', async interaction => {
                 const mencoes = missao.jogadores.map(p => `**[${p.nomePersonagem}]** <@${p.id}>`).join(' | ');
                 missoesPreparacao.delete(missaoKey);
 
-                await interaction.channel.send({ content: `⚔️ **A missão \`${missao.nome}\` foi INICIADA!**\nParticipantes convocados: ${mencoes}` });
-                return await interaction.editReply('✅ Missão iniciada com sucesso.');
+                await interaction.channel.send({ content: `⚔ **A missão \`${missao.nome}\` foi INICIADA!**\nParticipantes convocados: ${mencoes}` });
+                return await interaction.editReply('✓ Missão iniciada com sucesso.');
             }
         }
 
         if (interaction.commandName === 'mapa') {
             const sub = interaction.options.getSubcommand();
             if (sub === 'configurar') {
-                if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
+                if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
                 
                 const canaisTexto = interaction.guild.channels.cache.filter(c => c.type === ChannelType.GuildText && c.parentId);
                 const parentIds = new Set(canaisTexto.map(c => c.parentId));
@@ -1193,7 +1193,7 @@ client.on('interactionCreate', async interaction => {
                     default: mapaConfig.includes(c.id) 
                 }));
                 
-                if (options.length === 0) return await interaction.editReply('❌ Nenhuma região configurada no servidor.');
+                if (options.length === 0) return await interaction.editReply('✗ Nenhuma região configurada no servidor.');
                 
                 const select = new StringSelectMenuBuilder()
                     .setCustomId('config_mapa_categorias')
@@ -1205,25 +1205,25 @@ client.on('interactionCreate', async interaction => {
                 const row = new ActionRowBuilder().addComponents(select);
                 
                 await interaction.channel.send({ content: '⚙️ **Configuração do Mapa:** Selecione as categorias que fazem parte da navegação do RPG:', components: [row] });
-                return await interaction.editReply('✅ Menu de configuração criado!');
+                return await interaction.editReply('✓ Menu de configuração criado!');
             }
 
             if (sub === 'painel') {
-                if (!isMaster) return await interaction.editReply('❌ Somente Mestres.');
+                if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
                 const attachment = new AttachmentBuilder('./mapa.png', { name: 'mapa.png' });
                 const embed = new EmbedBuilder()
-                    .setTitle('🗺️ Mapa do Mundo')
+                    .setTitle('❖ Mapa do Mundo')
                     .setDescription('Bem-vindo ao portal de viagem! Clique no botão abaixo para explorar as regiões e viajar para o seu destino.\n\n*Nota: Ao viajar, seu personagem sairá da área atual e entrará na nova área (seus canais antigos serão ocultados).*')
-                    .setColor(0x3498DB)
+                    .setColor(0x2B4C7E)
                     .setImage('attachment://mapa.png');
                     
                 const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('btn_mapa_viajar').setLabel('🧭 Iniciar Viagem').setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId('btn_mapa_sair').setLabel('🚪 Sair do Local Atual').setStyle(ButtonStyle.Danger)
+                    new ButtonBuilder().setCustomId('btn_mapa_viajar').setLabel('❖ Iniciar Viagem').setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder().setCustomId('btn_mapa_sair').setLabel('⏏ Sair do Local Atual').setStyle(ButtonStyle.Danger)
                 );
                 
                 await interaction.channel.send({ embeds: [embed], components: [row], files: [attachment] });
-                return await interaction.editReply('✅ Painel do Mapa criado!');
+                return await interaction.editReply('✓ Painel do Mapa criado!');
             }
         }
 
@@ -1245,7 +1245,7 @@ client.on('interactionCreate', async interaction => {
                     }
 
                     if (!targetChannel.threads) {
-                        return await interaction.editReply('❌ Este tipo de canal não suporta a criação de tópicos de RP.');
+                        return await interaction.editReply('✗ Este tipo de canal não suporta a criação de tópicos de RP.');
                     }
 
                     const thread = await targetChannel.threads.create({
@@ -1281,7 +1281,7 @@ client.on('interactionCreate', async interaction => {
                             const imgEmbed = new EmbedBuilder()
                                 .setTitle('Ilustração do cenário')
                                 .setImage(cenario.url)
-                                .setColor(0x2C2F33);
+                                .setColor(0x1E1E1E);
                             await webhook.send({
                                 embeds: [imgEmbed],
                                 username: 'Narrador',
@@ -1299,10 +1299,10 @@ client.on('interactionCreate', async interaction => {
                         await thread.send({ content: fallbackMsg });
                     }
 
-                    return await interaction.editReply(`✅ Cena **${titulo}** criada com sucesso: <#${thread.id}>`);
+                    return await interaction.editReply(`✓ Cena **${titulo}** criada com sucesso: <#${thread.id}>`);
                 } catch (error) {
                     console.error('Erro ao criar cena:', error);
-                    return await interaction.editReply('❌ Ocorreu um erro ao criar a cena. Verifique se o Bot tem a permissão de "Criar Tópicos Públicos" no canal.');
+                    return await interaction.editReply('✗ Ocorreu um erro ao criar a cena. Verifique se o Bot tem a permissão de "Criar Tópicos Públicos" no canal.');
                 }
             }
         }
@@ -1324,7 +1324,7 @@ client.on('interactionCreate', async interaction => {
                     );
                 return await interaction.editReply({ embeds: [embed] });
             } catch (e) {
-                return await interaction.editReply('❌ Personagem não encontrado.');
+                return await interaction.editReply('✗ Personagem não encontrado.');
             }
         }
 
@@ -1332,7 +1332,7 @@ client.on('interactionCreate', async interaction => {
             try {
                 const res = await axios.get(getUrlRequisicao(interaction), { headers: { 'X-API-Key': API_KEY } });
                 const p = res.data;
-                if (!p.skills_adquiridas || p.skills_adquiridas.length === 0) return await interaction.editReply('❌ Nenhuma skill encontrada.');
+                if (!p.skills_adquiridas || p.skills_adquiridas.length === 0) return await interaction.editReply('✗ Nenhuma skill encontrada.');
 
                 const options = p.skills_adquiridas.slice(0, 25).map(s => ({
                     label: `${s.nome} (Grau ${s.grau})`,
@@ -1348,7 +1348,7 @@ client.on('interactionCreate', async interaction => {
                 skillsCache.set(msg.id, { personagem: p, skills: p.skills_adquiridas });
                 return;
             } catch (e) {
-                return await interaction.editReply('❌ Personagem não encontrado.');
+                return await interaction.editReply('✗ Personagem não encontrado.');
             }
         }
 
@@ -1362,19 +1362,19 @@ client.on('interactionCreate', async interaction => {
                     const res = await axios.get(`${ARKANDIA_API}/itens/${encodeURIComponent(itemNome)}`, { headers: { 'X-API-Key': API_KEY } });
                     const item = res.data;
                     const embed = new EmbedBuilder()
-                        .setColor(0xF1C40F)
-                        .setTitle(`🎁 Loot Drop: ${item.nome} (x${qtd})`)
+                        .setColor(0xB8860B)
+                        .setTitle(`◈ Loot Drop: ${item.nome} (x${qtd})`)
                         .setDescription(`**Categoria:** ${item.categoria} | **Raridade:** ${item.raridade}\n\n${item.descricao}`);
                     if (item.imagem_url) embed.setThumbnail(item.imagem_url);
                     
                     const row = new ActionRowBuilder().addComponents(
-                        new ButtonBuilder().setCustomId(`pegar_loot_${item.id}_${qtd}`).setLabel('🎁 Coletar Item').setStyle(ButtonStyle.Success)
+                        new ButtonBuilder().setCustomId(`pegar_loot_${item.id}_${qtd}`).setLabel('◈ Coletar Item').setStyle(ButtonStyle.Success)
                     );
                     
                     await interaction.channel.send({ embeds: [embed], components: [row] });
-                    return await interaction.editReply('✅ Loot enviado para o chat.');
+                    return await interaction.editReply('✓ Loot enviado para o chat.');
                 } catch (e) {
-                    return await interaction.editReply(`❌ Item "${itemNome}" não encontrado.`);
+                    return await interaction.editReply(`✗ Item "${itemNome}" não encontrado.`);
                 }
             }
 
@@ -1386,9 +1386,9 @@ client.on('interactionCreate', async interaction => {
                         const npc = res.data;
                         const primeiraMaiuscula = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
                         const embed = new EmbedBuilder()
-                            .setColor(0x34495E)
+                            .setColor(0x2A2320)
                             .setAuthor({ name: `Bestiário de Arkandia`, iconURL: 'https://i.imgur.com/vHqB3q0.png' })
-                            .setTitle(`📖 ${npc.nome} ${npc.titulo ? '- ' + npc.titulo : ''}`)
+                            .setTitle(`🕮 ${npc.nome} ${npc.titulo ? '- ' + npc.titulo : ''}`)
                             .setDescription(`**Raça:** ${primeiraMaiuscula(npc.raca)} | **Classe:** ${primeiraMaiuscula(npc.classe)} | **Rank:** ${npc.rank}\n**Região:** ${primeiraMaiuscula(npc.regiao)} | **Afiliação:** ${npc.afiliacao || 'Nenhuma'}\n\n*${npc.flavor_text || ''}*\n\n${npc.lore ? npc.lore.substring(0, 2048) : 'Sem lore registrada.'}`);
                         if (npc.retrato_url) embed.setThumbnail(npc.retrato_url);
                         return await interaction.editReply({ embeds: [embed] });
@@ -1419,7 +1419,7 @@ client.on('interactionCreate', async interaction => {
                             const embed = new EmbedBuilder()
                                 .setColor(cor)
                                 .setAuthor({ name: `Bestiário de Arkandia`, iconURL: 'https://i.imgur.com/vHqB3q0.png' })
-                                .setTitle(`📖 ${criatura.nome}`)
+                                .setTitle(`🕮 ${criatura.nome}`)
                                 .setDescription(`**Tipo:** ${primeiraMaiuscula(criatura.tipo)} | **Classificação:** ${tier}\n\n${criatura.lore ? criatura.lore.substring(0, 2048) : 'Sem lore registrada.'}`);
                             if (criatura.ilustracao_url) embed.setThumbnail(criatura.ilustracao_url);
                             
@@ -1429,12 +1429,12 @@ client.on('interactionCreate', async interaction => {
                         }
                     }
                 } catch (e) {
-                    if (e.response?.status === 404) return await interaction.editReply(`❌ Nem NPC nem criatura do Bestiário foram encontrados com o nome "${nome}".`);
-                    return await interaction.editReply(`❌ Erro interno.`);
+                    if (e.response?.status === 404) return await interaction.editReply(`✗ Nem NPC nem criatura do Bestiário foram encontrados com o nome "${nome}".`);
+                    return await interaction.editReply(`✗ Erro interno.`);
                 }
             }
         }
-    } catch(e) { return await interaction.editReply('❌ Erro interno.'); }
+    } catch(e) { return await interaction.editReply('✗ Erro interno.'); }
 });
 
 client.on('messageCreate', async message => {
