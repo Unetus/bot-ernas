@@ -62,9 +62,13 @@ O sistema de Arena introduz a funcionalidade de combate Player vs Player (PvP) c
     *   **Parâmetros:** Nenhum.
     *   **O que faz:** Para e remove o timer de turno (auto-skip) ativo, deleta a mensagem contendo o mapa tático da arena no chat e limpa os dados do combate da memória interna do bot.
 
-### ⏳ Timer de Turno em Tempo Real (Auto-skip)
-* No modo Arena, o cabeçalho do mapa informará o tempo restante de turno daquele jogador em tempo real graças às tags nativas do Discord (`<t:TIMESTAMP:R>`).
-* **Como funciona o cronômetro em tempo real:** Por limitações estritas de taxa de requisições da API do Discord (Discord Rate Limits), editar uma mensagem a cada segundo causaria lentidão extrema e até bloqueios ao IP do bot. Contudo, ao usar o formato `<t:TIMESTAMP:R>` do Discord, o próprio aplicativo do usuário calcula e exibe em tempo real o cronômetro regressivo segundo a segundo na tela do jogador, sem consumir nenhuma chamada de API adicional.
+### ⏳ Timer de Turno em Tempo Real (Live Countdown)
+* No modo Arena, o cabeçalho do mapa informará o tempo restante de turno em tempo real de forma regressiva (`Tempo Restante: 120s`, `115s`...).
+* **Como funciona o cronômetro em tempo real:** Para garantir a precisão visual regressiva em segundos contornando as limitações de formatação nativa do Discord, o bot utiliza um processo ativo em background (`setInterval`) que edita o cabeçalho do painel de controle da arena a cada 5 segundos para atualizar a string de tempo, garantindo que a imersão de urgência se mantenha.
+
+### 🖼️ Mapas Tabletop e Fallback de Tokens
+* Durante a fase de Picks & Bans, imagens conceituais completas de cada mapa da arena são exibidas. Após o Draft finalizar, a arena puxará inteligentemente a versão respectiva com o sufixo ` - Tabletop Version.png` para compor o fundo de VTT do combate final.
+* Caso as imagens de perfil cadastradas na base de dados dos personagens fiquem inacessíveis no Imgur/API, o VTT engatilhará uma camada inteligente de **Fallback Genérico** no motor do canvas, desenhando na hora os tokens em formato de escudo/círculo contendo a inicial primária do nome do aventureiro.
 * Se o tempo expirar antes do jogador concluir seu turno (ou do mestre passar com `/cena combate_proximo`), o bot fará o **Auto-skip** transferindo a vez para o próximo jogador vivo na lista de iniciativa.
 
 ---
