@@ -55,8 +55,8 @@ function parsePosicao(posStr) {
 }
 
 async function renderMap(scene) {
-    const CELL_SIZE = 80;
-    const MARGIN = 30;
+    const CELL_SIZE = 100;
+    const MARGIN = 40;
     
     const mapWidth = scene.colunas * CELL_SIZE;
     const mapHeight = scene.linhas * CELL_SIZE;
@@ -117,53 +117,72 @@ async function renderMap(scene) {
         const cy = MARGIN + (p.y * CELL_SIZE) + (CELL_SIZE / 2);
         const radius = (CELL_SIZE / 2) - 10;
 
+        let avatarLoaded = false;
         try {
-            const avatar = await loadImage(p.avatarUrl);
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-            ctx.closePath();
-            ctx.clip();
-            ctx.drawImage(avatar, cx - radius, cy - radius, radius * 2, radius * 2);
-            ctx.restore();
-
-            // Borda do Token
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-            
-            if (p.incapacitado) {
-                ctx.strokeStyle = '#7F8C8D'; // Cinza se morto/caído
-            } else if (scene.estado === 'COMBATE' && scene.turnoAtual === i) {
-                ctx.strokeStyle = '#F1C40F'; // Amarelo Dourado para o turno atual
-            } else {
-                ctx.strokeStyle = p.isNpc ? '#E74C3C' : '#3498DB'; 
-            }
-            ctx.lineWidth = 4;
-            ctx.stroke();
-
-            // Desenhando X vermelho se incapacitado
-            if (p.incapacitado) {
+            if (p.avatarUrl) {
+                const avatar = await loadImage(p.avatarUrl);
+                ctx.save();
                 ctx.beginPath();
-                ctx.moveTo(cx - radius + 5, cy - radius + 5);
-                ctx.lineTo(cx + radius - 5, cy + radius - 5);
-                ctx.moveTo(cx + radius - 5, cy - radius + 5);
-                ctx.lineTo(cx - radius + 5, cy + radius - 5);
-                ctx.lineWidth = 6;
-                ctx.strokeStyle = 'rgba(231, 76, 60, 0.8)'; // Vermelho opaco
-                ctx.stroke();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.clip();
+                ctx.drawImage(avatar, cx - radius, cy - radius, radius * 2, radius * 2);
+                ctx.restore();
+                avatarLoaded = true;
             }
-
-            // Texto com Nome
-            ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 14px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            ctx.shadowBlur = 4;
-            ctx.fillText(p.name, cx, cy + radius + 15);
-            ctx.shadowBlur = 0;
         } catch (e) {
-            console.error('Erro ao desenhar token', e);
+            console.error('Erro ao desenhar token (fallback ativado)');
         }
+
+        if (!avatarLoaded) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fillStyle = p.isNpc ? '#8B0000' : '#2B4C7E';
+            ctx.fill();
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 24px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const inicial = p.name ? p.name.charAt(0).toUpperCase() : '?';
+            ctx.fillText(inicial, cx, cy);
+            ctx.textBaseline = 'alphabetic'; // Reset para o nome principal
+        }
+
+        // Borda do Token
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        
+        if (p.incapacitado) {
+            ctx.strokeStyle = '#7F8C8D'; 
+        } else if (scene.estado === 'COMBATE' && scene.turnoAtual === i) {
+            ctx.strokeStyle = '#B8860B'; 
+        } else {
+            ctx.strokeStyle = p.isNpc ? '#8B0000' : '#2B4C7E'; 
+        }
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Desenhando X vermelho se incapacitado
+        if (p.incapacitado) {
+            ctx.beginPath();
+            ctx.moveTo(cx - radius + 5, cy - radius + 5);
+            ctx.lineTo(cx + radius - 5, cy + radius - 5);
+            ctx.moveTo(cx + radius - 5, cy - radius + 5);
+            ctx.lineTo(cx - radius + 5, cy + radius - 5);
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = 'rgba(139, 0, 0, 0.8)'; 
+            ctx.stroke();
+        }
+
+        // Texto com Nome
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.shadowBlur = 4;
+        ctx.fillText(p.name, cx, cy + radius + 15);
+        ctx.shadowBlur = 0;
     }
 
     return canvas.toBuffer('image/png');
@@ -249,7 +268,8 @@ function getCabecalhoCena(cena) {
         const ativo = cena.players[cena.turnoAtual];
         let cabecalho = `⚔ **COMBATE INICIADO! (Rodada ${cena.rodada})**\nÉ o turno de: **${ativo.name}**. Mova sua peça ou realize sua ação!`;
         if (cena.tempoTurnoMs && cena.fimTurnoTimestamp) {
-            cabecalho += `\n⧖ Tempo de Turno: ${cena.tempoTurnoMs / 1000}s (Acaba <t:${Math.floor(cena.fimTurnoTimestamp / 1000)}:R>)`;
+            const remainingSecs = Math.max(0, Math.ceil((cena.fimTurnoTimestamp - Date.now()) / 1000));
+            cabecalho += `\n⧖ Tempo Restante: **${remainingSecs}s** (Total: ${cena.tempoTurnoMs / 1000}s)`;
         }
         return cabecalho;
     }
@@ -259,24 +279,39 @@ function getCabecalhoCena(cena) {
 function iniciarTimerTurno(channel, cena) {
     if (!cena.tempoTurnoMs || cena.estado !== 'COMBATE' || !cena.msgId) return;
     
-    if (timersTurno.has(cena.msgId)) clearTimeout(timersTurno.get(cena.msgId));
+    if (timersTurno.has(cena.msgId)) clearInterval(timersTurno.get(cena.msgId));
     
-    const timer = setTimeout(async () => {
-        if (cena.estado !== 'COMBATE') return;
+    const interval = setInterval(async () => {
+        if (cena.estado !== 'COMBATE') {
+            clearInterval(interval);
+            return;
+        }
+        const remaining = cena.fimTurnoTimestamp - Date.now();
+        if (remaining <= 0) {
+            clearInterval(interval);
+            try {
+                await channel.send(`⧖ O tempo de **${cena.players[cena.turnoAtual].name}** se esgotou! Passando o turno automaticamente.`);
+                do {
+                    cena.turnoAtual++;
+                    if (cena.turnoAtual >= cena.players.length) {
+                        cena.turnoAtual = 0;
+                        cena.rodada++;
+                    }
+                } while (cena.players[cena.turnoAtual].incapacitado && cena.players.some(p => !p.incapacitado));
+                await repintarMapaNovo(channel, cena);
+            } catch(e) { console.error('Erro no auto-skip', e); }
+            return;
+        }
+        
         try {
-            await channel.send(`⧖ O tempo de **${cena.players[cena.turnoAtual].name}** se esgotou! Passando o turno automaticamente.`);
-            do {
-                cena.turnoAtual++;
-                if (cena.turnoAtual >= cena.players.length) {
-                    cena.turnoAtual = 0;
-                    cena.rodada++;
-                }
-            } while (cena.players[cena.turnoAtual].incapacitado && cena.players.some(p => !p.incapacitado));
-            await repintarMapaNovo(channel, cena);
-        } catch(e) { console.error('Erro no auto-skip', e); }
-    }, Math.max(0, cena.fimTurnoTimestamp - Date.now()));
+            const msg = await channel.messages.fetch(cena.msgId).catch(() => null);
+            if (msg) {
+                await msg.edit({ content: getCabecalhoCena(cena) });
+            }
+        } catch(e) {}
+    }, 5000);
     
-    timersTurno.set(cena.msgId, timer);
+    timersTurno.set(cena.msgId, interval);
 }
 
 function getCenaBotoes(cena) {
@@ -317,7 +352,7 @@ async function atualizarMapaDebounced(channel, cena) {
 async function repintarMapaNovo(channel, cena) {
     if (cena.msgId) {
         if (timersTurno.has(cena.msgId)) {
-            clearTimeout(timersTurno.get(cena.msgId));
+            clearInterval(timersTurno.get(cena.msgId));
             timersTurno.delete(cena.msgId);
         }
         try {
