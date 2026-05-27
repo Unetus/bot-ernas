@@ -43,6 +43,120 @@ const MAPAS_ARENA = [
 ];
 
 // =====================================
+// FUNÇÕES UTILITÁRIAS E UI/UX
+// =====================================
+
+const formatarTexto = (str) => {
+    if (!str) return '';
+    return str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+};
+
+async function gerarBannerPerfil(p) {
+    const canvas = createCanvas(800, 300);
+    const ctx = canvas.getContext('2d');
+
+    const colorHex = typeof p.indice_poder_cor === 'number' 
+        ? `#${p.indice_poder_cor.toString(16).padStart(6, '0')}` 
+        : (p.indice_poder_cor || '#3498DB');
+
+    // Fundo base
+    ctx.fillStyle = '#1A1C23';
+    ctx.fillRect(0, 0, 800, 300);
+
+    // Forma geométrica no fundo
+    ctx.fillStyle = colorHex;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(300, 0);
+    ctx.lineTo(150, 300);
+    ctx.lineTo(0, 300);
+    ctx.fill();
+    
+    // Gradiente escuro para suavizar
+    const grd = ctx.createLinearGradient(0, 0, 800, 0);
+    grd.addColorStop(0, 'rgba(26, 28, 35, 0.3)');
+    grd.addColorStop(0.35, 'rgba(26, 28, 35, 0.95)');
+    grd.addColorStop(1, '#1A1C23');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 800, 300);
+
+    // Avatar
+    const avatarSize = 220;
+    const avatarX = 40;
+    const avatarY = 40;
+    
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    
+    try {
+        const avatar = await loadImage(p.avatar_url || 'https://i.imgur.com/vHqB3q0.png');
+        ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
+    } catch(e) {
+        ctx.fillStyle = '#333';
+        ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
+    }
+    ctx.restore();
+
+    // Moldura do Avatar
+    ctx.strokeStyle = colorHex;
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const nome = formatarTexto(p.nome);
+    const titulo = p.titulo ? formatarTexto(p.titulo) : '';
+    const raca = formatarTexto(p.raca);
+    const classe = formatarTexto(p.classe);
+
+    // Textos Principais
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 45px sans-serif';
+    ctx.fillText(nome, 300, 90);
+
+    if (titulo) {
+        ctx.fillStyle = colorHex;
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText(titulo, 300, 130);
+    }
+
+    ctx.fillStyle = '#A0AAB5';
+    ctx.font = '22px sans-serif';
+    ctx.fillText(`${raca} • ${classe}`, 300, 170);
+
+    // Status (Nível, Rank, Poder)
+    const drawStat = (label, value, x, y) => {
+        ctx.fillStyle = '#252830';
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(x, y, 140, 85, 12);
+        } else {
+            ctx.fillRect(x, y, 140, 85);
+        }
+        ctx.fill();
+        
+        ctx.fillStyle = '#8B949E';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label.toUpperCase(), x + 70, y + 30);
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 30px sans-serif';
+        ctx.fillText(value, x + 70, y + 68);
+        ctx.textAlign = 'left';
+    };
+
+    drawStat('Nível', `${p.nivel || 1}`, 300, 195);
+    drawStat('Rank', `${p.rank || '-'}`, 460, 195);
+    drawStat('Poder', `${p.indice_poder || 0}`, 620, 195);
+
+    return canvas.toBuffer('image/png');
+}
+
+// =====================================
 // FUNÇÕES DE MAPA 2D E COORDENADAS
 // =====================================
 
@@ -501,8 +615,8 @@ client.on('interactionCreate', async interaction => {
         
         const skillEmbed = new EmbedBuilder()
             .setColor(0x2B4C7E)
-            .setTitle(`✦ ${skill.nome} (Grau ${skill.grau})`)
-            .setDescription(`**Tipo:** ${skill.tipo} | **Origem:** ${skill.origem}\n\n${skill.descricao}`);
+            .setTitle(`✦ ${formatarTexto(skill.nome)} (Grau ${skill.grau})`)
+            .setDescription(`**Tipo:** ${formatarTexto(skill.tipo)} | **Origem:** ${formatarTexto(skill.origem)}\n\n${skill.descricao}`);
         
         if (skill.imagem_url) skillEmbed.setThumbnail(skill.imagem_url);
         
@@ -723,7 +837,7 @@ client.on('interactionCreate', async interaction => {
         const embedSkill = EmbedBuilder.from(interaction.message.embeds[0]);
 
         await interaction.channel.send({ 
-            content: `✦ **${cacheData.personagem.nome}** está canalizando sua energia e conjura a skill **[${skill.nome}]**!`, 
+            content: `✦ **${formatarTexto(cacheData.personagem.nome)}** está canalizando sua energia e conjura a skill **[${formatarTexto(skill.nome)}]**!`, 
             embeds: [embedSkill] 
         });
         
@@ -1473,18 +1587,14 @@ client.on('interactionCreate', async interaction => {
             try {
                 const res = await axios.get(getUrlRequisicao(interaction), { headers: { 'X-API-Key': API_KEY } });
                 const p = res.data;
+                const buffer = await gerarBannerPerfil(p);
+                const attachment = new AttachmentBuilder(buffer, { name: 'perfil.png' });
+                
                 const embed = new EmbedBuilder()
                     .setColor(p.indice_poder_cor || 0x3498DB)
-                    .setTitle(`👤 ${p.nome} ${p.titulo ? '- ' + p.titulo : ''}`)
-                    .setThumbnail(p.avatar_url || 'https://i.imgur.com/vHqB3q0.png')
-                    .addFields(
-                        { name: 'Nível', value: `${p.nivel}`, inline: true },
-                        { name: 'Rank', value: p.rank, inline: true },
-                        { name: 'Poder', value: `${p.indice_poder}`, inline: true },
-                        { name: 'Classe', value: p.classe, inline: true },
-                        { name: 'Raça', value: p.raca, inline: true }
-                    );
-                return await interaction.editReply({ embeds: [embed] });
+                    .setImage('attachment://perfil.png');
+                
+                return await interaction.editReply({ embeds: [embed], files: [attachment] });
             } catch (e) {
                 return await interaction.editReply('✗ Personagem não encontrado.');
             }
@@ -1497,8 +1607,8 @@ client.on('interactionCreate', async interaction => {
                 if (!p.skills_adquiridas || p.skills_adquiridas.length === 0) return await interaction.editReply('✗ Nenhuma skill encontrada.');
 
                 const options = p.skills_adquiridas.slice(0, 25).map(s => ({
-                    label: `${s.nome} (Grau ${s.grau})`,
-                    description: s.tipo,
+                    label: `${formatarTexto(s.nome)} (Grau ${s.grau})`,
+                    description: formatarTexto(s.tipo),
                     value: s.id
                 }));
 
@@ -1506,7 +1616,7 @@ client.on('interactionCreate', async interaction => {
                     new StringSelectMenuBuilder().setCustomId('select_skill').setPlaceholder('Selecione uma habilidade para ver os detalhes').addOptions(options)
                 );
 
-                const msg = await interaction.editReply({ content: `Grimório de **${p.nome}**\nSelecione uma habilidade abaixo:`, components: [row] });
+                const msg = await interaction.editReply({ content: `Grimório de **${formatarTexto(p.nome)}**\nSelecione uma habilidade abaixo:`, components: [row] });
                 skillsCache.set(msg.id, { personagem: p, skills: p.skills_adquiridas });
                 return;
             } catch (e) {
