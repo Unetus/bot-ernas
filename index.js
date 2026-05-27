@@ -500,6 +500,329 @@ async function gerarBannerLoot(item, qtd) {
     return canvas.toBuffer('image/png');
 }
 
+async function gerarBannerRanking(tipo, dados) {
+    const canvas = createCanvas(800, 620);
+    const ctx = canvas.getContext('2d');
+
+    // Fundo base
+    ctx.fillStyle = '#1A1C23';
+    ctx.fillRect(0, 0, 800, 620);
+
+    // Gradiente sutil
+    const grd = ctx.createLinearGradient(0, 0, 0, 620);
+    grd.addColorStop(0, 'rgba(26, 28, 35, 0.4)');
+    grd.addColorStop(1, '#13141C');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 800, 620);
+
+    // Cabeçalho
+    ctx.fillStyle = '#D4AF37';
+    ctx.font = 'bold 32px sans-serif';
+    ctx.fillText('🏆 RANKING DE ARKANDIA', 50, 60);
+
+    ctx.fillStyle = '#8B949E';
+    ctx.font = 'bold 18px sans-serif';
+    const tipoTraduzido = {
+        poder: 'ÍNDICE DE PODER 💪',
+        nivel: 'NÍVEL & EXPERIÊNCIA 📊',
+        guildas: 'GUILDAS DE VERMÉCIA 🏰',
+        arena: 'PONTOS DE ARENA ⚔️'
+    }[tipo.toLowerCase()] || tipo.toUpperCase();
+    ctx.fillText(tipoTraduzido, 50, 95);
+
+    // Linha divisória
+    ctx.strokeStyle = '#2D313E';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(50, 115);
+    ctx.lineTo(750, 115);
+    ctx.stroke();
+
+    const list = Array.isArray(dados) ? dados : (dados.rankings || dados.data || []);
+    const top10 = list.slice(0, 10);
+
+    if (top10.length === 0) {
+        ctx.fillStyle = '#8B949E';
+        ctx.font = '22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Nenhum dado encontrado no ranking no momento.', 400, 320);
+        ctx.textAlign = 'left';
+        return canvas.toBuffer('image/png');
+    }
+
+    let startY = 135;
+    const rowHeight = 44;
+
+    for (let i = 0; i < top10.length; i++) {
+        const item = top10[i];
+        const y = startY + i * rowHeight;
+
+        // Fundo da linha
+        if (i === 0) {
+            ctx.fillStyle = 'rgba(212, 175, 55, 0.15)'; // Ouro para #1
+            ctx.strokeStyle = '#D4AF37';
+            ctx.lineWidth = 1.5;
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(48, y, 704, rowHeight - 4, 8);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                ctx.fillRect(48, y, 704, rowHeight - 4);
+            }
+        } else {
+            ctx.fillStyle = i % 2 === 0 ? '#1E1F26' : '#17181F';
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(48, y, 704, rowHeight - 4, 8);
+                ctx.fill();
+            } else {
+                ctx.fillRect(48, y, 704, rowHeight - 4);
+            }
+        }
+
+        // Posição
+        ctx.fillStyle = i === 0 ? '#D4AF37' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#8B949E';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.textAlign = 'center';
+        const posText = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+        ctx.fillText(posText, 80, y + rowHeight / 2 + 5);
+
+        // Nome
+        ctx.textAlign = 'left';
+        ctx.fillStyle = i === 0 ? '#FFFFFF' : '#D0D5DD';
+        ctx.font = i === 0 ? 'bold 16px sans-serif' : '15px sans-serif';
+        
+        let nomeStr = item.nome || 'Desconhecido';
+        if (item.sigla) {
+            nomeStr = `${nomeStr} [${item.sigla}]`;
+        }
+        
+        // Detalhes menores (classe/raça se personagem)
+        let subText = '';
+        if (item.classe && item.raca) {
+            subText = ` (${formatarTexto(item.raca)} • ${formatarTexto(item.classe)})`;
+        }
+
+        ctx.fillText(nomeStr + subText, 130, y + rowHeight / 2 + 5);
+
+        // Valor
+        ctx.textAlign = 'right';
+        ctx.fillStyle = i === 0 ? '#D4AF37' : '#FFFFFF';
+        ctx.font = 'bold 16px sans-serif';
+
+        let valorText = '';
+        if (tipo === 'poder') {
+            valorText = `${item.indice_poder || 0} Poder`;
+        } else if (tipo === 'nivel') {
+            valorText = `Nível ${item.nivel || 1}`;
+        } else if (tipo === 'guildas') {
+            valorText = `Nível ${item.nivel || 1} • ${item.libras || 0} L`;
+        } else if (tipo === 'arena') {
+            valorText = `${item.pontos_arena || item.arena_pontos || 0} pts`;
+        }
+
+        ctx.fillText(valorText, 730, y + rowHeight / 2 + 5);
+        ctx.textAlign = 'left';
+    }
+
+    return canvas.toBuffer('image/png');
+}
+
+async function gerarBannerGuilda(guilda) {
+    const canvas = createCanvas(800, 450);
+    const ctx = canvas.getContext('2d');
+
+    // Fundo base
+    ctx.fillStyle = '#1C1E24';
+    ctx.fillRect(0, 0, 800, 450);
+
+    // Gradiente de fundo medieval
+    const grd = ctx.createLinearGradient(0, 0, 800, 0);
+    grd.addColorStop(0, 'rgba(20, 21, 26, 0.4)');
+    grd.addColorStop(1, '#1C1E24');
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, 800, 450);
+
+    // Desenha escudo de guilda (Brasão)
+    const shieldX = 50;
+    const shieldY = 50;
+    const shieldW = 120;
+    const shieldH = 140;
+
+    ctx.fillStyle = '#D4AF37'; // Borda dourada do escudo
+    ctx.beginPath();
+    ctx.moveTo(shieldX + shieldW/2, shieldY);
+    ctx.lineTo(shieldX + shieldW, shieldY + 30);
+    ctx.lineTo(shieldX + shieldW, shieldY + shieldH - 30);
+    ctx.quadraticCurveTo(shieldX + shieldW, shieldY + shieldH, shieldX + shieldW/2, shieldY + shieldH);
+    ctx.quadraticCurveTo(shieldX, shieldY + shieldH, shieldX, shieldY + shieldH - 30);
+    ctx.lineTo(shieldX, shieldY + 30);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = '#8B0000'; // Fundo vermelho do escudo
+    ctx.beginPath();
+    ctx.moveTo(shieldX + shieldW/2, shieldY + 6);
+    ctx.lineTo(shieldX + shieldW - 6, shieldY + 33);
+    ctx.lineTo(shieldX + shieldW - 6, shieldY + shieldH - 33);
+    ctx.quadraticCurveTo(shieldX + shieldW - 6, shieldY + shieldH - 6, shieldX + shieldW/2, shieldY + shieldH - 6);
+    ctx.quadraticCurveTo(shieldX + 6, shieldY + shieldH - 6, shieldX + 6, shieldY + shieldH - 33);
+    ctx.lineTo(shieldX + 6, shieldY + 33);
+    ctx.closePath();
+    ctx.fill();
+
+    // Icone medieval no escudo
+    ctx.fillStyle = '#D4AF37';
+    ctx.font = '64px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🏰', shieldX + shieldW/2, shieldY + shieldH/2 + 20);
+    ctx.textAlign = 'left';
+
+    // Nome e Sigla da Guilda
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 36px sans-serif';
+    const nome = formatarTexto(guilda.nome || 'Sem Nome');
+    const sigla = guilda.sigla ? `[${guilda.sigla.toUpperCase()}]` : '';
+    ctx.fillText(`${nome} ${sigla}`, 200, 90);
+
+    // Mestre / Líder da Guilda
+    ctx.fillStyle = '#D4AF37';
+    ctx.font = 'bold 18px sans-serif';
+    const lider = formatarTexto(guilda.lider || guilda.lider_nome || 'Desconhecido');
+    ctx.fillText(`Líder: ${lider}`, 200, 125);
+
+    ctx.fillStyle = '#8B949E';
+    ctx.font = '16px sans-serif';
+    ctx.fillText(`Membros: ${guilda.membros_qtd || (guilda.membros && guilda.membros.length) || 0} / 50`, 200, 155);
+
+    // Caixa de Informações
+    const drawInfoBox = (label, value, x, y, w, h, icon) => {
+        ctx.fillStyle = '#13141C';
+        ctx.beginPath();
+        if (ctx.roundRect) { ctx.roundRect(x, y, w, h, 10); } else { ctx.rect(x, y, w, h); }
+        ctx.fill();
+
+        ctx.strokeStyle = '#2D313E';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = '#8B949E';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(label.toUpperCase(), x + 15, y + 25);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillText(`${icon} ${value}`, x + 15, y + 55);
+    };
+
+    drawInfoBox('Nível da Guilda', `${guilda.nivel || 1}`, 50, 220, 220, 75, '⭐');
+    drawInfoBox('Saldo do Banco', `${guilda.libras || guilda.saldo || 0} Libras`, 290, 220, 220, 75, '🪙');
+    drawInfoBox('Experiência', `${guilda.xp || 0} XP`, 530, 220, 220, 75, '📈');
+
+    // Seção de Perks
+    ctx.fillStyle = '#8B949E';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('BÔNUS E PERKS ATIVOS', 50, 335);
+
+    const perks = guilda.perks || [];
+    if (perks.length === 0) {
+        ctx.fillStyle = '#4F5660';
+        ctx.font = 'italic 15px sans-serif';
+        ctx.fillText('Nenhum bônus ativo no momento.', 50, 370);
+    } else {
+        perks.slice(0, 3).forEach((p, idx) => {
+            const px = 50 + idx * 240;
+            ctx.fillStyle = '#1A1C23';
+            ctx.beginPath();
+            if (ctx.roundRect) { ctx.roundRect(px, 350, 220, 50, 8); } else { ctx.rect(px, 350, 220, 50); }
+            ctx.fill();
+
+            ctx.fillStyle = '#2E5A36';
+            ctx.fillRect(px, 350, 4, 50);
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillText(formatarTexto(p.nome), px + 15, 368);
+
+            ctx.fillStyle = '#8B949E';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(p.efeito || 'Bônus ativo', px + 15, 385);
+        });
+    }
+
+    return canvas.toBuffer('image/png');
+}
+
+async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
+    const ITEMS_PER_PAGE = 8;
+
+    // Filtra itens por categoria
+    let itensFiltrados = itens;
+    if (categoria !== 'todos') {
+        itensFiltrados = itens.filter(i => {
+            const cat = (i.categoria || i.item?.categoria || '').toLowerCase();
+            if (categoria === 'armas') return ['arma', 'espada', 'arco', 'bastao', 'lança', 'machado', 'principal', 'secundaria', 'weapon'].some(w => cat.includes(w));
+            if (categoria === 'armaduras') return ['armadura', 'peito', 'elmo', 'capacete', 'bota', 'sapato', 'escudo', 'luvas', 'calça', 'armor', 'shield', 'helmet', 'boots'].some(w => cat.includes(w));
+            if (categoria === 'consumiveis') return ['consumivel', 'poção', 'comida', 'potion', 'scroll', 'pergaminho'].some(w => cat.includes(w));
+            if (categoria === 'materiais') return ['material', 'minerio', 'couro', 'essencia', 'ore', 'herb', 'planta'].some(w => cat.includes(w));
+            return false;
+        });
+    }
+
+    const totalPaginas = Math.ceil(itensFiltrados.length / ITEMS_PER_PAGE) || 1;
+    const pag = Math.max(0, Math.min(pagina, totalPaginas - 1));
+    const slice = itensFiltrados.slice(pag * ITEMS_PER_PAGE, (pag + 1) * ITEMS_PER_PAGE);
+
+    const embed = new EmbedBuilder()
+        .setColor(p.indice_poder_cor || 0x3498DB)
+        .setTitle(`🎒 Inventário de ${formatarTexto(p.nome)}`)
+        .setDescription(`**Categoria:** ${formatarTexto(categoria === 'todos' ? 'Tudo' : categoria)} | Página ${pag + 1} de ${totalPaginas}\n\n` + 
+            (slice.length === 0 ? '*Nenhum item encontrado nesta categoria.*' : 
+            slice.map((i, idx) => {
+                const itemNome = formatarTexto(i.nome || i.item?.nome || 'Item Desconhecido');
+                const qtd = i.quantidade || 1;
+                const raridade = (i.raridade || i.item?.raridade || 'comum').toLowerCase();
+                const emojiRaridade = {
+                    comum: '⚪',
+                    raro: '🔵',
+                    epico: '🟣',
+                    lendario: '🟠',
+                    mitico: '🔴'
+                }[raridade] || '⚪';
+
+                const catLabel = formatarTexto(i.categoria || i.item?.categoria || '');
+                return `${emojiRaridade} **${itemNome}** (x${qtd}) - *${catLabel}*`;
+            }).join('\n')));
+
+    // Botões de Categorias
+    const rowCats = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_todos`).setLabel('Tudo 🎒').setStyle(categoria === 'todos' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_armas`).setLabel('Armas ⚔').setStyle(categoria === 'armas' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_armaduras`).setLabel('Defesas 🛡').setStyle(categoria === 'armaduras' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_consumiveis`).setLabel('Consumíveis 🧪').setStyle(categoria === 'consumiveis' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_materiais`).setLabel('Materiais 💎').setStyle(categoria === 'materiais' ? ButtonStyle.Success : ButtonStyle.Secondary)
+    );
+
+    // Botões de Paginação
+    const rowPag = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`inv_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('◀ Anterior').setStyle(ButtonStyle.Primary).setDisabled(pag === 0),
+        new ButtonBuilder().setCustomId(`inv_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo ▶').setStyle(ButtonStyle.Primary).setDisabled(pag >= totalPaginas - 1)
+    );
+
+    const components = [rowCats];
+    if (totalPaginas > 1) {
+        components.push(rowPag);
+    }
+
+    if (interaction.deferred || interaction.replied) {
+        return await interaction.editReply({ embeds: [embed], components });
+    } else {
+        return await interaction.update({ embeds: [embed], components });
+    }
+}
+
+
 // =====================================
 // FUNÇÕES DE MAPA 2D E COORDENADAS
 // =====================================
@@ -868,7 +1191,35 @@ const commands = [
     new SlashCommandBuilder().setName('narrar').setDescription('Sistema de Narração e Interpretação Imersiva para o Mestre').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('habilitar').setDescription('[Mestre] Habilita o modo de interpretação neste canal').addStringOption(o => o.setName('nome').setDescription('Nome do NPC ou Monstro do Bestiário (Deixe vazio para ser o Narrador)').setRequired(false))).addSubcommand(sub => sub.setName('desabilitar').setDescription('[Mestre] Desabilita o modo de interpretação neste canal')),
     new SlashCommandBuilder().setName('missao').setDescription('Sistema de Missões').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('preparar').setDescription('[Mestre] Prepara a HUD de uma missão da API').addStringOption(o => o.setName('nome').setDescription('Nome da Missão').setRequired(true))).addSubcommand(sub => sub.setName('iniciar').setDescription('[Mestre] Inicia a missão que está em preparação').addStringOption(o => o.setName('nome').setDescription('Nome da Missão').setRequired(true))),
     new SlashCommandBuilder().setName('mapa').setDescription('Sistema de Navegação do Mundo').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('painel').setDescription('[Mestre] Cria o Painel de Viagem Rápida neste canal')).addSubcommand(sub => sub.setName('configurar').setDescription('[Mestre] Define quais categorias pertencem ao mapa')),
-    new SlashCommandBuilder().setName('rp').setDescription('Sistema de Criação de Cenas (Tópicos)').addSubcommand(sub => sub.setName('iniciar').setDescription('Cria um tópico para RP').addStringOption(o => o.setName('titulo').setDescription('Título do tópico').setRequired(true)).addStringOption(o => o.setName('participantes').setDescription('Marque os jogadores (Ex: @joao @maria)').setRequired(true)).addStringOption(o => o.setName('subtitulo').setDescription('Subtítulo ou contexto da cena (Opcional)')).addStringOption(o => o.setName('ambientacao').setDescription('Descrição da ambientação do local (Opcional)')).addAttachmentOption(o => o.setName('cenario').setDescription('Imagem ilustrativa do cenário (Opcional)')))
+    new SlashCommandBuilder().setName('rp').setDescription('Sistema de Criação de Cenas (Tópicos)').addSubcommand(sub => sub.setName('iniciar').setDescription('Cria um tópico para RP').addStringOption(o => o.setName('titulo').setDescription('Título do tópico').setRequired(true)).addStringOption(o => o.setName('participantes').setDescription('Marque os jogadores (Ex: @joao @maria)').setRequired(true)).addStringOption(o => o.setName('subtitulo').setDescription('Subtítulo ou contexto da cena (Opcional)')).addStringOption(o => o.setName('ambientacao').setDescription('Descrição da ambientação do local (Opcional)')).addAttachmentOption(o => o.setName('cenario').setDescription('Imagem ilustrativa do cenário (Opcional)'))),
+
+    new SlashCommandBuilder()
+        .setName('ranking')
+        .setDescription('Visualiza o ranking global de Arkandia')
+        .addStringOption(o => o.setName('tipo')
+            .setDescription('Selecione o tipo de ranking')
+            .setRequired(true)
+            .addChoices(
+                { name: 'Poder 💪', value: 'poder' },
+                { name: 'Nível 📊', value: 'nivel' },
+                { name: 'Guildas 🏰', value: 'guildas' },
+                { name: 'Arena ⚔️', value: 'arena' }
+            )),
+
+    new SlashCommandBuilder()
+        .setName('guilda')
+        .setDescription('Busca as informações de uma guilda')
+        .addStringOption(o => o.setName('nome').setDescription('Nome ou sigla da guilda').setRequired(true)),
+
+    new SlashCommandBuilder()
+        .setName('missoes')
+        .setDescription('Consulta a lista de missões ativas e abertas em Arkandia'),
+
+    new SlashCommandBuilder()
+        .setName('inventario')
+        .setDescription('Visualiza o inventário de itens do personagem no site')
+        .addUserOption(o => o.setName('jogador').setDescription('@jogador (Opcional)'))
+        .addStringOption(o => o.setName('nome').setDescription('Nome exato do personagem (Opcional)'))
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -1205,6 +1556,89 @@ client.on('interactionCreate', async interaction => {
         });
         
         return await interaction.reply({ content: '✓ Skill conjurada publicamente!', ephemeral: true });
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('ranking_switch_')) {
+        await interaction.deferUpdate();
+        const tipo = interaction.customId.replace('ranking_switch_', '');
+        try {
+            const res = await axios.get(`${ARKANDIA_API}/rankings/${tipo}`, { headers: { 'X-API-Key': API_KEY } });
+            const buffer = await gerarBannerRanking(tipo, res.data);
+            const attachment = new AttachmentBuilder(buffer, { name: 'ranking.png' });
+
+            const embed = new EmbedBuilder()
+                .setColor(0xD4AF37)
+                .setImage('attachment://ranking.png');
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('💪 Poder').setStyle(tipo === 'poder' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('ranking_switch_nivel').setLabel('📊 Nível').setStyle(tipo === 'nivel' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('ranking_switch_guildas').setLabel('🏰 Guildas').setStyle(tipo === 'guildas' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('ranking_switch_arena').setLabel('⚔️ Arena').setStyle(tipo === 'arena' ? ButtonStyle.Success : ButtonStyle.Secondary)
+            );
+
+            return await interaction.editReply({ embeds: [embed], files: [attachment], components: [row] });
+        } catch (e) {
+            console.error(e);
+            return await interaction.followUp({ embeds: [embedErro(`Erro ao atualizar ranking para ${tipo}: ${e.message}`)], ephemeral: true });
+        }
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('missoes_inscritos_')) {
+        const missaoId = interaction.customId.replace('missoes_inscritos_', '');
+        await interaction.deferReply({ ephemeral: true });
+        try {
+            const resInscritos = await axios.get(`${ARKANDIA_API}/missoes/${missaoId}/inscritos`, { headers: { 'X-API-Key': API_KEY } });
+            const confirmados = resInscritos.data.confirmados || [];
+
+            if (confirmados.length === 0) {
+                return await interaction.editReply({ embeds: [embedErro('Nenhum aventureiro confirmado ou inscrito nesta missão ainda.')] });
+            }
+
+            const listaInscritos = confirmados.map((c, idx) => {
+                const nomePersonagem = c.personagem ? c.personagem.nome : 'Desconhecido';
+                const discStr = c.discord_id || (c.personagem && c.personagem.discord_id) ? `<@${c.discord_id || c.personagem.discord_id}>` : '*Sem Discord*';
+                const racaClasse = c.personagem ? ` (${formatarTexto(c.personagem.raca)} • ${formatarTexto(c.personagem.classe)})` : '';
+                return `${idx + 1}. **${formatarTexto(nomePersonagem)}** ${discStr}${racaClasse}`;
+            }).join('\n');
+
+            const embed = new EmbedBuilder()
+                .setColor(0x4A2B7E)
+                .setTitle('👥 Aventureiros Convocados')
+                .setDescription(`Estes são os heróis confirmados para esta expedição:\n\n${listaInscritos}`);
+
+            return await interaction.editReply({ embeds: [embed] });
+        } catch (e) {
+            console.error(e);
+            return await interaction.editReply({ embeds: [embedErro(`Erro ao buscar inscritos: ${e.message}`)] });
+        }
+    }
+
+    if (interaction.isButton() && (interaction.customId.startsWith('inv_cat_') || interaction.customId.startsWith('inv_pag_'))) {
+        const isCat = interaction.customId.startsWith('inv_cat_');
+        
+        let personagemId, categoria, pagina;
+        if (isCat) {
+            const parts = interaction.customId.split('_');
+            personagemId = parts[2];
+            categoria = parts[3];
+            pagina = 0;
+        } else {
+            const parts = interaction.customId.split('_');
+            personagemId = parts[2];
+            categoria = parts[3];
+            pagina = parseInt(parts[4] || '0', 10);
+        }
+
+        const cacheKey = `inventario_${interaction.user.id}_${personagemId}`;
+        const cacheData = skillsCache.get(cacheKey);
+
+        if (!cacheData) {
+            return await interaction.reply({ embeds: [embedErro('Sua sessão de inventário expirou. Por favor, execute o comando `/inventario` novamente.')], ephemeral: true });
+        }
+
+        await interaction.deferUpdate();
+        return await renderInventarioPage(interaction, cacheData.personagem, cacheData.itens, categoria, pagina);
     }
 
     if (interaction.isModalSubmit()) {
@@ -1982,6 +2416,132 @@ client.on('interactionCreate', async interaction => {
                 return;
             } catch (e) {
                 return await interaction.editReply({ embeds: [embedErro('Personagem não encontrado.')] });
+            }
+        }
+
+        if (interaction.commandName === 'ranking') {
+            const tipo = interaction.options.getString('tipo') || 'poder';
+            try {
+                const res = await axios.get(`${ARKANDIA_API}/rankings/${tipo}`, { headers: { 'X-API-Key': API_KEY } });
+                const buffer = await gerarBannerRanking(tipo, res.data);
+                const attachment = new AttachmentBuilder(buffer, { name: 'ranking.png' });
+
+                const embed = new EmbedBuilder()
+                    .setColor(0xD4AF37)
+                    .setImage('attachment://ranking.png');
+
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('💪 Poder').setStyle(tipo === 'poder' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId('ranking_switch_nivel').setLabel('📊 Nível').setStyle(tipo === 'nivel' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId('ranking_switch_guildas').setLabel('🏰 Guildas').setStyle(tipo === 'guildas' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId('ranking_switch_arena').setLabel('⚔️ Arena').setStyle(tipo === 'arena' ? ButtonStyle.Success : ButtonStyle.Secondary)
+                );
+
+                return await interaction.editReply({ embeds: [embed], files: [attachment], components: [row] });
+            } catch (e) {
+                console.error(e);
+                return await interaction.editReply({ embeds: [embedErro(`Erro ao buscar o ranking de ${tipo}: ${e.message}`)] });
+            }
+        }
+
+        if (interaction.commandName === 'guilda') {
+            const nome = interaction.options.getString('nome');
+            try {
+                const res = await axios.get(`${ARKANDIA_API}/guildas/${encodeURIComponent(nome)}`, { headers: { 'X-API-Key': API_KEY } });
+                const guilda = res.data;
+                
+                if (!guilda) {
+                    return await interaction.editReply({ embeds: [embedErro(`Guilda "${nome}" não encontrada.`)] });
+                }
+
+                const buffer = await gerarBannerGuilda(guilda);
+                const attachment = new AttachmentBuilder(buffer, { name: 'guilda.png' });
+
+                const embed = new EmbedBuilder()
+                    .setColor(0xD4AF37)
+                    .setImage('attachment://guilda.png');
+
+                return await interaction.editReply({ embeds: [embed], files: [attachment] });
+            } catch (e) {
+                console.error(e);
+                if (e.response?.status === 404) {
+                    return await interaction.editReply({ embeds: [embedErro(`Guilda "${nome}" não encontrada.`)] });
+                }
+                return await interaction.editReply({ embeds: [embedErro(`Erro ao buscar dados da guilda: ${e.message}`)] });
+            }
+        }
+
+        if (interaction.commandName === 'missoes') {
+            try {
+                const res = await axios.get(`${ARKANDIA_API}/missoes/abertas?incluir_arcos=true`, { headers: { 'X-API-Key': API_KEY } });
+                const missoes = res.data.missoes || [];
+
+                if (missoes.length === 0) {
+                    return await interaction.editReply({ embeds: [embedErro('Nenhuma missão aberta encontrada no momento.')] });
+                }
+
+                const embed = new EmbedBuilder()
+                    .setColor(0x4A2B7E)
+                    .setTitle('❖ QUADRO DE MISSÕES DE ARKANDIA')
+                    .setDescription('Aventureiros, estas são as missões abertas atualmente na guilda. Preparem suas armas!')
+                    .setThumbnail('https://i.imgur.com/vHqB3q0.png');
+
+                const rows = [];
+                let row = new ActionRowBuilder();
+
+                missoes.slice(0, 5).forEach((m, idx) => {
+                    const statusPerigo = m.morte_permanente ? '💀 PERIGO EXTREMO (Morte Permanente)' : '🛡 Seguro (Sem Morte Permanente)';
+                    embed.addFields({
+                        name: `📍 ${idx + 1}. ${m.nome}`,
+                        value: `> **Nível Mínimo:** ${m.nivel_minimo || 1} | **Rank:** ${m.rank_minimo || 'Iniciante'}\n> **Risco:** ${statusPerigo}\n> **Status:** ${m.status || 'Aberta'} | **Vagas:** ${m.vagas_restantes || m.limite_jogadores || 5}\n> **Sessão:** ${m.data_sessão || 'A agendar'}`
+                    });
+
+                    row.addComponents(
+                        new ButtonBuilder()
+                            .setCustomId(`missoes_inscritos_${m.id}`)
+                            .setLabel(`Inscritos: ${m.nome.substring(0, 15)}`)
+                            .setStyle(ButtonStyle.Secondary)
+                    );
+
+                    if (row.components.length === 2 || idx === missoes.length - 1 || idx === 4) {
+                        rows.push(row);
+                        row = new ActionRowBuilder();
+                    }
+                });
+
+                return await interaction.editReply({ embeds: [embed], components: rows });
+            } catch (e) {
+                console.error(e);
+                return await interaction.editReply({ embeds: [embedErro(`Erro ao buscar o quadro de missões: ${e.message}`)] });
+            }
+        }
+
+        if (interaction.commandName === 'inventario') {
+            try {
+                const res = await axios.get(getUrlRequisicao(interaction), { headers: { 'X-API-Key': API_KEY } });
+                const p = res.data;
+
+                if (!p) {
+                    return await interaction.editReply({ embeds: [embedErro('Personagem não encontrado.')] });
+                }
+
+                const itens = p.inventario || p.itens || [];
+                if (itens.length === 0) {
+                    const embedVazio = new EmbedBuilder()
+                        .setColor(0x8B949E)
+                        .setTitle(`🎒 Inventário de ${formatarTexto(p.nome)}`)
+                        .setDescription('Este aventureiro está com a mochila vazia!');
+                    return await interaction.editReply({ embeds: [embedVazio] });
+                }
+
+                // Armazenar inventário completo no cache
+                const cacheKey = `inventario_${interaction.user.id}_${p.id}`;
+                skillsCache.set(cacheKey, { personagem: p, itens });
+
+                return await renderInventarioPage(interaction, p, itens, 'todos', 0);
+            } catch (e) {
+                console.error(e);
+                return await interaction.editReply({ embeds: [embedErro(`Erro ao carregar o inventário: ${e.message}`)] });
             }
         }
 

@@ -154,3 +154,42 @@ Mapeamento do sistema de movimentação geográfica por categorias de canais do 
 *   **`iniciar`**:
     *   **Parâmetros:** `nome` (String, Obrigatório).
     *   **Mecânica:** Apaga a HUD de preparação e dá início formal à missão no chat com as menções de todos os heróis confirmados prontos.
+
+---
+
+## 🏆 Novos Comandos de Consulta (Integração de Ficha & Comunidade)
+
+Estes comandos barra foram adicionados na **Etapa 2** para expandir as opções de consulta dos jogadores e mestres na API de Arkandia.
+
+### 🏆 `/ranking`
+Permite a visualização em tempo real do Top 10 global em formato de banner Canvas altamente estilizado de 800x620.
+*   **Parâmetros (Obrigatórios):**
+    *   `tipo`: Selecione a categoria (`Poder 💪`, `Nível 📊`, `Guildas 🏰`, `Arena ⚔️`).
+*   **Componentes Interativos**:
+    *   **Botões de Alternância**: Quatro botões integrados abaixo do banner que atualizam o ranking instantaneamente sem a necessidade de novos comandos no chat.
+
+### 🏰 `/guilda`
+Busca e exibe informações completas e detalhadas de qualquer guilda registrada na API de Arkandia com um design Canvas medieval de 800x450.
+*   **Parâmetros (Obrigatórios):**
+    *   `nome`: Nome ou sigla exata da guilda a ser consultada.
+*   **Recursos Visuais**:
+    *   Brasão heráldico da guilda desenhado em tempo real.
+    *   Informações de Nível, XP acumulado e Saldo total no Banco de Libras em cartões estilizados.
+    *   Insígnias e lista dos bônus e Perks ativos no momento para os membros.
+
+### 📜 `/missoes`
+Apresenta o quadro público de aventuras e missões ativas e abertas na API de Arkandia.
+*   **Mecânica**: Exibe um Embed com detalhes de requerimentos de nível e rank, grau de perigo (aviso de morte permanente) e status das vagas.
+*   **Interatividade**:
+    *   Cada missão listada possui um botão associado contendo o nome da missão. Clicar no botão exibe em formato efêmero a lista com o nome e Discord ID de todos os aventureiros inscritos para aquela expedição.
+
+### 🎒 `/inventario`
+Permite que o jogador consulte o conteúdo completo da sua mochila (inventário) registrada no site ou de qualquer outro aventureiro.
+*   **Parâmetros (Opcionais):**
+    *   `jogador`: `@menção` do Discord a consultar.
+    *   `nome`: Nome do personagem na API.
+    *   *Se nenhum for informado, consulta a mochila do próprio usuário executor.*
+*   **Interface Dinâmica**:
+    *   **Menu de Abas**: Botões de categorias para filtrar itens (`Tudo 🎒`, `Armas ⚔`, `Defesas 🛡`, `Consumíveis 🧪`, `Materiais 💎`).
+    *   **Paginação**: Botões de navegação (`Anterior ◀` e `Próximo ▶`) para listar itens grandes organizados por páginas.
+    *   **Raridade**: Exibe os itens marcados por cores temáticas de acordo com a raridade do item (⚪ Comum, 🔵 Raro, 🟣 Épico, 🟠 Lendário, 🔴 Mítico).
