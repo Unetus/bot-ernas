@@ -52,48 +52,163 @@ const formatarTexto = (str) => {
 };
 
 async function gerarBannerPerfil(p) {
-    const canvas = createCanvas(800, 415);
+    const canvas = createCanvas(1000, 415);
     const ctx = canvas.getContext('2d');
 
     const colorHex = typeof p.indice_poder_cor === 'number' 
         ? `#${p.indice_poder_cor.toString(16).padStart(6, '0')}` 
         : (p.indice_poder_cor || '#3498DB');
 
-    // Fundo base
+    // Fundo base (Seção Principal)
     ctx.fillStyle = '#1A1C23';
-    ctx.fillRect(0, 0, 800, 415);
+    ctx.fillRect(200, 0, 800, 415);
 
     // Forma geométrica no fundo
     ctx.fillStyle = colorHex;
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(300, 0);
-    ctx.lineTo(150, 300);
-    ctx.lineTo(0, 300);
+    ctx.moveTo(200, 0);
+    ctx.lineTo(500, 0);
+    ctx.lineTo(350, 300);
+    ctx.lineTo(200, 300);
     ctx.fill();
     
     // Gradiente escuro para suavizar
-    const grd = ctx.createLinearGradient(0, 0, 800, 0);
+    const grd = ctx.createLinearGradient(200, 0, 1000, 0);
     grd.addColorStop(0, 'rgba(26, 28, 35, 0.3)');
     grd.addColorStop(0.35, 'rgba(26, 28, 35, 0.95)');
     grd.addColorStop(1, '#1A1C23');
     ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, 800, 300);
+    ctx.fillRect(200, 0, 800, 300);
 
     // Separador para a área de skills
     ctx.fillStyle = '#13141C';
-    ctx.fillRect(0, 300, 800, 115);
+    ctx.fillRect(200, 300, 800, 115);
     
     ctx.strokeStyle = '#2D313E';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(0, 300);
-    ctx.lineTo(800, 300);
+    ctx.moveTo(200, 300);
+    ctx.lineTo(1000, 300);
     ctx.stroke();
+
+    // ---------------------------------------------
+    // PAINEL DE EQUIPAMENTOS (ESQUERDA - 0 a 200px)
+    // ---------------------------------------------
+    ctx.fillStyle = '#13141C';
+    ctx.fillRect(0, 0, 200, 415);
+
+    ctx.strokeStyle = '#2D313E';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(200, 0);
+    ctx.lineTo(200, 415);
+    ctx.stroke();
+
+    ctx.fillStyle = '#8B949E';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('EQUIPAMENTO', 20, 35);
+
+    const equips = p.equipamento || [];
+    const elmo = equips.find(e => ['capacete', 'cabeca', 'helmet', 'head', 'elmo'].includes(e.slot?.toLowerCase()));
+    const armadura = equips.find(e => ['armadura', 'peito', 'chest', 'armor', 'body', 'veste'].includes(e.slot?.toLowerCase()));
+    const arma = equips.find(e => ['arma_principal', 'arma', 'weapon', 'main_hand', 'espada', 'arco', 'bastao', 'machado', 'lança'].includes(e.slot?.toLowerCase()));
+    const sapatos = equips.find(e => ['sapatos', 'botas', 'boots', 'shoes', 'feet', 'pes', 'bota'].includes(e.slot?.toLowerCase()));
+
+    const drawEmptyEquipSlot = (label, x, y) => {
+        ctx.strokeStyle = '#2D313E';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(x, y, 64, 64, 10);
+        } else {
+            ctx.rect(x, y, 64, 64);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#4F5660';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label.toUpperCase(), x + 32, y + 36);
+        ctx.textAlign = 'left';
+    };
+
+    const drawOccupiedEquipSlot = async (item, x, y) => {
+        ctx.save();
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(x, y, 64, 64, 10);
+        } else {
+            ctx.rect(x, y, 64, 64);
+        }
+        ctx.clip();
+        
+        try {
+            if (item.imagem_url) {
+                const img = await loadImage(item.imagem_url);
+                ctx.drawImage(img, x, y, 64, 64);
+            } else {
+                ctx.fillStyle = '#2A2C35';
+                ctx.fillRect(x, y, 64, 64);
+            }
+        } catch (e) {
+            ctx.fillStyle = '#2A2C35';
+            ctx.fillRect(x, y, 64, 64);
+        }
+        ctx.restore();
+
+        const raridades = {
+            comum: '#8B949E',
+            raro: '#3498DB',
+            epico: '#8B5CF6',
+            lendario: '#F59E0B',
+            mitico: '#EF4444'
+        };
+        const borderCol = raridades[item.raridade?.toLowerCase()] || '#2D313E';
+
+        ctx.strokeStyle = borderCol;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(x, y, 64, 64, 10);
+        } else {
+            ctx.rect(x, y, 64, 64);
+        }
+        ctx.stroke();
+    };
+
+    if (elmo) {
+        await drawOccupiedEquipSlot(elmo, 38, 70);
+    } else {
+        drawEmptyEquipSlot('Elmo', 38, 70);
+    }
+
+    if (armadura) {
+        await drawOccupiedEquipSlot(armadura, 38, 160);
+    } else {
+        drawEmptyEquipSlot('Peito', 38, 160);
+    }
+
+    if (sapatos) {
+        await drawOccupiedEquipSlot(sapatos, 38, 250);
+    } else {
+        drawEmptyEquipSlot('Botas', 38, 250);
+    }
+
+    if (arma) {
+        await drawOccupiedEquipSlot(arma, 118, 160);
+    } else {
+        drawEmptyEquipSlot('Arma', 118, 160);
+    }
+
+    // ---------------------------------------------
+    // PAINEL PRINCIPAL (DIREITA - 200px a 1000px)
+    // ---------------------------------------------
 
     // Avatar
     const avatarSize = 220;
-    const avatarX = 40;
+    const avatarX = 240;
     const avatarY = 40;
     
     ctx.save();
@@ -126,17 +241,17 @@ async function gerarBannerPerfil(p) {
     // Textos Principais
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 45px sans-serif';
-    ctx.fillText(nome, 300, 90);
+    ctx.fillText(nome, 500, 90);
 
     if (titulo) {
         ctx.fillStyle = colorHex;
         ctx.font = 'bold 24px sans-serif';
-        ctx.fillText(titulo, 300, 130);
+        ctx.fillText(titulo, 500, 130);
     }
 
     ctx.fillStyle = '#A0AAB5';
     ctx.font = '22px sans-serif';
-    ctx.fillText(`${raca} • ${classe}`, 300, 170);
+    ctx.fillText(`${raca} • ${classe}`, 500, 170);
 
     // Status (Nível, Rank, Poder)
     const drawStat = (label, value, x, y) => {
@@ -160,14 +275,14 @@ async function gerarBannerPerfil(p) {
         ctx.textAlign = 'left';
     };
 
-    drawStat('Nível', `${p.nivel || 1}`, 300, 195);
-    drawStat('Rank', `${p.rank || '-'}`, 460, 195);
-    drawStat('Poder', `${p.indice_poder || 0}`, 620, 195);
+    drawStat('Nível', `${p.nivel || 1}`, 500, 195);
+    drawStat('Rank', `${p.rank || '-'}`, 660, 195);
+    drawStat('Poder', `${p.indice_poder || 0}`, 820, 195);
 
     // Deck de Habilidades
     ctx.fillStyle = '#8B949E';
     ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('DECK DE HABILIDADES', 40, 323);
+    ctx.fillText('DECK DE HABILIDADES', 240, 323);
 
     const skills = p.build_skills || [];
     const slots = [
@@ -184,7 +299,7 @@ async function gerarBannerPerfil(p) {
     const slotSize = 58;
     const slotY = 338;
     for (let i = 0; i < 8; i++) {
-        const slotX = 40 + i * 92;
+        const slotX = 240 + i * 92;
         const s = slots[i];
 
         if (s) {
