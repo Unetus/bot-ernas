@@ -52,7 +52,7 @@ const formatarTexto = (str) => {
 };
 
 async function gerarBannerPerfil(p) {
-    const canvas = createCanvas(800, 300);
+    const canvas = createCanvas(800, 415);
     const ctx = canvas.getContext('2d');
 
     const colorHex = typeof p.indice_poder_cor === 'number' 
@@ -61,7 +61,7 @@ async function gerarBannerPerfil(p) {
 
     // Fundo base
     ctx.fillStyle = '#1A1C23';
-    ctx.fillRect(0, 0, 800, 300);
+    ctx.fillRect(0, 0, 800, 415);
 
     // Forma geométrica no fundo
     ctx.fillStyle = colorHex;
@@ -79,6 +79,17 @@ async function gerarBannerPerfil(p) {
     grd.addColorStop(1, '#1A1C23');
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, 800, 300);
+
+    // Separador para a área de skills
+    ctx.fillStyle = '#13141C';
+    ctx.fillRect(0, 300, 800, 115);
+    
+    ctx.strokeStyle = '#2D313E';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, 300);
+    ctx.lineTo(800, 300);
+    ctx.stroke();
 
     // Avatar
     const avatarSize = 220;
@@ -152,6 +163,95 @@ async function gerarBannerPerfil(p) {
     drawStat('Nível', `${p.nivel || 1}`, 300, 195);
     drawStat('Rank', `${p.rank || '-'}`, 460, 195);
     drawStat('Poder', `${p.indice_poder || 0}`, 620, 195);
+
+    // Deck de Habilidades
+    ctx.fillStyle = '#8B949E';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('DECK DE HABILIDADES', 40, 323);
+
+    const skills = p.build_skills || [];
+    const slots = [
+        skills.find(s => s.slot === 'racial'),
+        skills.find(s => s.slot === '1'),
+        skills.find(s => s.slot === '2'),
+        skills.find(s => s.slot === '3'),
+        skills.find(s => s.slot === '4'),
+        skills.find(s => s.slot === '5'),
+        skills.find(s => s.slot === '6'),
+        skills.find(s => s.slot === '7')
+    ];
+
+    const slotSize = 58;
+    const slotY = 338;
+    for (let i = 0; i < 8; i++) {
+        const slotX = 40 + i * 92;
+        const s = slots[i];
+
+        if (s) {
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(slotX, slotY, slotSize, slotSize, 10);
+            } else {
+                ctx.rect(slotX, slotY, slotSize, slotSize);
+            }
+            ctx.clip();
+            
+            try {
+                if (s.imagem_url) {
+                    const img = await loadImage(s.imagem_url);
+                    ctx.drawImage(img, slotX, slotY, slotSize, slotSize);
+                } else {
+                    ctx.fillStyle = s.tipo === 'passiva' ? '#4A2B7E' : '#2B4C7E';
+                    ctx.fillRect(slotX, slotY, slotSize, slotSize);
+                }
+            } catch (e) {
+                ctx.fillStyle = '#333';
+                ctx.fillRect(slotX, slotY, slotSize, slotSize);
+            }
+            ctx.restore();
+
+            ctx.strokeStyle = i === 0 ? '#D4AF37' : colorHex;
+            ctx.lineWidth = i === 0 ? 3 : 2;
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(slotX, slotY, slotSize, slotSize, 10);
+            } else {
+                ctx.rect(slotX, slotY, slotSize, slotSize);
+            }
+            ctx.stroke();
+
+            if (i === 0) {
+                ctx.fillStyle = '#D4AF37';
+                ctx.font = '9px sans-serif';
+                ctx.fillText('RACIAL', slotX, slotY - 4);
+            }
+        } else {
+            ctx.strokeStyle = '#2D313E';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(slotX, slotY, slotSize, slotSize, 10);
+            } else {
+                ctx.rect(slotX, slotY, slotSize, slotSize);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#4F5660';
+            ctx.font = '20px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('+', slotX + slotSize / 2, slotY + slotSize / 2 + 7);
+            ctx.textAlign = 'left';
+
+            if (i === 0) {
+                ctx.fillStyle = '#4F5660';
+                ctx.font = '9px sans-serif';
+                ctx.fillText('RACIAL', slotX, slotY - 4);
+            }
+        }
+    }
 
     return canvas.toBuffer('image/png');
 }
@@ -625,6 +725,26 @@ client.on('interactionCreate', async interaction => {
         );
 
         await interaction.update({ embeds: [skillEmbed], components: [interaction.message.components[0], row] });
+        return;
+    }
+
+    if (interaction.isStringSelectMenu() && interaction.customId === 'select_profile_skill') {
+        const cacheData = skillsCache.get(interaction.message.id);
+        if (!cacheData) return interaction.reply({ content: '✗ Cache expirado.', ephemeral: true });
+
+        const skillId = interaction.values[0];
+        const skill = cacheData.skills.find(s => s.id === skillId);
+        
+        if (!skill) return interaction.reply({ content: '✗ Habilidade não encontrada no perfil.', ephemeral: true });
+
+        const skillEmbed = new EmbedBuilder()
+            .setColor(0x2B4C7E)
+            .setTitle(`✦ ${formatarTexto(skill.nome)} (Grau ${skill.grau})`)
+            .setDescription(`**Tipo:** ${formatarTexto(skill.tipo)} | **Origem:** ${formatarTexto(skill.origem)}\n\n${skill.descricao}`);
+        
+        if (skill.imagem_url) skillEmbed.setThumbnail(skill.imagem_url);
+        
+        await interaction.reply({ embeds: [skillEmbed], ephemeral: true });
         return;
     }
 
@@ -1594,7 +1714,29 @@ client.on('interactionCreate', async interaction => {
                     .setColor(p.indice_poder_cor || 0x3498DB)
                     .setImage('attachment://perfil.png');
                 
-                return await interaction.editReply({ embeds: [embed], files: [attachment] });
+                let components = [];
+                if (p.build_skills && p.build_skills.length > 0) {
+                    const options = p.build_skills.slice(0, 25).map(s => ({
+                        label: `${formatarTexto(s.nome)} (Grau ${s.grau})`,
+                        description: formatarTexto(s.tipo) || '',
+                        value: s.id
+                    }));
+
+                    const row = new ActionRowBuilder().addComponents(
+                        new StringSelectMenuBuilder()
+                            .setCustomId('select_profile_skill')
+                            .setPlaceholder('Selecione uma habilidade equipada para ver detalhes')
+                            .addOptions(options)
+                    );
+                    components.push(row);
+                }
+
+                const msg = await interaction.editReply({ embeds: [embed], files: [attachment], components });
+                
+                if (p.build_skills && p.build_skills.length > 0) {
+                    skillsCache.set(msg.id, { personagem: p, skills: p.build_skills });
+                }
+                return;
             } catch (e) {
                 return await interaction.editReply('✗ Personagem não encontrado.');
             }
