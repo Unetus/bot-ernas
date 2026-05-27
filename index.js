@@ -538,7 +538,7 @@ async function gerarBannerRanking(tipo, dados) {
     ctx.lineTo(750, 115);
     ctx.stroke();
 
-    const list = Array.isArray(dados) ? dados : (dados.rankings || dados.data || []);
+    const list = Array.isArray(dados) ? dados : (dados.personagens || dados.guildas || dados.rankings || dados.data || []);
     const top10 = list.slice(0, 10);
 
     if (top10.length === 0) {
@@ -613,13 +613,13 @@ async function gerarBannerRanking(tipo, dados) {
 
         let valorText = '';
         if (tipo === 'poder') {
-            valorText = `${item.indice_poder || 0} Poder`;
+            valorText = `${(item.poder || item.indice_poder || 0).toLocaleString('pt-BR')} Poder`;
         } else if (tipo === 'nivel') {
             valorText = `Nível ${item.nivel || 1}`;
         } else if (tipo === 'guildas') {
-            valorText = `Nível ${item.nivel || 1} • ${item.libras || 0} L`;
+            valorText = `${(item.xp_total_guilda || 0).toLocaleString('pt-BR')} XP • ${(item.banco_libras || item.libras || 0).toLocaleString('pt-BR')} L`;
         } else if (tipo === 'arena') {
-            valorText = `${item.pontos_arena || item.arena_pontos || 0} pts`;
+            valorText = `${item.rating || item.pontos_arena || item.arena_pontos || 0} pts`;
         }
 
         ctx.fillText(valorText, 730, y + rowHeight / 2 + 5);
@@ -725,7 +725,7 @@ async function gerarBannerGuilda(guilda) {
     ctx.font = 'bold 14px sans-serif';
     ctx.fillText('BÔNUS E PERKS ATIVOS', 50, 335);
 
-    const perks = guilda.perks || [];
+    const perks = guilda.perks || guilda.perks_ativos || [];
     if (perks.length === 0) {
         ctx.fillStyle = '#4F5660';
         ctx.font = 'italic 15px sans-serif';
@@ -741,13 +741,25 @@ async function gerarBannerGuilda(guilda) {
             ctx.fillStyle = '#2E5A36';
             ctx.fillRect(px, 350, 4, 50);
 
+            const perkKey = p.perk_key || '';
+            const traducoes = {
+                bencao_treinamento: { nome: 'Treinamento Cósmico', efeito: '+10% XP em Missões' },
+                banco_expandido: { nome: 'Cofre Expandido', efeito: 'Banco de Libras ampliado' },
+                escudo_conquista: { nome: 'Escudo de Glória', efeito: 'Proteção em masmorras' }
+            };
+
+            const info = traducoes[perkKey.toLowerCase()] || {
+                nome: p.nome || formatarTexto(perkKey.replace(/_/g, ' ')) || 'Bônus Ativo',
+                efeito: p.efeito || 'Efeito ativo na guilda'
+            };
+
             ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 12px sans-serif';
-            ctx.fillText(formatarTexto(p.nome), px + 15, 368);
+            ctx.fillText(info.nome, px + 15, 368);
 
             ctx.fillStyle = '#8B949E';
             ctx.font = '10px sans-serif';
-            ctx.fillText(p.efeito || 'Bônus ativo', px + 15, 385);
+            ctx.fillText(info.efeito, px + 15, 385);
         });
     }
 
@@ -2445,13 +2457,35 @@ client.on('interactionCreate', async interaction => {
         }
 
         if (interaction.commandName === 'guilda') {
-            const nome = interaction.options.getString('nome');
+            const nomeInput = interaction.options.getString('nome');
             try {
-                const res = await axios.get(`${ARKANDIA_API}/guildas/${encodeURIComponent(nome)}`, { headers: { 'X-API-Key': API_KEY } });
+                let guildaId = nomeInput;
+                const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(nomeInput);
+
+                if (!isUUID) {
+                    // Buscar guilda no ranking para obter o UUID associado ao nome ou sigla
+                    const resRanking = await axios.get(`${ARKANDIA_API}/rankings/guildas?limit=50`, { headers: { 'X-API-Key': API_KEY } });
+                    const listGuildas = Array.isArray(resRanking.data) ? resRanking.data : (resRanking.data.guildas || []);
+                    
+                    const guildaMatch = listGuildas.find(g => 
+                        (g.nome && g.nome.toLowerCase() === nomeInput.toLowerCase()) || 
+                        (g.sigla && g.sigla.toLowerCase() === nomeInput.toLowerCase())
+                    ) || listGuildas.find(g => 
+                        (g.nome && g.nome.toLowerCase().includes(nomeInput.toLowerCase())) || 
+                        (g.sigla && g.sigla.toLowerCase().includes(nomeInput.toLowerCase()))
+                    );
+
+                    if (!guildaMatch) {
+                        return await interaction.editReply({ embeds: [embedErro(`Guilda "${nomeInput}" não foi encontrada no ranking de guildas. Verifique a grafia ou utilize a sigla.`)] });
+                    }
+                    guildaId = guildaMatch.id;
+                }
+
+                const res = await axios.get(`${ARKANDIA_API}/guildas/${guildaId}`, { headers: { 'X-API-Key': API_KEY } });
                 const guilda = res.data;
                 
                 if (!guilda) {
-                    return await interaction.editReply({ embeds: [embedErro(`Guilda "${nome}" não encontrada.`)] });
+                    return await interaction.editReply({ embeds: [embedErro(`Guilda "${nomeInput}" não encontrada.`)] });
                 }
 
                 const buffer = await gerarBannerGuilda(guilda);
@@ -2465,9 +2499,9 @@ client.on('interactionCreate', async interaction => {
             } catch (e) {
                 console.error(e);
                 if (e.response?.status === 404) {
-                    return await interaction.editReply({ embeds: [embedErro(`Guilda "${nome}" não encontrada.`)] });
+                    return await interaction.editReply({ embeds: [embedErro(`Guilda "${nomeInput}" não encontrada.`)] });
                 }
-                return await interaction.editReply({ embeds: [embedErro(`Erro ao buscar dados da guilda: ${e.message}`)] });
+                return await interaction.editReply({ embeds: [embedErro(`Erro ao buscar dados da guilda: ${e.response?.data?.error || e.message}`)] });
             }
         }
 
