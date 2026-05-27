@@ -52,7 +52,7 @@ const formatarTexto = (str) => {
 };
 
 async function gerarBannerPerfil(p) {
-    const canvas = createCanvas(1000, 415);
+    const canvas = createCanvas(1100, 415);
     const ctx = canvas.getContext('2d');
 
     const colorHex = typeof p.indice_poder_cor === 'number' 
@@ -61,52 +61,215 @@ async function gerarBannerPerfil(p) {
 
     // Fundo base (Seção Principal)
     ctx.fillStyle = '#1A1C23';
-    ctx.fillRect(200, 0, 800, 415);
+    ctx.fillRect(0, 0, 900, 415);
 
     // Forma geométrica no fundo
     ctx.fillStyle = colorHex;
     ctx.beginPath();
-    ctx.moveTo(200, 0);
-    ctx.lineTo(500, 0);
-    ctx.lineTo(350, 300);
-    ctx.lineTo(200, 300);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(300, 0);
+    ctx.lineTo(150, 300);
+    ctx.lineTo(0, 300);
     ctx.fill();
     
     // Gradiente escuro para suavizar
-    const grd = ctx.createLinearGradient(200, 0, 1000, 0);
+    const grd = ctx.createLinearGradient(0, 0, 900, 0);
     grd.addColorStop(0, 'rgba(26, 28, 35, 0.3)');
     grd.addColorStop(0.35, 'rgba(26, 28, 35, 0.95)');
     grd.addColorStop(1, '#1A1C23');
     ctx.fillStyle = grd;
-    ctx.fillRect(200, 0, 800, 300);
+    ctx.fillRect(0, 0, 900, 300);
 
     // Separador para a área de skills
     ctx.fillStyle = '#13141C';
-    ctx.fillRect(200, 300, 800, 115);
+    ctx.fillRect(0, 300, 900, 115);
     
     ctx.strokeStyle = '#2D313E';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(200, 300);
-    ctx.lineTo(1000, 300);
+    ctx.moveTo(0, 300);
+    ctx.lineTo(900, 300);
     ctx.stroke();
 
+    // Avatar
+    const avatarSize = 220;
+    const avatarX = 80;
+    const avatarY = 40;
+    
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+    
+    try {
+        const avatar = await loadImage(p.avatar_url || 'https://i.imgur.com/vHqB3q0.png');
+        ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
+    } catch(e) {
+        ctx.fillStyle = '#333';
+        ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
+    }
+    ctx.restore();
+
+    // Moldura do Avatar
+    ctx.strokeStyle = colorHex;
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const nome = formatarTexto(p.nome);
+    const titulo = p.titulo ? formatarTexto(p.titulo) : '';
+    const raca = formatarTexto(p.raca);
+    const classe = formatarTexto(p.classe);
+
+    // Textos Principais
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 45px sans-serif';
+    ctx.fillText(nome, 340, 90);
+
+    if (titulo) {
+        ctx.fillStyle = colorHex;
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText(titulo, 340, 130);
+    }
+
+    ctx.fillStyle = '#A0AAB5';
+    ctx.font = '22px sans-serif';
+    ctx.fillText(`${raca} • ${classe}`, 340, 170);
+
+    // Status (Nível, Rank, Poder)
+    const drawStat = (label, value, x, y) => {
+        ctx.fillStyle = '#252830';
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(x, y, 140, 85, 12);
+        } else {
+            ctx.fillRect(x, y, 140, 85);
+        }
+        ctx.fill();
+        
+        ctx.fillStyle = '#8B949E';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(label.toUpperCase(), x + 70, y + 30);
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 30px sans-serif';
+        ctx.fillText(value, x + 70, y + 68);
+        ctx.textAlign = 'left';
+    };
+
+    drawStat('Nível', `${p.nivel || 1}`, 390, 195);
+    drawStat('Rank', `${p.rank || '-'}`, 550, 195);
+    drawStat('Poder', `${p.indice_poder || 0}`, 710, 195);
+
+    // Deck de Habilidades
+    const skillsStart = 71;
+    ctx.fillStyle = '#8B949E';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('DECK DE HABILIDADES', skillsStart, 323);
+
+    const skills = p.build_skills || [];
+    const slots = [
+        skills.find(s => s.slot === 'racial'),
+        skills.find(s => s.slot === '1'),
+        skills.find(s => s.slot === '2'),
+        skills.find(s => s.slot === '3'),
+        skills.find(s => s.slot === '4'),
+        skills.find(s => s.slot === '5'),
+        skills.find(s => s.slot === '6'),
+        skills.find(s => s.slot === '7')
+    ];
+
+    const slotSize = 58;
+    const slotY = 338;
+    for (let i = 0; i < 8; i++) {
+        const slotX = skillsStart + i * 100;
+        const s = slots[i];
+
+        if (s) {
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(slotX, slotY, slotSize, slotSize, 10);
+            } else {
+                ctx.rect(slotX, slotY, slotSize, slotSize);
+            }
+            ctx.clip();
+            
+            try {
+                if (s.imagem_url) {
+                    const img = await loadImage(s.imagem_url);
+                    ctx.drawImage(img, slotX, slotY, slotSize, slotSize);
+                } else {
+                    ctx.fillStyle = s.tipo === 'passiva' ? '#4A2B7E' : '#2B4C7E';
+                    ctx.fillRect(slotX, slotY, slotSize, slotSize);
+                }
+            } catch (e) {
+                ctx.fillStyle = '#333';
+                ctx.fillRect(slotX, slotY, slotSize, slotSize);
+            }
+            ctx.restore();
+
+            ctx.strokeStyle = i === 0 ? '#D4AF37' : colorHex;
+            ctx.lineWidth = i === 0 ? 3 : 2;
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(slotX, slotY, slotSize, slotSize, 10);
+            } else {
+                ctx.rect(slotX, slotY, slotSize, slotSize);
+            }
+            ctx.stroke();
+
+            if (i === 0) {
+                ctx.fillStyle = '#D4AF37';
+                ctx.font = '9px sans-serif';
+                ctx.fillText('RACIAL', slotX, slotY - 4);
+            }
+        } else {
+            ctx.strokeStyle = '#2D313E';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(slotX, slotY, slotSize, slotSize, 10);
+            } else {
+                ctx.rect(slotX, slotY, slotSize, slotSize);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#4F5660';
+            ctx.font = '20px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('+', slotX + slotSize / 2, slotY + slotSize / 2 + 7);
+            ctx.textAlign = 'left';
+
+            if (i === 0) {
+                ctx.fillStyle = '#4F5660';
+                ctx.font = '9px sans-serif';
+                ctx.fillText('RACIAL', slotX, slotY - 4);
+            }
+        }
+    }
+
     // ---------------------------------------------
-    // PAINEL DE EQUIPAMENTOS (ESQUERDA - 0 a 200px)
+    // PAINEL DE EQUIPAMENTOS (DIREITA - 900 a 1100px)
     // ---------------------------------------------
     ctx.fillStyle = '#13141C';
-    ctx.fillRect(0, 0, 200, 415);
+    ctx.fillRect(900, 0, 200, 415);
 
     ctx.strokeStyle = '#2D313E';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(200, 0);
-    ctx.lineTo(200, 415);
+    ctx.moveTo(900, 0);
+    ctx.lineTo(900, 415);
     ctx.stroke();
 
     ctx.fillStyle = '#8B949E';
     ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('EQUIPAMENTO', 20, 35);
+    ctx.fillText('EQUIPAMENTO', 920, 35);
 
     const equips = p.equipamento || [];
     const elmo = equips.find(e => ['capacete', 'cabeca', 'helmet', 'head', 'elmo'].includes(e.slot?.toLowerCase()));
@@ -179,193 +342,27 @@ async function gerarBannerPerfil(p) {
     };
 
     if (elmo) {
-        await drawOccupiedEquipSlot(elmo, 38, 70);
+        await drawOccupiedEquipSlot(elmo, 938, 70);
     } else {
-        drawEmptyEquipSlot('Elmo', 38, 70);
+        drawEmptyEquipSlot('Elmo', 938, 70);
     }
 
     if (armadura) {
-        await drawOccupiedEquipSlot(armadura, 38, 160);
+        await drawOccupiedEquipSlot(armadura, 938, 160);
     } else {
-        drawEmptyEquipSlot('Peito', 38, 160);
+        drawEmptyEquipSlot('Peito', 938, 160);
     }
 
     if (sapatos) {
-        await drawOccupiedEquipSlot(sapatos, 38, 250);
+        await drawOccupiedEquipSlot(sapatos, 938, 250);
     } else {
-        drawEmptyEquipSlot('Botas', 38, 250);
+        drawEmptyEquipSlot('Botas', 938, 250);
     }
 
     if (arma) {
-        await drawOccupiedEquipSlot(arma, 118, 160);
+        await drawOccupiedEquipSlot(arma, 1018, 160);
     } else {
-        drawEmptyEquipSlot('Arma', 118, 160);
-    }
-
-    // ---------------------------------------------
-    // PAINEL PRINCIPAL (DIREITA - 200px a 1000px)
-    // ---------------------------------------------
-
-    // Avatar
-    const avatarSize = 220;
-    const avatarX = 240;
-    const avatarY = 40;
-    
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.clip();
-    
-    try {
-        const avatar = await loadImage(p.avatar_url || 'https://i.imgur.com/vHqB3q0.png');
-        ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
-    } catch(e) {
-        ctx.fillStyle = '#333';
-        ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
-    }
-    ctx.restore();
-
-    // Moldura do Avatar
-    ctx.strokeStyle = colorHex;
-    ctx.lineWidth = 8;
-    ctx.beginPath();
-    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-    ctx.stroke();
-
-    const nome = formatarTexto(p.nome);
-    const titulo = p.titulo ? formatarTexto(p.titulo) : '';
-    const raca = formatarTexto(p.raca);
-    const classe = formatarTexto(p.classe);
-
-    // Textos Principais
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 45px sans-serif';
-    ctx.fillText(nome, 500, 90);
-
-    if (titulo) {
-        ctx.fillStyle = colorHex;
-        ctx.font = 'bold 24px sans-serif';
-        ctx.fillText(titulo, 500, 130);
-    }
-
-    ctx.fillStyle = '#A0AAB5';
-    ctx.font = '22px sans-serif';
-    ctx.fillText(`${raca} • ${classe}`, 500, 170);
-
-    // Status (Nível, Rank, Poder)
-    const drawStat = (label, value, x, y) => {
-        ctx.fillStyle = '#252830';
-        ctx.beginPath();
-        if (ctx.roundRect) {
-            ctx.roundRect(x, y, 140, 85, 12);
-        } else {
-            ctx.fillRect(x, y, 140, 85);
-        }
-        ctx.fill();
-        
-        ctx.fillStyle = '#8B949E';
-        ctx.font = 'bold 16px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(label.toUpperCase(), x + 70, y + 30);
-        
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 30px sans-serif';
-        ctx.fillText(value, x + 70, y + 68);
-        ctx.textAlign = 'left';
-    };
-
-    drawStat('Nível', `${p.nivel || 1}`, 500, 195);
-    drawStat('Rank', `${p.rank || '-'}`, 660, 195);
-    drawStat('Poder', `${p.indice_poder || 0}`, 820, 195);
-
-    // Deck de Habilidades
-    ctx.fillStyle = '#8B949E';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('DECK DE HABILIDADES', 240, 323);
-
-    const skills = p.build_skills || [];
-    const slots = [
-        skills.find(s => s.slot === 'racial'),
-        skills.find(s => s.slot === '1'),
-        skills.find(s => s.slot === '2'),
-        skills.find(s => s.slot === '3'),
-        skills.find(s => s.slot === '4'),
-        skills.find(s => s.slot === '5'),
-        skills.find(s => s.slot === '6'),
-        skills.find(s => s.slot === '7')
-    ];
-
-    const slotSize = 58;
-    const slotY = 338;
-    for (let i = 0; i < 8; i++) {
-        const slotX = 240 + i * 92;
-        const s = slots[i];
-
-        if (s) {
-            ctx.save();
-            ctx.beginPath();
-            if (ctx.roundRect) {
-                ctx.roundRect(slotX, slotY, slotSize, slotSize, 10);
-            } else {
-                ctx.rect(slotX, slotY, slotSize, slotSize);
-            }
-            ctx.clip();
-            
-            try {
-                if (s.imagem_url) {
-                    const img = await loadImage(s.imagem_url);
-                    ctx.drawImage(img, slotX, slotY, slotSize, slotSize);
-                } else {
-                    ctx.fillStyle = s.tipo === 'passiva' ? '#4A2B7E' : '#2B4C7E';
-                    ctx.fillRect(slotX, slotY, slotSize, slotSize);
-                }
-            } catch (e) {
-                ctx.fillStyle = '#333';
-                ctx.fillRect(slotX, slotY, slotSize, slotSize);
-            }
-            ctx.restore();
-
-            ctx.strokeStyle = i === 0 ? '#D4AF37' : colorHex;
-            ctx.lineWidth = i === 0 ? 3 : 2;
-            ctx.beginPath();
-            if (ctx.roundRect) {
-                ctx.roundRect(slotX, slotY, slotSize, slotSize, 10);
-            } else {
-                ctx.rect(slotX, slotY, slotSize, slotSize);
-            }
-            ctx.stroke();
-
-            if (i === 0) {
-                ctx.fillStyle = '#D4AF37';
-                ctx.font = '9px sans-serif';
-                ctx.fillText('RACIAL', slotX, slotY - 4);
-            }
-        } else {
-            ctx.strokeStyle = '#2D313E';
-            ctx.lineWidth = 1.5;
-            ctx.setLineDash([4, 4]);
-            ctx.beginPath();
-            if (ctx.roundRect) {
-                ctx.roundRect(slotX, slotY, slotSize, slotSize, 10);
-            } else {
-                ctx.rect(slotX, slotY, slotSize, slotSize);
-            }
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            ctx.fillStyle = '#4F5660';
-            ctx.font = '20px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('+', slotX + slotSize / 2, slotY + slotSize / 2 + 7);
-            ctx.textAlign = 'left';
-
-            if (i === 0) {
-                ctx.fillStyle = '#4F5660';
-                ctx.font = '9px sans-serif';
-                ctx.fillText('RACIAL', slotX, slotY - 4);
-            }
-        }
+        drawEmptyEquipSlot('Arma', 1018, 160);
     }
 
     return canvas.toBuffer('image/png');
