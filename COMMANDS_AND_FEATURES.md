@@ -108,6 +108,17 @@ Conjunto de comandos restritos a usuários com permissão de `Gerenciar Mensagen
 | :--- | :--- | :--- |
 | **`dropar`** | `item` (String, Obrigatório)<br>`quantidade` (Int, Opcional, default: `1`) | Busca as informações de um item no catálogo da API e cria um embed com um botão **Coletar Item** (`pegar_loot_<id>_<qtd>`). O primeiro jogador a clicar no botão tem seu personagem ativo resolvido pelo Discord ID e o item é adicionado automaticamente ao seu inventário no site de Arkandia, desabilitando o botão para os demais. |
 | **`bestiario`**| `nome` (String, Obrigatório) | Consulta secreta de ficha. Busca os dados de um NPC ou monstro do Bestiário diretamente na API de Arkandia e exibe seus atributos e lore. |
+| **`painel`** | Nenhum | Abre a **HUD Integrada de Controle do Mestre**, uma central visual e interativa por botões e menus de seleção para gerenciar VTT, narrações, drops de loot e a IA Narrativa Assistente de forma simplificada. |
+
+### 🎛️ HUD do Mestre & IA Narrativa Integrada (Etapas 3.4 e 5.4)
+Ao invés de digitar múltiplos comandos longos, o Mestre pode rodar `/mestre painel` para carregar um **Painel de Controle Gráfico em Canvas** contendo:
+* **Módulo VTT**: Monitora a existência de grids ativos, turno atual no combate e rodadas.
+* **Módulo Voz**: Indica se o Mestre está interpretando algum NPC através do sistema de Webhooks.
+* **Módulo Missões**: Acompanha heróis confirmados e prontos em tempo real.
+* **Módulo IA (Gemini)**: Interface de ponta que permite ao Mestre realizar:
+  1. `🧠 Descrever Ambiente`: A IA gera descrições narrativas de alta imersão baseadas no canal atual do RPG e as envia através do webhook do "Narrador".
+  2. `🧠 Improvisar Fala de NPC`: Abre um Modal para o Mestre digitar o rumo de uma conversa; a IA assume in-character a identidade do NPC que o Mestre está incorporando e responde de forma imersiva via Webhook.
+  3. `🧠 Encontro Aleatório`: A IA sorteia monstros da fauna local, narra a emboscada de forma poética e dá as coordenadas exatas para o Mestre posicionar os tokens no grid de combate.
 
 ### `/narrar` (Narração Imersiva & Interpretação)
 
