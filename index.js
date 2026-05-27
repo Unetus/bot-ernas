@@ -830,10 +830,12 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
     const pag = Math.max(0, Math.min(pagina, totalPaginas - 1));
     const slice = itensFiltrados.slice(pag * ITEMS_PER_PAGE, (pag + 1) * ITEMS_PER_PAGE);
 
+    const libras = p.libras || p.saldo || 0;
     const embed = new EmbedBuilder()
         .setColor(p.indice_poder_cor || 0x3498DB)
         .setTitle(`🎒 Inventário de ${formatarTexto(p.nome)}`)
-        .setDescription(`**Categoria:** ${formatarTexto(categoria === 'todos' ? 'Tudo' : categoria)} | Página ${pag + 1} de ${totalPaginas}\n\n` + 
+        .setDescription(`🪙 **Saldo:** \`${libras.toLocaleString('pt-BR')} Libras\`\n` +
+            `📂 **Categoria:** ${formatarTexto(categoria === 'todos' ? 'Tudo' : categoria)} | Página ${pag + 1} de ${totalPaginas}\n\n` + 
             (slice.length === 0 ? '*Nenhum item encontrado nesta categoria.*' : 
             slice.map((i, idx) => {
                 const itemNome = formatarTexto(i.nome || i.item?.nome || 'Item Desconhecido');
@@ -848,7 +850,8 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
                 }[raridade] || '⚪';
 
                 const catLabel = formatarTexto(i.categoria || i.item?.categoria || '');
-                return `${emojiRaridade} **${itemNome}** (x${qtd}) - *${catLabel}*`;
+                const equipStatus = i.equipado ? ' *(Equipado)*' : '';
+                return `${emojiRaridade} **${itemNome}** (x${qtd}) - *${catLabel}*${equipStatus}`;
             }).join('\n')));
 
     // Botões de Categorias
@@ -2586,6 +2589,19 @@ client.on('interactionCreate', async interaction => {
         }
 
         if (interaction.commandName === 'inventario') {
+            const usuarioMencionado = interaction.options.getUser('jogador');
+            const nomeFornecido = interaction.options.getString('nome');
+
+            const member = interaction.member;
+            const isUserAdmin = member && (
+                member.permissions.has(PermissionFlagsBits.Administrator) ||
+                member.roles.cache.some(r => ['admin', 'administrador'].includes(r.name.toLowerCase()))
+            );
+
+            if ((nomeFornecido || (usuarioMencionado && usuarioMencionado.id !== interaction.user.id)) && !isUserAdmin) {
+                return await interaction.editReply({ embeds: [embedErro("Apenas administradores podem consultar o inventário de outros jogadores!")] });
+            }
+
             try {
                 const res = await axios.get(getUrlRequisicao(interaction), { headers: { 'X-API-Key': API_KEY } });
                 const p = res.data;
@@ -2595,13 +2611,6 @@ client.on('interactionCreate', async interaction => {
                 }
 
                 const itens = p.inventario || p.itens || [];
-                if (itens.length === 0) {
-                    const embedVazio = new EmbedBuilder()
-                        .setColor(0x8B949E)
-                        .setTitle(`🎒 Inventário de ${formatarTexto(p.nome)}`)
-                        .setDescription('Este aventureiro está com a mochila vazia!');
-                    return await interaction.editReply({ embeds: [embedVazio] });
-                }
 
                 // Armazenar inventário completo no cache
                 const cacheKey = `inventario_${interaction.user.id}_${p.id}`;
