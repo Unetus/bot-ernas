@@ -73,25 +73,28 @@ O sistema de Arena introduz a funcionalidade de combate Player vs Player (PvP) c
 
 ---
 
-## 👥 Comandos de Perfil & Skills (Integração de Ficha)
+## 👥 Comandos de Perfil (Integração de Ficha Centralizada)
 
-Permitem aos jogadores e mestres consultarem dados em tempo real sobre os personagens.
+Permitem aos jogadores e mestres consultarem dados em tempo real sobre os personagens, consolidando informações da ficha, equipamentos, deck de habilidades e conquistas em um único comando centralizado.
 
 ### `/perfil`
-Exibe uma ficha de RPG em formato de Embed baseada nos dados oficiais do personagem.
+Renderiza e exibe um **banner Canvas dinâmico e premium de alta qualidade** (1100x415) com a ficha completa e consolidada do personagem.
+
 *   **Parâmetros (Opcionais / Mutuamente Exclusivos):**
     *   `jogador`: `@menção` do Discord do jogador que deseja consultar.
     *   `nome`: Nome exato do personagem na API (para buscar fichas não atreladas ao Discord).
     *   *Se nenhum for informado, busca o personagem ativo do próprio usuário executor.*
 
-### `/skills`
-Apresenta o grimório de habilidades (skills) adquiridas pelo personagem na API do Arkandia.
-*   **Parâmetros (Opcionais):** Mesma lógica de busca do `/perfil` (por menção de jogador ou nome exato).
-*   **Interface Interativa:**
-    1.  O bot envia uma mensagem contendo um **Menu de Seleção** (`select_skill`) contendo as primeiras 25 habilidades.
-    2.  Ao selecionar uma skill no menu, a mensagem é atualizada exibindo os detalhes completos da habilidade (grau, tipo, descrição, ilustração).
-    3.  Abaixo dos detalhes, um botão **Conjurar Skill ✨** (`conjurar_skill_<id>`) é liberado.
-    4.  Ao clicar no botão, o bot envia uma mensagem pública no canal anunciando o conjuramento daquela skill de forma narrativa.
+*   **Recursos Visuais do Banner Canvas:**
+    *   **Avatar & Identidade**: Foto de perfil com moldura circular iluminada na cor representativa do seu índice de poder. Nome, título, raça e classe com tratamentos textuais premium em degrade e fontes modernas.
+    *   **Atributos de Combate**: Seção centralizada de estatísticas exibindo Nível, Rank e Índice de Poder em caixas de visualização estilizadas.
+    *   **Deck de Habilidades**: Exibe visualmente as habilidades equipadas no deck em uso pelo jogador em slots estilizados com contornos dourados e realce para a habilidade racial.
+    *   **Painel Lateral de Equipamentos (Direita)**: Slots dispostos verticalmente na lateral direita mostrando os equipamentos em uso de forma estruturada: **Elmo** (topo), **Peito** e **Arma** (centro), e **Botas** (base). Cada slot possui uma borda colorida dinâmica indicando a raridade do item (Cinza para Comum, Azul para Raro, Roxo para Épico, Laranja para Lendário e Vermelho para Mítico).
+    *   **Painel Lateral de Conquistas (Direita)**: Abaixo do bloco de equipamentos, renderiza as medalhas oficiais do personagem: **🥇 Ouro**, **🥈 Prata** e **🥉 Bronze** com contadores e estilo visual premium.
+
+*   **Interface Interativa (Visualização de Skills & Tooltips):**
+    *   Abaixo do banner do perfil, o bot anexa um **Menu de Seleção Dinâmico** contendo todas as habilidades equipadas no deck atual do aventureiro.
+    *   Ao selecionar uma habilidade do menu, o jogador recebe um **Tooltip detalhado e formatado por Embed** de forma efêmera (visível apenas para quem consultou), apresentando a descrição da skill, seu tipo (ativa/passiva), grau, origem e sua ilustração oficial para consulta rápida sem poluir o chat geral.
 
 ---
 

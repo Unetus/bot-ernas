@@ -51,6 +51,9 @@ const formatarTexto = (str) => {
     return str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 };
 
+const embedErro = (msg) => new EmbedBuilder().setColor(0xE74C3C).setTitle('✗ Erro').setDescription(msg);
+const embedSucesso = (msg) => new EmbedBuilder().setColor(0x2E5A36).setTitle('✓ Sucesso').setDescription(msg);
+
 async function gerarBannerPerfil(p) {
     const canvas = createCanvas(1100, 415);
     const ctx = canvas.getContext('2d');
@@ -363,6 +366,135 @@ async function gerarBannerPerfil(p) {
         await drawOccupiedEquipSlot(arma, 1018, 160);
     } else {
         drawEmptyEquipSlot('Arma', 1018, 160);
+    }
+
+    // Conquistas (abaixo dos equipamentos)
+    const conquistas = p.conquistas;
+    if (conquistas) {
+        ctx.fillStyle = '#8B949E';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillText('CONQUISTAS', 920, 345);
+
+        const badges = [
+            { label: `${conquistas.ouro || 0}`, color: '#F59E0B' },
+            { label: `${conquistas.prata || 0}`, color: '#C0C0C0' },
+            { label: `${conquistas.bronze || 0}`, color: '#CD7F32' }
+        ];
+
+        badges.forEach((b, i) => {
+            const bx = 920 + i * 52;
+            const by = 358;
+
+            ctx.fillStyle = '#252830';
+            ctx.beginPath();
+            if (ctx.roundRect) { ctx.roundRect(bx, by, 44, 40, 8); } else { ctx.rect(bx, by, 44, 40); }
+            ctx.fill();
+
+            ctx.fillStyle = b.color;
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('★', bx + 22, by + 17);
+
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 14px sans-serif';
+            ctx.fillText(b.label, bx + 22, by + 34);
+            ctx.textAlign = 'left';
+        });
+    }
+
+    return canvas.toBuffer('image/png');
+}
+
+async function gerarBannerLoot(item, qtd) {
+    const canvas = createCanvas(800, 200);
+    const ctx = canvas.getContext('2d');
+
+    const raridades = {
+        comum: '#8B949E',
+        raro: '#3498DB',
+        epico: '#8B5CF6',
+        lendario: '#F59E0B',
+        mitico: '#EF4444'
+    };
+    const corRaridade = raridades[item.raridade?.toLowerCase()] || '#8B949E';
+
+    // Fundo base
+    ctx.fillStyle = '#1A1C23';
+    ctx.fillRect(0, 0, 800, 200);
+
+    // Glow da raridade (elipse no fundo)
+    const glowGrd = ctx.createRadialGradient(140, 100, 10, 140, 100, 180);
+    glowGrd.addColorStop(0, corRaridade + '40');
+    glowGrd.addColorStop(1, 'transparent');
+    ctx.fillStyle = glowGrd;
+    ctx.fillRect(0, 0, 350, 200);
+
+    // Borda inferior com cor da raridade
+    ctx.fillStyle = corRaridade;
+    ctx.fillRect(0, 195, 800, 5);
+
+    // Imagem do item
+    const imgSize = 120;
+    const imgX = 40;
+    const imgY = 40;
+
+    ctx.save();
+    ctx.beginPath();
+    if (ctx.roundRect) { ctx.roundRect(imgX, imgY, imgSize, imgSize, 16); } else { ctx.rect(imgX, imgY, imgSize, imgSize); }
+    ctx.clip();
+
+    try {
+        if (item.imagem_url) {
+            const img = await loadImage(item.imagem_url);
+            ctx.drawImage(img, imgX, imgY, imgSize, imgSize);
+        } else {
+            ctx.fillStyle = '#252830';
+            ctx.fillRect(imgX, imgY, imgSize, imgSize);
+        }
+    } catch (e) {
+        ctx.fillStyle = '#252830';
+        ctx.fillRect(imgX, imgY, imgSize, imgSize);
+    }
+    ctx.restore();
+
+    // Moldura do item
+    ctx.strokeStyle = corRaridade;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    if (ctx.roundRect) { ctx.roundRect(imgX, imgY, imgSize, imgSize, 16); } else { ctx.rect(imgX, imgY, imgSize, imgSize); }
+    ctx.stroke();
+
+    // Textos
+    ctx.fillStyle = '#8B949E';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillText('LOOT DROP', 200, 55);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 36px sans-serif';
+    ctx.fillText(formatarTexto(item.nome), 200, 100);
+
+    ctx.fillStyle = corRaridade;
+    ctx.font = 'bold 20px sans-serif';
+    ctx.fillText(formatarTexto(item.raridade || 'Comum'), 200, 132);
+
+    ctx.fillStyle = '#A0AAB5';
+    ctx.font = '18px sans-serif';
+    ctx.fillText(`${formatarTexto(item.categoria || '')}${item.grau ? ' • Grau ' + item.grau : ''}`, 200, 162);
+
+    // Quantidade (badge no canto superior direito)
+    if (qtd > 1) {
+        const qtdStr = `x${qtd}`;
+        ctx.font = 'bold 24px sans-serif';
+        const tw = ctx.measureText(qtdStr).width;
+        const qx = 760 - tw;
+
+        ctx.fillStyle = '#252830';
+        ctx.beginPath();
+        if (ctx.roundRect) { ctx.roundRect(qx - 14, 20, tw + 28, 40, 10); } else { ctx.rect(qx - 14, 20, tw + 28, 40); }
+        ctx.fill();
+
+        ctx.fillStyle = corRaridade;
+        ctx.fillText(qtdStr, qx, 49);
     }
 
     return canvas.toBuffer('image/png');
@@ -841,12 +973,12 @@ client.on('interactionCreate', async interaction => {
 
     if (interaction.isStringSelectMenu() && interaction.customId === 'select_profile_skill') {
         const cacheData = skillsCache.get(interaction.message.id);
-        if (!cacheData) return interaction.reply({ content: '✗ Cache expirado.', ephemeral: true });
+        if (!cacheData) return interaction.reply({ embeds: [embedErro('Cache expirado.')], ephemeral: true });
 
         const skillId = interaction.values[0];
         const skill = cacheData.skills.find(s => s.id === skillId);
         
-        if (!skill) return interaction.reply({ content: '✗ Habilidade não encontrada no perfil.', ephemeral: true });
+        if (!skill) return interaction.reply({ embeds: [embedErro('Habilidade não encontrada no perfil.')], ephemeral: true });
 
         const skillEmbed = new EmbedBuilder()
             .setColor(0x2B4C7E)
@@ -864,12 +996,12 @@ client.on('interactionCreate', async interaction => {
 
         // 1. Verificar se o loot já foi coletado
         if (lootsColetados.has(msgId)) {
-            return await interaction.reply({ content: '✗ Este loot já foi coletado por outro jogador!', ephemeral: true });
+            return await interaction.reply({ embeds: [embedErro('Este loot já foi coletado por outro jogador!')], ephemeral: true });
         }
 
         // 2. Verificar se está em processamento
         if (lootsEmProcessamento.has(msgId)) {
-            return await interaction.reply({ content: '⧖ Este loot está sendo coletado neste momento. Tente novamente em alguns segundos.', ephemeral: true });
+            return await interaction.reply({ embeds: [embedErro('Este loot está sendo coletado neste momento. Tente novamente em alguns segundos.')], ephemeral: true });
         }
 
         // Marcar como em processamento para travar cliques concorrentes
@@ -890,9 +1022,9 @@ client.on('interactionCreate', async interaction => {
             } catch (errUser) {
                 lootsEmProcessamento.delete(msgId);
                 if (errUser.response?.status === 404) {
-                    return await interaction.editReply('✗ Você não possui um personagem ativo cadastrado no site de Arkandia. Por favor, vincule seu Discord no site antes de coletar o loot.');
+                    return await interaction.editReply({ embeds: [embedErro('Você não possui um personagem ativo cadastrado no site de Arkandia. Por favor, vincule seu Discord no site antes de coletar o loot.')] });
                 }
-                return await interaction.editReply(`✗ Erro ao buscar seu personagem na API: ${errUser.response?.data?.error || errUser.message}`);
+                return await interaction.editReply({ embeds: [embedErro(`Erro ao buscar seu personagem na API: ${errUser.response?.data?.error || errUser.message}`)] });
             }
 
             // 4. Adicionar o item ao inventário do personagem via POST
@@ -929,19 +1061,19 @@ client.on('interactionCreate', async interaction => {
                         components: []
                     });
 
-                    return await interaction.editReply(`✓ Você coletou **${resPost.data.item_nome} (x${qtd})** com sucesso! O item já está no seu inventário do site.`);
+                    return await interaction.editReply({ embeds: [embedSucesso(`Você coletou **${resPost.data.item_nome} (x${qtd})** com sucesso! O item já está no seu inventário do site.`)] });
                 } else {
                     lootsEmProcessamento.delete(msgId);
-                    return await interaction.editReply(`✗ Erro da API ao adicionar o item: ${resPost.data.error || 'Erro desconhecido'}`);
+                    return await interaction.editReply({ embeds: [embedErro(`Erro da API ao adicionar o item: ${resPost.data.error || 'Erro desconhecido'}`)] });
                 }
             } catch (errPost) {
                 lootsEmProcessamento.delete(msgId);
-                return await interaction.editReply(`✗ Erro ao registrar o item no seu inventário: ${errPost.response?.data?.error || errPost.message}`);
+                return await interaction.editReply({ embeds: [embedErro(`Erro ao registrar o item no seu inventário: ${errPost.response?.data?.error || errPost.message}`)] });
             }
         } catch (e) {
             lootsEmProcessamento.delete(msgId);
             console.error('Erro na coleta de loot:', e);
-            return await interaction.editReply('✗ Ocorreu um erro interno ao processar a coleta do loot.');
+            return await interaction.editReply({ embeds: [embedErro('Ocorreu um erro interno ao processar a coleta do loot.')] });
         }
     }
 
@@ -1849,7 +1981,7 @@ client.on('interactionCreate', async interaction => {
                 }
                 return;
             } catch (e) {
-                return await interaction.editReply('✗ Personagem não encontrado.');
+                return await interaction.editReply({ embeds: [embedErro('Personagem não encontrado.')] });
             }
         }
 
@@ -1863,20 +1995,23 @@ client.on('interactionCreate', async interaction => {
                 try {
                     const res = await axios.get(`${ARKANDIA_API}/itens/${encodeURIComponent(itemNome)}`, { headers: { 'X-API-Key': API_KEY } });
                     const item = res.data;
+                    
+                    const buffer = await gerarBannerLoot(item, qtd);
+                    const attachment = new AttachmentBuilder(buffer, { name: 'loot.png' });
+                    
+                    const raridades = { comum: 0x8B949E, raro: 0x3498DB, epico: 0x8B5CF6, lendario: 0xF59E0B, mitico: 0xE74C3C };
                     const embed = new EmbedBuilder()
-                        .setColor(0xB8860B)
-                        .setTitle(`◈ Loot Drop: ${item.nome} (x${qtd})`)
-                        .setDescription(`**Categoria:** ${item.categoria} | **Raridade:** ${item.raridade}\n\n${item.descricao}`);
-                    if (item.imagem_url) embed.setThumbnail(item.imagem_url);
+                        .setColor(raridades[item.raridade?.toLowerCase()] || 0xB8860B)
+                        .setImage('attachment://loot.png');
                     
                     const row = new ActionRowBuilder().addComponents(
                         new ButtonBuilder().setCustomId(`pegar_loot_${item.id}_${qtd}`).setLabel('◈ Coletar Item').setStyle(ButtonStyle.Success)
                     );
                     
-                    await interaction.channel.send({ embeds: [embed], components: [row] });
-                    return await interaction.editReply('✓ Loot enviado para o chat.');
+                    await interaction.channel.send({ embeds: [embed], components: [row], files: [attachment] });
+                    return await interaction.editReply({ embeds: [embedSucesso('Loot enviado para o chat.')] });
                 } catch (e) {
-                    return await interaction.editReply(`✗ Item "${itemNome}" não encontrado.`);
+                    return await interaction.editReply({ embeds: [embedErro(`Item "${itemNome}" não encontrado.`)] });
                 }
             }
 
