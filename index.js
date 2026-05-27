@@ -142,31 +142,42 @@ async function gerarBannerPerfil(p) {
     ctx.font = '22px sans-serif';
     ctx.fillText(`${raca} • ${classe}`, 340, 170);
 
-    // Status (Nível, Rank, Poder)
-    const drawStat = (label, value, x, y) => {
+    // Status boxes (Rank & Nível, Tier & Poder)
+    const drawConsolidatedStat = (label, mainVal, subVal, x, y, w) => {
         ctx.fillStyle = '#252830';
         ctx.beginPath();
         if (ctx.roundRect) {
-            ctx.roundRect(x, y, 140, 85, 12);
+            ctx.roundRect(x, y, w, 85, 12);
         } else {
-            ctx.fillRect(x, y, 140, 85);
+            ctx.fillRect(x, y, w, 85);
         }
         ctx.fill();
         
+        ctx.strokeStyle = '#2D313E';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
         ctx.fillStyle = '#8B949E';
-        ctx.font = 'bold 16px sans-serif';
+        ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(label.toUpperCase(), x + 70, y + 30);
+        ctx.fillText(label.toUpperCase(), x + w / 2, y + 22);
         
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 30px sans-serif';
-        ctx.fillText(value, x + 70, y + 68);
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillText(mainVal, x + w / 2, y + 50);
+        
+        ctx.fillStyle = colorHex;
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(subVal, x + w / 2, y + 72);
         ctx.textAlign = 'left';
     };
 
-    drawStat('Nível', `${p.nivel || 1}`, 390, 195);
-    drawStat('Rank', `${p.rank || '-'}`, 550, 195);
-    drawStat('Poder', `${p.indice_poder || 0}`, 710, 195);
+    const romanTiers = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V', 6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X' };
+    const tierNum = p.indice_poder_faixa || 1;
+    const tierRomano = romanTiers[tierNum] || String(tierNum);
+
+    drawConsolidatedStat('Rank & Nível', `${p.rank || '-'}`, `Nível ${p.nivel || 1}`, 420, 195, 200);
+    drawConsolidatedStat('Tier & Poder', `Tier ${tierRomano}`, `${(p.indice_poder || 0).toLocaleString('pt-BR')} Poder`, 640, 195, 200);
 
     // Deck de Habilidades
     const skillsStart = 71;
@@ -673,12 +684,41 @@ async function gerarBannerGuilda(guilda) {
     ctx.closePath();
     ctx.fill();
 
-    // Icone medieval no escudo
-    ctx.fillStyle = '#D4AF37';
-    ctx.font = '64px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('🏰', shieldX + shieldW/2, shieldY + shieldH/2 + 20);
-    ctx.textAlign = 'left';
+    // Icone/Emblema oficial ou Inicial da Guilda
+    let logoCarregada = false;
+    const logoUrl = guilda.emblema_url || guilda.logo_url;
+    if (logoUrl) {
+        try {
+            const logoImg = await loadImage(logoUrl);
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(shieldX + shieldW/2, shieldY + 6);
+            ctx.lineTo(shieldX + shieldW - 6, shieldY + 33);
+            ctx.lineTo(shieldX + shieldW - 6, shieldY + shieldH - 33);
+            ctx.quadraticCurveTo(shieldX + shieldW - 6, shieldY + shieldH - 6, shieldX + shieldW/2, shieldY + shieldH - 6);
+            ctx.quadraticCurveTo(shieldX + 6, shieldY + shieldH - 6, shieldX + 6, shieldY + shieldH - 33);
+            ctx.lineTo(shieldX + 6, shieldY + 33);
+            ctx.closePath();
+            ctx.clip();
+            
+            ctx.drawImage(logoImg, shieldX + 6, shieldY + 6, shieldW - 12, shieldH - 12);
+            ctx.restore();
+            logoCarregada = true;
+        } catch (e) {
+            console.error('Erro ao carregar emblema da guilda:', e.message);
+        }
+    }
+
+    if (!logoCarregada) {
+        ctx.fillStyle = '#D4AF37';
+        ctx.font = 'bold 64px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const inicial = guilda.nome ? guilda.nome.charAt(0).toUpperCase() : 'G';
+        ctx.fillText(inicial, shieldX + shieldW/2, shieldY + shieldH/2 + 5);
+        ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left';
+    }
 
     // Nome e Sigla da Guilda
     ctx.fillStyle = '#FFFFFF';
@@ -701,7 +741,7 @@ async function gerarBannerGuilda(guilda) {
     ctx.fillText(`Membros: ${guilda.membros_qtd || (guilda.membros && guilda.membros.length) || 0} / 50`, 200, 155);
 
     // Caixa de Informações
-    const drawInfoBox = (label, value, x, y, w, h, icon) => {
+    const drawInfoBox = (label, value, x, y, w, h) => {
         ctx.fillStyle = '#13141C';
         ctx.beginPath();
         if (ctx.roundRect) { ctx.roundRect(x, y, w, h, 10); } else { ctx.rect(x, y, w, h); }
@@ -717,12 +757,12 @@ async function gerarBannerGuilda(guilda) {
 
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 22px sans-serif';
-        ctx.fillText(`${icon} ${value}`, x + 15, y + 55);
+        ctx.fillText(`${value}`, x + 15, y + 55);
     };
 
-    drawInfoBox('Nível da Guilda', `${guilda.nivel || 1}`, 50, 220, 220, 75, '⭐');
-    drawInfoBox('Saldo do Banco', `${guilda.libras || guilda.saldo || 0} Libras`, 290, 220, 220, 75, '🪙');
-    drawInfoBox('Experiência', `${guilda.xp || 0} XP`, 530, 220, 220, 75, '📈');
+    drawInfoBox('Nível da Guilda', `${guilda.nivel || 1}`, 50, 220, 220, 75);
+    drawInfoBox('Saldo do Banco', `${guilda.libras || guilda.saldo || 0} Libras`, 290, 220, 220, 75);
+    drawInfoBox('Experiência', `${guilda.xp || 0} XP`, 530, 220, 220, 75);
 
     // Seção de Perks
     ctx.fillStyle = '#8B949E';
@@ -1211,16 +1251,7 @@ const commands = [
 
     new SlashCommandBuilder()
         .setName('ranking')
-        .setDescription('Visualiza o ranking global de Arkandia')
-        .addStringOption(o => o.setName('tipo')
-            .setDescription('Selecione o tipo de ranking')
-            .setRequired(true)
-            .addChoices(
-                { name: 'Poder', value: 'poder' },
-                { name: 'Nível', value: 'nivel' },
-                { name: 'Guildas', value: 'guildas' },
-                { name: 'Arena', value: 'arena' }
-            )),
+        .setDescription('Visualiza o ranking global de Arkandia'),
 
     new SlashCommandBuilder()
         .setName('guilda')
