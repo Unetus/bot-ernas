@@ -620,7 +620,6 @@ const commands = [
         .addSubcommand(sub => sub.setName('encerrar').setDescription('[Mestre] Deleta o mapa atual e apaga tudo')),
 
     new SlashCommandBuilder().setName('perfil').setDescription('Busca a ficha do personagem').addUserOption(o => o.setName('jogador').setDescription('@nome')).addStringOption(o => o.setName('nome').setDescription('nome exato')),
-    new SlashCommandBuilder().setName('skills').setDescription('Mostra o grimório equipado').addUserOption(o => o.setName('jogador').setDescription('@nome')).addStringOption(o => o.setName('nome').setDescription('nome exato')),
     new SlashCommandBuilder().setName('mestre').setDescription('Ferramentas de DM').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('dropar').setDescription('Cria Loot').addStringOption(o => o.setName('item').setDescription('Nome do item').setRequired(true)).addIntegerOption(o => o.setName('quantidade').setDescription('Qtd').setRequired(false))).addSubcommand(sub => sub.setName('bestiario').setDescription('Consulta secreta de NPC').addStringOption(o => o.setName('nome').setDescription('Nome do NPC').setRequired(true))),
     new SlashCommandBuilder().setName('narrar').setDescription('Sistema de Narração e Interpretação Imersiva para o Mestre').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('habilitar').setDescription('[Mestre] Habilita o modo de interpretação neste canal').addStringOption(o => o.setName('nome').setDescription('Nome do NPC ou Monstro do Bestiário (Deixe vazio para ser o Narrador)').setRequired(false))).addSubcommand(sub => sub.setName('desabilitar').setDescription('[Mestre] Desabilita o modo de interpretação neste canal')),
     new SlashCommandBuilder().setName('missao').setDescription('Sistema de Missões').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('preparar').setDescription('[Mestre] Prepara a HUD de uma missão da API').addStringOption(o => o.setName('nome').setDescription('Nome da Missão').setRequired(true))).addSubcommand(sub => sub.setName('iniciar').setDescription('[Mestre] Inicia a missão que está em preparação').addStringOption(o => o.setName('nome').setDescription('Nome da Missão').setRequired(true))),
@@ -1742,29 +1741,6 @@ client.on('interactionCreate', async interaction => {
             }
         }
 
-        if (interaction.commandName === 'skills') {
-            try {
-                const res = await axios.get(getUrlRequisicao(interaction), { headers: { 'X-API-Key': API_KEY } });
-                const p = res.data;
-                if (!p.skills_adquiridas || p.skills_adquiridas.length === 0) return await interaction.editReply('✗ Nenhuma skill encontrada.');
-
-                const options = p.skills_adquiridas.slice(0, 25).map(s => ({
-                    label: `${formatarTexto(s.nome)} (Grau ${s.grau})`,
-                    description: formatarTexto(s.tipo),
-                    value: s.id
-                }));
-
-                const row = new ActionRowBuilder().addComponents(
-                    new StringSelectMenuBuilder().setCustomId('select_skill').setPlaceholder('Selecione uma habilidade para ver os detalhes').addOptions(options)
-                );
-
-                const msg = await interaction.editReply({ content: `Grimório de **${formatarTexto(p.nome)}**\nSelecione uma habilidade abaixo:`, components: [row] });
-                skillsCache.set(msg.id, { personagem: p, skills: p.skills_adquiridas });
-                return;
-            } catch (e) {
-                return await interaction.editReply('✗ Personagem não encontrado.');
-            }
-        }
 
         if (interaction.commandName === 'mestre') {
             const sub = interaction.options.getSubcommand();
