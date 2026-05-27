@@ -833,40 +833,34 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
     const libras = p.libras || p.saldo || 0;
     const embed = new EmbedBuilder()
         .setColor(p.indice_poder_cor || 0x3498DB)
-        .setTitle(`🎒 Inventário de ${formatarTexto(p.nome)}`)
-        .setDescription(`🪙 **Saldo:** \`${libras.toLocaleString('pt-BR')} Libras\`\n` +
-            `📂 **Categoria:** ${formatarTexto(categoria === 'todos' ? 'Tudo' : categoria)} | Página ${pag + 1} de ${totalPaginas}\n\n` + 
+        .setTitle(`Inventário de ${formatarTexto(p.nome)}`)
+        .setDescription(`**Saldo:** \`${libras.toLocaleString('pt-BR')} Libras\`\n` +
+            `**Categoria:** ${formatarTexto(categoria === 'todos' ? 'Tudo' : categoria)} | Página ${pag + 1} de ${totalPaginas}\n\n` + 
             (slice.length === 0 ? '*Nenhum item encontrado nesta categoria.*' : 
             slice.map((i, idx) => {
                 const itemNome = formatarTexto(i.nome || i.item?.nome || 'Item Desconhecido');
                 const qtd = i.quantidade || 1;
                 const raridade = (i.raridade || i.item?.raridade || 'comum').toLowerCase();
-                const emojiRaridade = {
-                    comum: '⚪',
-                    raro: '🔵',
-                    epico: '🟣',
-                    lendario: '🟠',
-                    mitico: '🔴'
-                }[raridade] || '⚪';
+                const raridadeLabel = formatarTexto(raridade);
 
                 const catLabel = formatarTexto(i.categoria || i.item?.categoria || '');
                 const equipStatus = i.equipado ? ' *(Equipado)*' : '';
-                return `${emojiRaridade} **${itemNome}** (x${qtd}) - *${catLabel}*${equipStatus}`;
+                return `[${raridadeLabel}] **${itemNome}** (x${qtd}) - *${catLabel}*${equipStatus}`;
             }).join('\n')));
 
     // Botões de Categorias
     const rowCats = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_todos`).setLabel('Tudo 🎒').setStyle(categoria === 'todos' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_armas`).setLabel('Armas ⚔').setStyle(categoria === 'armas' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_armaduras`).setLabel('Defesas 🛡').setStyle(categoria === 'armaduras' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_consumiveis`).setLabel('Consumíveis 🧪').setStyle(categoria === 'consumiveis' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_materiais`).setLabel('Materiais 💎').setStyle(categoria === 'materiais' ? ButtonStyle.Success : ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_todos`).setLabel('Tudo').setStyle(categoria === 'todos' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_armas`).setLabel('Armas').setStyle(categoria === 'armas' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_armaduras`).setLabel('Defesas').setStyle(categoria === 'armaduras' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_consumiveis`).setLabel('Consumíveis').setStyle(categoria === 'consumiveis' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_materiais`).setLabel('Materiais').setStyle(categoria === 'materiais' ? ButtonStyle.Success : ButtonStyle.Secondary)
     );
 
     // Botões de Paginação
     const rowPag = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`inv_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('◀ Anterior').setStyle(ButtonStyle.Primary).setDisabled(pag === 0),
-        new ButtonBuilder().setCustomId(`inv_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo ▶').setStyle(ButtonStyle.Primary).setDisabled(pag >= totalPaginas - 1)
+        new ButtonBuilder().setCustomId(`inv_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('Anterior').setStyle(ButtonStyle.Primary).setDisabled(pag === 0),
+        new ButtonBuilder().setCustomId(`inv_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo').setStyle(ButtonStyle.Primary).setDisabled(pag >= totalPaginas - 1)
     );
 
     const components = [rowCats];
