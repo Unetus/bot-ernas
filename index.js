@@ -48,7 +48,8 @@ const MAPAS_ARENA = [
 
 const formatarTexto = (str) => {
     if (!str) return '';
-    return str.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    const stringVal = String(str);
+    return stringVal.toLowerCase().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 };
 
 const embedErro = (msg) => new EmbedBuilder().setColor(0xE74C3C).setTitle('✗ Erro').setDescription(msg);
@@ -518,15 +519,15 @@ async function gerarBannerRanking(tipo, dados) {
     // Cabeçalho
     ctx.fillStyle = '#D4AF37';
     ctx.font = 'bold 32px sans-serif';
-    ctx.fillText('🏆 RANKING DE ARKANDIA', 50, 60);
+    ctx.fillText('RANKING DE ARKANDIA', 50, 60);
 
     ctx.fillStyle = '#8B949E';
     ctx.font = 'bold 18px sans-serif';
     const tipoTraduzido = {
-        poder: 'ÍNDICE DE PODER 💪',
-        nivel: 'NÍVEL & EXPERIÊNCIA 📊',
-        guildas: 'GUILDAS DE VERMÉCIA 🏰',
-        arena: 'PONTOS DE ARENA ⚔️'
+        poder: 'ÍNDICE DE PODER',
+        nivel: 'NÍVEL E EXPERIÊNCIA',
+        guildas: 'GUILDAS DE VERMÉCIA',
+        arena: 'PONTOS DE ARENA'
     }[tipo.toLowerCase()] || tipo.toUpperCase();
     ctx.fillText(tipoTraduzido, 50, 95);
 
@@ -585,7 +586,7 @@ async function gerarBannerRanking(tipo, dados) {
         ctx.fillStyle = i === 0 ? '#D4AF37' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#8B949E';
         ctx.font = 'bold 18px sans-serif';
         ctx.textAlign = 'center';
-        const posText = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+        const posText = `#${i + 1}`;
         ctx.fillText(posText, 80, y + rowHeight / 2 + 5);
 
         // Nome
@@ -689,7 +690,10 @@ async function gerarBannerGuilda(guilda) {
     // Mestre / Líder da Guilda
     ctx.fillStyle = '#D4AF37';
     ctx.font = 'bold 18px sans-serif';
-    const lider = formatarTexto(guilda.lider || guilda.lider_nome || 'Desconhecido');
+    const liderNome = (typeof guilda.lider === 'object' && guilda.lider !== null)
+        ? (guilda.lider.nome || guilda.lider.lider_nome || 'Desconhecido')
+        : (guilda.lider || guilda.lider_nome || 'Desconhecido');
+    const lider = formatarTexto(liderNome);
     ctx.fillText(`Líder: ${lider}`, 200, 125);
 
     ctx.fillStyle = '#8B949E';
@@ -1212,10 +1216,10 @@ const commands = [
             .setDescription('Selecione o tipo de ranking')
             .setRequired(true)
             .addChoices(
-                { name: 'Poder 💪', value: 'poder' },
-                { name: 'Nível 📊', value: 'nivel' },
-                { name: 'Guildas 🏰', value: 'guildas' },
-                { name: 'Arena ⚔️', value: 'arena' }
+                { name: 'Poder', value: 'poder' },
+                { name: 'Nível', value: 'nivel' },
+                { name: 'Guildas', value: 'guildas' },
+                { name: 'Arena', value: 'arena' }
             )),
 
     new SlashCommandBuilder()
@@ -1583,10 +1587,10 @@ client.on('interactionCreate', async interaction => {
                 .setImage('attachment://ranking.png');
 
             const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('💪 Poder').setStyle(tipo === 'poder' ? ButtonStyle.Success : ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId('ranking_switch_nivel').setLabel('📊 Nível').setStyle(tipo === 'nivel' ? ButtonStyle.Success : ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId('ranking_switch_guildas').setLabel('🏰 Guildas').setStyle(tipo === 'guildas' ? ButtonStyle.Success : ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId('ranking_switch_arena').setLabel('⚔️ Arena').setStyle(tipo === 'arena' ? ButtonStyle.Success : ButtonStyle.Secondary)
+                new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('Poder').setStyle(tipo === 'poder' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('ranking_switch_nivel').setLabel('Nível').setStyle(tipo === 'nivel' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('ranking_switch_guildas').setLabel('Guildas').setStyle(tipo === 'guildas' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('ranking_switch_arena').setLabel('Arena').setStyle(tipo === 'arena' ? ButtonStyle.Success : ButtonStyle.Secondary)
             );
 
             return await interaction.editReply({ embeds: [embed], files: [attachment], components: [row] });
@@ -2443,10 +2447,10 @@ client.on('interactionCreate', async interaction => {
                     .setImage('attachment://ranking.png');
 
                 const row = new ActionRowBuilder().addComponents(
-                    new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('💪 Poder').setStyle(tipo === 'poder' ? ButtonStyle.Success : ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId('ranking_switch_nivel').setLabel('📊 Nível').setStyle(tipo === 'nivel' ? ButtonStyle.Success : ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId('ranking_switch_guildas').setLabel('🏰 Guildas').setStyle(tipo === 'guildas' ? ButtonStyle.Success : ButtonStyle.Secondary),
-                    new ButtonBuilder().setCustomId('ranking_switch_arena').setLabel('⚔️ Arena').setStyle(tipo === 'arena' ? ButtonStyle.Success : ButtonStyle.Secondary)
+                    new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('Poder').setStyle(tipo === 'poder' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId('ranking_switch_nivel').setLabel('Nível').setStyle(tipo === 'nivel' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId('ranking_switch_guildas').setLabel('Guildas').setStyle(tipo === 'guildas' ? ButtonStyle.Success : ButtonStyle.Secondary),
+                    new ButtonBuilder().setCustomId('ranking_switch_arena').setLabel('Arena').setStyle(tipo === 'arena' ? ButtonStyle.Success : ButtonStyle.Secondary)
                 );
 
                 return await interaction.editReply({ embeds: [embed], files: [attachment], components: [row] });
