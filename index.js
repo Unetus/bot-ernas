@@ -1667,7 +1667,11 @@ const commands = [
         .setName('inventario')
         .setDescription('Visualiza o inventário de itens do personagem no site')
         .addUserOption(o => o.setName('jogador').setDescription('@jogador (Opcional)'))
-        .addStringOption(o => o.setName('nome').setDescription('Nome exato do personagem (Opcional)'))
+        .addStringOption(o => o.setName('nome').setDescription('Nome exato do personagem (Opcional)')),
+
+    new SlashCommandBuilder()
+        .setName('painel')
+        .setDescription('Abre a sua central de jogador (HUD)')
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -2503,6 +2507,95 @@ client.on('interactionCreate', async interaction => {
         } catch (e) {
             console.error(e);
             return await interaction.editReply({ embeds: [embedErro(`Erro ao buscar inscritos: ${e.message}`)] });
+        }
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('jogador_menu_')) {
+        const menu = interaction.customId.replace('jogador_menu_', '');
+        
+        if (menu === 'guilda') {
+            return await interaction.reply({ content: '💡 Para buscar os dados de uma guilda, digite no chat: 👉 `/guilda nome:`', ephemeral: true });
+        }
+        
+        if (menu === 'rp') {
+            return await interaction.reply({ content: '💡 Para iniciar uma cena de RP marcando os jogadores, digite no chat: 👉 `/rp iniciar`', ephemeral: true });
+        }
+        
+        if (menu === 'missoes') {
+            await interaction.deferReply({ ephemeral: true });
+            try {
+                const res = await axios.get(`${ARKANDIA_API}/missoes`, { headers: { 'X-API-Key': API_KEY } });
+                const missoes = res.data.filter(m => m.status === 'aberta');
+                
+                if (missoes.length === 0) return await interaction.editReply({ content: '📜 Não há missões abertas no momento.' });
+                
+                const embed = new EmbedBuilder()
+                    .setColor(0x9B59B6)
+                    .setTitle('📜 Quadro de Missões de Arkandia')
+                    .setDescription(missoes.map(m => `**[${m.ranque || 'D'}]** ${m.nome}\n*${m.descricao || 'Sem descrição'}*`).join('\n\n'));
+                return await interaction.editReply({ embeds: [embed] });
+            } catch (e) {
+                return await interaction.editReply({ embeds: [embedErro('Erro ao buscar as missões.')] });
+            }
+        }
+        
+        if (menu === 'ranking') {
+            await interaction.deferReply({ ephemeral: true });
+            try {
+                const res = await axios.get(`${ARKANDIA_API}/rankings/poder`, { headers: { 'X-API-Key': API_KEY } });
+                const buffer = await gerarBannerRanking('poder', res.data);
+                const attachment = new AttachmentBuilder(buffer, { name: 'ranking.png' });
+                
+                const embed = new EmbedBuilder()
+                    .setColor(0xF1C40F)
+                    .setImage('attachment://ranking.png');
+                    
+                const row = new ActionRowBuilder().addComponents(
+                    new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('Poder').setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder().setCustomId('ranking_switch_riqueza').setLabel('Riqueza').setStyle(ButtonStyle.Secondary)
+                );
+                
+                return await interaction.editReply({ embeds: [embed], files: [attachment], components: [row] });
+            } catch (e) {
+                return await interaction.editReply({ embeds: [embedErro('Erro ao buscar o ranking.')] });
+            }
+        }
+        
+        if (menu === 'perfil') {
+            await interaction.deferReply({ ephemeral: true });
+            try {
+                const res = await axios.get(`${ARKANDIA_API}/personagens/discord/${interaction.user.id}`, { headers: { 'X-API-Key': API_KEY } });
+                const p = res.data;
+                if (!p) return await interaction.editReply({ embeds: [embedErro('Personagem não encontrado.')] });
+                
+                const buffer = await gerarBannerPerfil(p);
+                const attachment = new AttachmentBuilder(buffer, { name: 'perfil.png' });
+                
+                const embed = new EmbedBuilder()
+                    .setColor(p.indice_poder_cor || 0x3498DB)
+                    .setImage('attachment://perfil.png');
+                    
+                return await interaction.editReply({ embeds: [embed], files: [attachment] });
+            } catch (e) {
+                return await interaction.editReply({ embeds: [embedErro('Erro ao buscar seu perfil.')] });
+            }
+        }
+        
+        if (menu === 'inventario') {
+            await interaction.deferReply({ ephemeral: true });
+            try {
+                const res = await axios.get(`${ARKANDIA_API}/personagens/discord/${interaction.user.id}`, { headers: { 'X-API-Key': API_KEY } });
+                const p = res.data;
+                if (!p) return await interaction.editReply({ embeds: [embedErro('Personagem não encontrado.')] });
+                
+                const itens = p.inventario || p.itens || [];
+                const cacheKey = `inventario_${interaction.user.id}_${p.id}`;
+                skillsCache.set(cacheKey, { personagem: p, itens });
+                
+                return await renderInventarioPage(interaction, p, itens, 'todos', 0);
+            } catch (e) {
+                return await interaction.editReply({ embeds: [embedErro('Erro ao buscar seu inventário.')] });
+            }
         }
     }
 
@@ -3465,6 +3558,28 @@ client.on('interactionCreate', async interaction => {
             }
         }
 
+
+        if (interaction.commandName === 'painel') {
+            const embed = new EmbedBuilder()
+                .setColor(0x3498DB)
+                .setTitle('✦ Central do Jogador ✦')
+                .setDescription('Bem-vindo à sua HUD interativa! Aqui você tem acesso rápido a todas as funcionalidades do seu personagem. Escolha uma opção abaixo:')
+                .setFooter({ text: 'Apenas você pode ver este painel.' });
+
+            const row1 = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('jogador_menu_perfil').setLabel('👤 Meu Perfil').setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId('jogador_menu_inventario').setLabel('🎒 Meu Inventário').setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId('jogador_menu_missoes').setLabel('📜 Missões Ativas').setStyle(ButtonStyle.Secondary)
+            );
+            
+            const row2 = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId('jogador_menu_ranking').setLabel('🏆 Rankings').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('jogador_menu_guilda').setLabel('🛡️ Buscar Guilda').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('jogador_menu_rp').setLabel('🎭 Iniciar Cena RP').setStyle(ButtonStyle.Success)
+            );
+
+            return await interaction.editReply({ embeds: [embed], components: [row1, row2] });
+        }
 
         if (interaction.commandName === 'mestre') {
             const sub = interaction.options.getSubcommand();
