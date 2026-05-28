@@ -1554,22 +1554,11 @@ client.on('interactionCreate', async interaction => {
         const cena = cenasAtivas.get(channelId);
 
         if (action === 'iniciar_cena') {
-            const modal = new ModalBuilder().setCustomId('modal_mestre_vtt_iniciar').setTitle('Iniciar Nova Cena VTT');
-            const colInput = new TextInputBuilder().setCustomId('colunas_input').setLabel('Colunas (Largura)').setStyle(TextInputStyle.Short).setValue('12').setRequired(true);
-            const linInput = new TextInputBuilder().setCustomId('linhas_input').setLabel('Linhas (Altura)').setStyle(TextInputStyle.Short).setValue('10').setRequired(true);
-            const fundoInput = new TextInputBuilder().setCustomId('fundo_input').setLabel('URL da Imagem de Fundo (Opcional)').setStyle(TextInputStyle.Short).setRequired(false);
-            modal.addComponents(new ActionRowBuilder().addComponents(colInput), new ActionRowBuilder().addComponents(linInput), new ActionRowBuilder().addComponents(fundoInput));
-            await interaction.showModal(modal);
-            return;
+            return await interaction.reply({ content: '💡 Para iniciar uma nova cena com mapa personalizado ou fundo em anexo, digite no chat:\n\n👉 `/cena iniciar`', ephemeral: true });
         }
 
         if (action === 'iniciar_arena') {
-            const modal = new ModalBuilder().setCustomId('modal_mestre_vtt_arena_iniciar').setTitle('Iniciar Nova Arena PvP');
-            const jogInput = new TextInputBuilder().setCustomId('jogadores_input').setLabel('Mencao dos Jogadores (Ex: @J1 @J2)').setStyle(TextInputStyle.Short).setRequired(true);
-            const tempoInput = new TextInputBuilder().setCustomId('tempo_input').setLabel('Tempo de Turno (Segundos)').setStyle(TextInputStyle.Short).setValue('60').setRequired(true);
-            modal.addComponents(new ActionRowBuilder().addComponents(jogInput), new ActionRowBuilder().addComponents(tempoInput));
-            await interaction.showModal(modal);
-            return;
+            return await interaction.reply({ content: '💡 Para iniciar o draft da Arena aproveitando o autocomplete de menções do Discord, digite no chat:\n\n👉 `/arena iniciar`', ephemeral: true });
         }
 
         if (action === 'combate_iniciar') {
@@ -1644,19 +1633,11 @@ client.on('interactionCreate', async interaction => {
         const key = `${interaction.channelId}-${interaction.user.id}`;
 
         if (action === 'visualizar_perfil') {
-            const modal = new ModalBuilder().setCustomId('modal_mestre_consulta_perfil').setTitle('Consultar Ficha');
-            const charInput = new TextInputBuilder().setCustomId('char_input').setLabel('Nome do Personagem').setStyle(TextInputStyle.Short).setRequired(true);
-            modal.addComponents(new ActionRowBuilder().addComponents(charInput));
-            await interaction.showModal(modal);
-            return;
+            return await interaction.reply({ content: '💡 Para ver a ficha e os dados de combate de um jogador com facilidade, digite no chat:\n\n👉 `/perfil`', ephemeral: true });
         }
 
         if (action === 'visualizar_inventario') {
-            const modal = new ModalBuilder().setCustomId('modal_mestre_consulta_inventario').setTitle('Consultar Mochila');
-            const charInput = new TextInputBuilder().setCustomId('char_input').setLabel('Nome do Personagem').setStyle(TextInputStyle.Short).setRequired(true);
-            modal.addComponents(new ActionRowBuilder().addComponents(charInput));
-            await interaction.showModal(modal);
-            return;
+            return await interaction.reply({ content: '💡 Para visualizar a mochila e saldo de libras de um personagem, digite no chat:\n\n👉 `/inventario`', ephemeral: true });
         }
 
         if (action === 'assumir_npc') {
@@ -2003,144 +1984,6 @@ client.on('interactionCreate', async interaction => {
             } catch(e) {
                 console.error(e);
                 return await interaction.editReply({ content: `✗ Erro ao gerar fala improvisada com IA: ${e.message}` });
-            }
-        }
-        if (interaction.customId === 'modal_mestre_vtt_iniciar') {
-            const colunas = parseInt(interaction.fields.getTextInputValue('colunas_input'), 10) || 12;
-            const linhas = parseInt(interaction.fields.getTextInputValue('linhas_input'), 10) || 10;
-            const fundoUrl = interaction.fields.getTextInputValue('fundo_input').trim() || null;
-            const cid = interaction.channelId;
-
-            cenasAtivas.set(cid, { 
-                linhas, colunas, fundoUrl,
-                estado: 'ABERTA', rodada: 1, turnoAtual: 0, players: [], msgId: null
-            });
-
-            await interaction.deferReply({ ephemeral: true });
-            await repintarMapaNovo(interaction.channel, cenasAtivas.get(cid));
-            return await interaction.editReply({ content: `✓ Nova cena VTT criada com sucesso no grid ${colunas}x${linhas}!` });
-        }
-
-        if (interaction.customId === 'modal_mestre_vtt_arena_iniciar') {
-            const jogadoresRaw = interaction.fields.getTextInputValue('jogadores_input');
-            const tempoTurno = parseInt(interaction.fields.getTextInputValue('tempo_input'), 10) || 60;
-
-            const regex = /<@!?(\d+)>/g;
-            const matches = [...jogadoresRaw.matchAll(regex)];
-            const capitaesIds = matches.map(m => m[1]).slice(0, 2);
-
-            if (capitaesIds.length < 2) return await interaction.reply({ content: '✗ Voce precisa mencionar pelo menos 2 jogadores (@J1 @J2) para o draft da Arena.', ephemeral: true });
-
-            await interaction.deferReply({ ephemeral: true });
-
-            const embed = new EmbedBuilder()
-                .setColor(0x8B0000)
-                .setTitle('⚔ Arena - Fase de Picks & Bans')
-                .setDescription(`Capitães: <@${capitaesIds[0]}> e <@${capitaesIds[1]}>\nTempo de Turno: ${tempoTurno}s\n\nÉ a vez de <@${capitaesIds[0]}> banir um mapa!`);
-
-            const rows = [];
-            let currentRow = new ActionRowBuilder();
-            MAPAS_ARENA.forEach((mapa, index) => {
-                currentRow.addComponents(new ButtonBuilder().setCustomId(`arena_ban_${mapa.id}`).setLabel(`Banir ${mapa.nome}`).setStyle(ButtonStyle.Danger));
-                if (currentRow.components.length === 5 || index === MAPAS_ARENA.length - 1) {
-                    rows.push(currentRow);
-                    currentRow = new ActionRowBuilder();
-                }
-            });
-
-            const draftData = {
-                capitaes: capitaesIds,
-                turnoCapitao: 0,
-                mapasRestantes: [...MAPAS_ARENA],
-                tempoTurnoMs: tempoTurno * 1000
-            };
-
-            const buffer = await renderDraft(draftData);
-            const attachment = new AttachmentBuilder(buffer, { name: 'draft.png' });
-
-            const msg = await interaction.channel.send({ content: `<@${capitaesIds[0]}> <@${capitaesIds[1]}> O Draft da Arena começou!`, embeds: [embed], files: [attachment], components: rows });
-            arenasDraft.set(msg.id, draftData);
-
-            return await interaction.editReply({ content: '✓ Draft da Arena inicializado e enviado para o canal!' });
-        }
-
-        if (interaction.customId === 'modal_mestre_consulta_perfil') {
-            const charName = interaction.fields.getTextInputValue('char_input').trim();
-            await interaction.deferReply({ ephemeral: true });
-            try {
-                const res = await axios.get(`${ARKANDIA_API}/personagens/${encodeURIComponent(charName)}`, { headers: { 'X-API-Key': API_KEY } });
-                const p = res.data;
-                if (!p) return await interaction.editReply({ embeds: [embedErro('Personagem nao encontrado.')] });
-
-                const buffer = await gerarBannerPerfil(p);
-                const attachment = new AttachmentBuilder(buffer, { name: 'perfil.png' });
-                
-                const embed = new EmbedBuilder()
-                    .setColor(p.indice_poder_cor || 0x3498DB)
-                    .setImage('attachment://perfil.png');
-                
-                let components = [];
-                if (p.build_skills && p.build_skills.length > 0) {
-                    const options = p.build_skills.slice(0, 25).map(s => ({
-                        label: `${formatarTexto(s.nome)} (Grau ${s.grau})`,
-                        description: formatarTexto(s.tipo) || '',
-                        value: s.id
-                    }));
-
-                    const row = new ActionRowBuilder().addComponents(
-                        new StringSelectMenuBuilder()
-                            .setCustomId('select_profile_skill')
-                            .setPlaceholder('Selecione uma habilidade equipada para ver detalhes')
-                            .addOptions(options)
-                    );
-                    components.push(row);
-                }
-
-                const msg = await interaction.channel.send({ embeds: [embed], files: [attachment], components });
-                if (p.build_skills && p.build_skills.length > 0) {
-                    skillsCache.set(msg.id, { personagem: p, skills: p.build_skills });
-                }
-                return await interaction.editReply({ content: `✓ Ficha de **${p.nome}** consultada e postada no canal com sucesso!` });
-            } catch (e) {
-                console.error(e);
-                return await interaction.editReply({ embeds: [embedErro(`Erro ao buscar o personagem: ${e.message}`)] });
-            }
-        }
-
-        if (interaction.customId === 'modal_mestre_consulta_inventario') {
-            const charName = interaction.fields.getTextInputValue('char_input').trim();
-            await interaction.deferReply({ ephemeral: true });
-            try {
-                const res = await axios.get(`${ARKANDIA_API}/personagens/${encodeURIComponent(charName)}`, { headers: { 'X-API-Key': API_KEY } });
-                const p = res.data;
-                if (!p) return await interaction.editReply({ embeds: [embedErro('Personagem nao encontrado.')] });
-
-                const itens = p.inventario || p.itens || [];
-
-                // Armazenar inventario completo no cache para paginação funcional
-                const cacheKey = `inventario_${interaction.user.id}_${p.id}`;
-                skillsCache.set(cacheKey, { personagem: p, itens });
-
-                const embed = new EmbedBuilder()
-                    .setColor(p.indice_poder_cor || 0x3498DB)
-                    .setTitle(`Inventario de ${formatarTexto(p.nome)}`)
-                    .setDescription(`**Saldo:** \`${(p.libras || p.saldo || 0).toLocaleString('pt-BR')} Libras\`\n**Categoria:** Tudo | Página 1\n\n` + 
-                        (itens.length === 0 ? '*Nenhum item encontrado.*' : 
-                        itens.slice(0, 8).map(i => {
-                            const itemNome = formatarTexto(i.nome || i.item?.nome || 'Item Desconhecido');
-                            const qtd = i.quantidade || 1;
-                            const raridade = (i.raridade || i.item?.raridade || 'comum').toLowerCase();
-                            const raridadeLabel = formatarTexto(raridade);
-                            const catLabel = formatarTexto(i.categoria || i.item?.categoria || '');
-                            const equipStatus = i.equipado ? ' *(Equipado)*' : '';
-                            return `[${raridadeLabel}] **${itemNome}** (x${qtd}) - *${catLabel}*${equipStatus}`;
-                        }).join('\n')));
-
-                await interaction.channel.send({ embeds: [embed] });
-                return await interaction.editReply({ content: `✓ Inventario de **${p.nome}** postado no canal com sucesso!` });
-            } catch (e) {
-                console.error(e);
-                return await interaction.editReply({ embeds: [embedErro(`Erro ao carregar o inventario: ${e.message}`)] });
             }
         }
     }
