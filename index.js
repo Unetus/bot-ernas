@@ -512,6 +512,155 @@ async function gerarBannerLoot(item, qtd) {
     return canvas.toBuffer('image/png');
 }
 
+async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas) {
+    const w = 1000;
+    const h = 580;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+
+    const raridades = {
+        comum: '#8B949E',
+        raro: '#3498DB',
+        epico: '#8B5CF6',
+        lendario: '#F59E0B',
+        mitico: '#EF4444'
+    };
+
+    // Fundo base
+    ctx.fillStyle = '#1A1C23';
+    ctx.fillRect(0, 0, w, h);
+    
+    // Header
+    const colorHex = typeof p.indice_poder_cor === 'number' 
+        ? `#${p.indice_poder_cor.toString(16).padStart(6, '0')}` 
+        : (p.indice_poder_cor || '#3498DB');
+        
+    ctx.fillStyle = colorHex;
+    ctx.fillRect(0, 0, w, 8); // Borda superior
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 36px sans-serif';
+    ctx.fillText(`Inventário de ${formatarTexto(p.nome)}`, 40, 60);
+    
+    const libras = p.libras || p.saldo || 0;
+    ctx.fillStyle = '#F1C40F';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${libras.toLocaleString('pt-BR')} Libras`, w - 40, 60);
+    ctx.textAlign = 'left';
+    
+    // Config da Grade (2 linhas de 4 itens, max 8 itens)
+    const cols = 4;
+    const rows = 2;
+    const marginX = 40;
+    const marginY = 100;
+    const cardW = 215;
+    const cardH = 190;
+    const gapX = 20;
+    const gapY = 20;
+    
+    for (let i = 0; i < 8; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const x = marginX + col * (cardW + gapX);
+        const y = marginY + row * (cardH + gapY);
+        
+        const item = sliceItens[i];
+        
+        ctx.fillStyle = '#22252F';
+        if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, cardW, cardH, 12); ctx.fill(); } 
+        else { ctx.fillRect(x, y, cardW, cardH); }
+        
+        if (item) {
+            const raridade = (item.raridade || item.item?.raridade || 'comum').toLowerCase();
+            const corRaridade = raridades[raridade] || '#8B949E';
+            
+            const iconSize = 80;
+            const iconX = x + (cardW - iconSize) / 2;
+            const iconY = y + 20;
+            
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) { ctx.roundRect(iconX, iconY, iconSize, iconSize, 8); } 
+            else { ctx.rect(iconX, iconY, iconSize, iconSize); }
+            ctx.clip();
+            
+            try {
+                const url = item.imagem_url || item.item?.imagem_url;
+                if (url) {
+                    const img = await loadImage(url);
+                    ctx.drawImage(img, iconX, iconY, iconSize, iconSize);
+                } else {
+                    ctx.fillStyle = '#111';
+                    ctx.fillRect(iconX, iconY, iconSize, iconSize);
+                }
+            } catch (e) {
+                ctx.fillStyle = '#111';
+                ctx.fillRect(iconX, iconY, iconSize, iconSize);
+            }
+            ctx.restore();
+            
+            ctx.strokeStyle = corRaridade;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            if (ctx.roundRect) { ctx.roundRect(iconX, iconY, iconSize, iconSize, 8); }
+            else { ctx.rect(iconX, iconY, iconSize, iconSize); }
+            ctx.stroke();
+            
+            const qtd = item.quantidade || 1;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(`x${qtd}`, iconX + iconSize + 15, iconY + iconSize - 5);
+            ctx.textAlign = 'left';
+            
+            if (item.equipado) {
+                ctx.fillStyle = '#2ECC71';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText('EQUIPADO', x + 10, iconY + 15);
+            }
+            
+            const itemNome = formatarTexto(item.nome || item.item?.nome || 'Item Desconhecido');
+            const catLabel = formatarTexto(item.categoria || item.item?.categoria || '');
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 16px sans-serif';
+            ctx.textAlign = 'center';
+            
+            let nomeDisplay = itemNome;
+            if (ctx.measureText(itemNome).width > cardW - 20) {
+                nomeDisplay = itemNome.substring(0, 16) + '...';
+            }
+            ctx.fillText(nomeDisplay, x + cardW / 2, y + 130);
+            
+            ctx.fillStyle = corRaridade;
+            ctx.font = '14px sans-serif';
+            ctx.fillText(formatarTexto(raridade), x + cardW / 2, y + 152);
+            
+            ctx.fillStyle = '#A0AAB5';
+            ctx.font = '13px sans-serif';
+            ctx.fillText(catLabel, x + cardW / 2, y + 172);
+            
+            ctx.textAlign = 'left';
+        } else {
+            ctx.fillStyle = '#15171D';
+            ctx.font = 'bold 24px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('vazio', x + cardW / 2, y + cardH / 2 + 8);
+            ctx.textAlign = 'left';
+        }
+    }
+    
+    ctx.fillStyle = '#8B949E';
+    ctx.font = '16px sans-serif';
+    ctx.fillText(`Categoria: ${formatarTexto(categoria === 'todos' ? 'Tudo' : categoria)}`, 40, h - 20);
+    
+    ctx.textAlign = 'right';
+    ctx.fillText(`Página ${pag + 1} de ${totalPaginas}`, w - 40, h - 20);
+    
+    return canvas.toBuffer('image/png');
+}
+
 async function gerarBannerRanking(tipo, dados) {
     const canvas = createCanvas(800, 620);
     const ctx = canvas.getContext('2d');
@@ -830,23 +979,12 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
     const pag = Math.max(0, Math.min(pagina, totalPaginas - 1));
     const slice = itensFiltrados.slice(pag * ITEMS_PER_PAGE, (pag + 1) * ITEMS_PER_PAGE);
 
-    const libras = p.libras || p.saldo || 0;
+    const buffer = await gerarBannerInventario(p, slice, categoria, pag, totalPaginas);
+    const attachment = new AttachmentBuilder(buffer, { name: 'inventario.png' });
+
     const embed = new EmbedBuilder()
         .setColor(p.indice_poder_cor || 0x3498DB)
-        .setTitle(`Inventário de ${formatarTexto(p.nome)}`)
-        .setDescription(`**Saldo:** \`${libras.toLocaleString('pt-BR')} Libras\`\n` +
-            `**Categoria:** ${formatarTexto(categoria === 'todos' ? 'Tudo' : categoria)} | Página ${pag + 1} de ${totalPaginas}\n\n` + 
-            (slice.length === 0 ? '*Nenhum item encontrado nesta categoria.*' : 
-            slice.map((i, idx) => {
-                const itemNome = formatarTexto(i.nome || i.item?.nome || 'Item Desconhecido');
-                const qtd = i.quantidade || 1;
-                const raridade = (i.raridade || i.item?.raridade || 'comum').toLowerCase();
-                const raridadeLabel = formatarTexto(raridade);
-
-                const catLabel = formatarTexto(i.categoria || i.item?.categoria || '');
-                const equipStatus = i.equipado ? ' *(Equipado)*' : '';
-                return `[${raridadeLabel}] **${itemNome}** (x${qtd}) - *${catLabel}*${equipStatus}`;
-            }).join('\n')));
+        .setImage('attachment://inventario.png');
 
     // Botões de Categorias
     const rowCats = new ActionRowBuilder().addComponents(
@@ -869,9 +1007,9 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
     }
 
     if (interaction.deferred || interaction.replied) {
-        return await interaction.editReply({ embeds: [embed], components });
+        return await interaction.editReply({ embeds: [embed], files: [attachment], components });
     } else {
-        return await interaction.update({ embeds: [embed], components });
+        return await interaction.update({ embeds: [embed], files: [attachment], components });
     }
 }
 
