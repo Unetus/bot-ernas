@@ -2514,11 +2514,11 @@ client.on('interactionCreate', async interaction => {
         const menu = interaction.customId.replace('jogador_menu_', '');
         
         if (menu === 'guilda') {
-            return await interaction.reply({ content: '💡 Para buscar os dados de uma guilda, digite no chat: 👉 `/guilda nome:`', ephemeral: true });
+            return await interaction.reply({ content: '✦ Para buscar os dados de uma guilda, digite no chat: `/guilda nome:`', ephemeral: true });
         }
         
         if (menu === 'rp') {
-            return await interaction.reply({ content: '💡 Para iniciar uma cena de RP marcando os jogadores, digite no chat: 👉 `/rp iniciar`', ephemeral: true });
+            return await interaction.reply({ content: '✦ Para iniciar uma cena de RP marcando os jogadores, digite no chat: `/rp iniciar`', ephemeral: true });
         }
         
         if (menu === 'missoes') {
@@ -2527,11 +2527,11 @@ client.on('interactionCreate', async interaction => {
                 const res = await axios.get(`${ARKANDIA_API}/missoes`, { headers: { 'X-API-Key': API_KEY } });
                 const missoes = res.data.filter(m => m.status === 'aberta');
                 
-                if (missoes.length === 0) return await interaction.editReply({ content: '📜 Não há missões abertas no momento.' });
+                if (missoes.length === 0) return await interaction.editReply({ content: '✦ Não há missões abertas no momento.' });
                 
                 const embed = new EmbedBuilder()
                     .setColor(0x9B59B6)
-                    .setTitle('📜 Quadro de Missões de Arkandia')
+                    .setTitle('✦ Quadro de Missões de Arkandia ✦')
                     .setDescription(missoes.map(m => `**[${m.ranque || 'D'}]** ${m.nome}\n*${m.descricao || 'Sem descrição'}*`).join('\n\n'));
                 return await interaction.editReply({ embeds: [embed] });
             } catch (e) {
@@ -3567,15 +3567,15 @@ client.on('interactionCreate', async interaction => {
                 .setFooter({ text: 'Apenas você pode ver este painel.' });
 
             const row1 = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('jogador_menu_perfil').setLabel('👤 Meu Perfil').setStyle(ButtonStyle.Primary),
-                new ButtonBuilder().setCustomId('jogador_menu_inventario').setLabel('🎒 Meu Inventário').setStyle(ButtonStyle.Primary),
-                new ButtonBuilder().setCustomId('jogador_menu_missoes').setLabel('📜 Missões Ativas').setStyle(ButtonStyle.Secondary)
+                new ButtonBuilder().setCustomId('jogador_menu_perfil').setLabel('✦ Meu Perfil').setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId('jogador_menu_inventario').setLabel('✦ Meu Inventário').setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId('jogador_menu_missoes').setLabel('✦ Missões Ativas').setStyle(ButtonStyle.Secondary)
             );
             
             const row2 = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('jogador_menu_ranking').setLabel('🏆 Rankings').setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId('jogador_menu_guilda').setLabel('🛡️ Buscar Guilda').setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId('jogador_menu_rp').setLabel('🎭 Iniciar Cena RP').setStyle(ButtonStyle.Success)
+                new ButtonBuilder().setCustomId('jogador_menu_ranking').setLabel('✦ Rankings').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('jogador_menu_guilda').setLabel('✦ Buscar Guilda').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('jogador_menu_rp').setLabel('✦ Iniciar Cena RP').setStyle(ButtonStyle.Success)
             );
 
             return await interaction.editReply({ embeds: [embed], components: [row1, row2] });
