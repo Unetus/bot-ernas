@@ -925,10 +925,10 @@ async function gerarBannerPainelMestre(channelId, guild) {
     ctx.lineWidth = 1.5;
     ctx.strokeRect(15, 15, 770, 420);
 
-    // Título Principal
+    // Título Principal (Sem acentos ou caracteres especiais)
     ctx.fillStyle = '#D4AF37';
     ctx.font = 'bold 24px sans-serif';
-    ctx.fillText('PAINEL DO MESTRE — CENTRAL DE CONTROLE', 40, 52);
+    ctx.fillText('PAINEL DO MESTRE - CENTRAL DE CONTROLE', 40, 52);
 
     // Divisor horizontal
     ctx.strokeStyle = 'rgba(212, 175, 55, 0.3)';
@@ -960,13 +960,13 @@ async function gerarBannerPainelMestre(channelId, guild) {
 
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '14px sans-serif';
-        ctx.fillText(`• Grid: ${cena.colunas}x${cena.linhas} células`, 60, 180);
-        ctx.fillText(`• Jogadores/Tokens: ${cena.players.length}`, 60, 205);
+        ctx.fillText(`- Grid: ${cena.colunas}x${cena.linhas} celulas`, 60, 180);
+        ctx.fillText(`- Jogadores/Tokens: ${cena.players.length}`, 60, 205);
         if (cena.estado === 'COMBATE') {
             const ativo = cena.players[cena.turnoAtual];
-            ctx.fillText(`• Turno: ${ativo ? ativo.name : 'Ninguém'} (Rodada ${cena.rodada})`, 60, 230);
+            ctx.fillText(`- Turno: ${ativo ? ativo.name : 'Ninguem'} (Rodada ${cena.rodada})`, 60, 230);
         } else {
-            ctx.fillText('• Movimentação Livre Habilitada', 60, 230);
+            ctx.fillText('- Movimentacao Livre Habilitada', 60, 230);
         }
     } else {
         ctx.fillStyle = '#4F5660';
@@ -974,8 +974,8 @@ async function gerarBannerPainelMestre(channelId, guild) {
         ctx.fillText('Nenhuma Cena Ativa', 60, 160);
         ctx.fillStyle = '#8B949E';
         ctx.font = 'italic 12px sans-serif';
-        ctx.fillText('Inicie um mapa tático VTT no canal', 60, 185);
-        ctx.fillText('para ver as estatísticas da sessão.', 60, 205);
+        ctx.fillText('Inicie um mapa tatico VTT no canal', 60, 185);
+        ctx.fillText('para ver as estatisticas da sessao.', 60, 205);
     }
 
     // 2. Bloco Direito: Voz e Narração Habilitada
@@ -998,7 +998,7 @@ async function gerarBannerPainelMestre(channelId, guild) {
 
     ctx.fillStyle = '#8B949E';
     ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('IMPERSONAÇÃO / VOZ ATIVA', 440, 125);
+    ctx.fillText('IMPERSONACAO / VOZ ATIVA', 440, 125);
 
     if (narrando) {
         ctx.fillStyle = '#D4AF37';
@@ -1007,17 +1007,17 @@ async function gerarBannerPainelMestre(channelId, guild) {
 
         ctx.fillStyle = '#FFFFFF';
         ctx.font = '14px sans-serif';
-        ctx.fillText('• Canal de Webhook ativo', 440, 185);
-        ctx.fillText('• Todas as suas falas comuns', 440, 210);
-        ctx.fillText('sairão com esta identidade.', 440, 230);
+        ctx.fillText('- Canal de Webhook ativo', 440, 185);
+        ctx.fillText('- Todas as suas falas comuns', 440, 210);
+        ctx.fillText('sairao com esta identidade.', 440, 230);
     } else {
         ctx.fillStyle = '#4F5660';
         ctx.font = 'bold 16px sans-serif';
         ctx.fillText('Modo Narrador Desativado', 440, 160);
         ctx.fillStyle = '#8B949E';
         ctx.font = 'italic 12px sans-serif';
-        ctx.fillText('Suas mensagens saem com seu próprio', 440, 185);
-        ctx.fillText('perfil de usuário comum.', 440, 205);
+        ctx.fillText('Suas mensagens saem com seu proprio', 440, 185);
+        ctx.fillText('perfil de usuario comum.', 440, 205);
     }
 
     // 3. Bloco Inferior Esquerdo: Missão Ativa
@@ -1040,7 +1040,7 @@ async function gerarBannerPainelMestre(channelId, guild) {
 
     ctx.fillStyle = '#8B949E';
     ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('PREPARAÇÃO DE MISSÃO', 60, 295);
+    ctx.fillText('PREPARACAO DE MISSAO', 60, 295);
 
     if (missao) {
         ctx.fillStyle = '#FFFFFF';
@@ -1049,12 +1049,12 @@ async function gerarBannerPainelMestre(channelId, guild) {
         
         ctx.font = '13px sans-serif';
         const prontos = missao.jogadores.filter(j => j.pronto).length;
-        ctx.fillText(`• Heróis Convocados: ${missao.jogadores.length}`, 60, 350);
-        ctx.fillText(`• Prontos para Aventura: ${prontos} / ${missao.jogadores.length}`, 60, 375);
+        ctx.fillText(`- Herois Convocados: ${missao.jogadores.length}`, 60, 350);
+        ctx.fillText(`- Prontos para Aventura: ${prontos} / ${missao.jogadores.length}`, 60, 375);
     } else {
         ctx.fillStyle = '#4F5660';
         ctx.font = 'bold 14px sans-serif';
-        ctx.fillText('Nenhuma Missão em Preparação', 60, 335);
+        ctx.fillText('Nenhuma Missao em Preparacao', 60, 335);
     }
 
     // 4. Bloco Inferior Direito: Atividade do Sistema
@@ -1069,20 +1069,20 @@ async function gerarBannerPainelMestre(channelId, guild) {
 
     ctx.fillStyle = '#8B949E';
     ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('INFORMAÇÕES DE LORE E REGIONAL', 440, 295);
+    ctx.fillText('INFORMACOES DE LORE E REGIONAL', 440, 295);
 
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 14px sans-serif';
     const channel = guild.channels.cache.get(channelId);
     const parentName = channel && channel.parent ? channel.parent.name : 'Arkandia Central';
     const channelName = channel ? channel.name : 'Geral';
-    ctx.fillText(`Região: ${formatarTexto(parentName)}`, 440, 325);
+    ctx.fillText(`Regiao: ${formatarTexto(parentName)}`, 440, 325);
     ctx.font = '13px sans-serif';
-    ctx.fillText(`• Localidade: #${channelName}`, 440, 350);
+    ctx.fillText(`- Localidade: #${channelName}`, 440, 350);
     
     const hasGemini = !!process.env.GEMINI_API_KEY;
     ctx.fillStyle = hasGemini ? '#2E5A36' : '#C41E3A';
-    ctx.fillText(hasGemini ? '• Assistente IA: ONLINE' : '• Assistente IA: CONFIGURAR CHAVE', 440, 375);
+    ctx.fillText(hasGemini ? '- Assistente IA: ONLINE' : '- Assistente IA: CONFIGURAR CHAVE', 440, 375);
 
     return canvas.toBuffer('image/png');
 }
@@ -1091,8 +1091,10 @@ function getMestrePainelComponents() {
     const rowVtt = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId('mestre_menu_vtt')
-            .setPlaceholder('⚙️ Controle VTT (Grid & Combate)')
+            .setPlaceholder('Controle VTT (Grid e Combate)')
             .addOptions([
+                { label: 'Iniciar Cena VTT', description: 'Cria um novo mapa tatico no canal', value: 'iniciar_cena' },
+                { label: 'Iniciar Arena PvP', description: 'Inicia draft de picks/bans para combate PvP', value: 'iniciar_arena' },
                 { label: 'Iniciar Combate', description: 'Tranca iniciativa e turnos no VTT', value: 'combate_iniciar' },
                 { label: 'Avançar Turno', description: 'Passa para o próximo token vivo', value: 'combate_proximo' },
                 { label: 'Mudar Status de Vida', description: 'Alterna token entre Vivo e Incapacitado', value: 'status_vida' },
@@ -1105,20 +1107,22 @@ function getMestrePainelComponents() {
     const rowVoz = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId('mestre_menu_voz')
-            .setPlaceholder('🗣️ Voz & Narração Imersiva')
+            .setPlaceholder('Voz, Narracao e Consultas')
             .addOptions([
                 { label: 'Assumir NPC ou Monstro', description: 'Fala através de Webhook personalizado', value: 'assumir_npc' },
                 { label: 'Voltar ao Perfil de Mestre', description: 'Desativa o Webhook e fala como usuário normal', value: 'voltar_mestre' },
-                { label: 'Consultar Bestiário Secreto', description: 'Pesquisa atributos e lore de forma secreta', value: 'consultar_bestiario' }
+                { label: 'Consultar Bestiario Secreto', description: 'Pesquisa atributos e lore de forma secreta', value: 'consultar_bestiario' },
+                { label: 'Consultar Ficha de Personagem', description: 'Gera e exibe a ficha Canvas de qualquer jogador', value: 'visualizar_perfil' },
+                { label: 'Consultar Mochila de Personagem', description: 'Abre a mochila e inventario de qualquer jogador', value: 'visualizar_inventario' }
             ])
     );
 
     const rowLoot = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId('mestre_menu_economia')
-            .setPlaceholder('🎁 Loot, Moedas & Recompensas')
+            .setPlaceholder('Loot, Moedas e Recompensas')
             .addOptions([
-                { label: 'Dropar Item do Catálogo', description: 'Pesquisa item na API e envia caixa de loot', value: 'dropar_item' },
+                { label: 'Dropar Item do Catalogo', description: 'Pesquisa item na API e envia caixa de loot', value: 'dropar_item' },
                 { label: 'Creditar Libras (Moedas)', description: 'Adiciona moedas diretamente à ficha do jogador', value: 'creditar_libras' }
             ])
     );
@@ -1126,11 +1130,11 @@ function getMestrePainelComponents() {
     const rowIa = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
             .setCustomId('mestre_menu_ia')
-            .setPlaceholder('🧠 IA Narrativa Assistente (Gemini)')
+            .setPlaceholder('IA Narrativa Assistente (Gemini)')
             .addOptions([
                 { label: 'Descrever Ambiente', description: 'IA gera narração mística do canal/local atual', value: 'ia_descrever_ambiente' },
                 { label: 'Improvisar Fala de NPC', description: 'IA responde in-character como o NPC ativo', value: 'ia_npc_fala' },
-                { label: 'Gerar Encontro Aleatório', description: 'IA sorteia monstros e gera enredo de emboscada', value: 'ia_encontro' }
+                { label: 'Gerar Encontro Aleatorio', description: 'IA sorteia monstros e gera enredo de emboscada', value: 'ia_encontro' }
             ])
     );
 
@@ -1549,6 +1553,25 @@ client.on('interactionCreate', async interaction => {
         const channelId = interaction.channelId;
         const cena = cenasAtivas.get(channelId);
 
+        if (action === 'iniciar_cena') {
+            const modal = new ModalBuilder().setCustomId('modal_mestre_vtt_iniciar').setTitle('Iniciar Nova Cena VTT');
+            const colInput = new TextInputBuilder().setCustomId('colunas_input').setLabel('Colunas (Largura)').setStyle(TextInputStyle.Short).setValue('12').setRequired(true);
+            const linInput = new TextInputBuilder().setCustomId('linhas_input').setLabel('Linhas (Altura)').setStyle(TextInputStyle.Short).setValue('10').setRequired(true);
+            const fundoInput = new TextInputBuilder().setCustomId('fundo_input').setLabel('URL da Imagem de Fundo (Opcional)').setStyle(TextInputStyle.Short).setRequired(false);
+            modal.addComponents(new ActionRowBuilder().addComponents(colInput), new ActionRowBuilder().addComponents(linInput), new ActionRowBuilder().addComponents(fundoInput));
+            await interaction.showModal(modal);
+            return;
+        }
+
+        if (action === 'iniciar_arena') {
+            const modal = new ModalBuilder().setCustomId('modal_mestre_vtt_arena_iniciar').setTitle('Iniciar Nova Arena PvP');
+            const jogInput = new TextInputBuilder().setCustomId('jogadores_input').setLabel('Mencao dos Jogadores (Ex: @J1 @J2)').setStyle(TextInputStyle.Short).setRequired(true);
+            const tempoInput = new TextInputBuilder().setCustomId('tempo_input').setLabel('Tempo de Turno (Segundos)').setStyle(TextInputStyle.Short).setValue('60').setRequired(true);
+            modal.addComponents(new ActionRowBuilder().addComponents(jogInput), new ActionRowBuilder().addComponents(tempoInput));
+            await interaction.showModal(modal);
+            return;
+        }
+
         if (action === 'combate_iniciar') {
             if (!cena) return await interaction.reply({ content: '✗ Nenhuma cena ativa neste canal.', ephemeral: true });
             if (cena.players.length === 0) return await interaction.reply({ content: '✗ Não há nenhum jogador na cena para iniciar o combate.', ephemeral: true });
@@ -1619,6 +1642,22 @@ client.on('interactionCreate', async interaction => {
     if (interaction.isStringSelectMenu() && interaction.customId === 'mestre_menu_voz') {
         const action = interaction.values[0];
         const key = `${interaction.channelId}-${interaction.user.id}`;
+
+        if (action === 'visualizar_perfil') {
+            const modal = new ModalBuilder().setCustomId('modal_mestre_consulta_perfil').setTitle('Consultar Ficha');
+            const charInput = new TextInputBuilder().setCustomId('char_input').setLabel('Nome do Personagem').setStyle(TextInputStyle.Short).setRequired(true);
+            modal.addComponents(new ActionRowBuilder().addComponents(charInput));
+            await interaction.showModal(modal);
+            return;
+        }
+
+        if (action === 'visualizar_inventario') {
+            const modal = new ModalBuilder().setCustomId('modal_mestre_consulta_inventario').setTitle('Consultar Mochila');
+            const charInput = new TextInputBuilder().setCustomId('char_input').setLabel('Nome do Personagem').setStyle(TextInputStyle.Short).setRequired(true);
+            modal.addComponents(new ActionRowBuilder().addComponents(charInput));
+            await interaction.showModal(modal);
+            return;
+        }
 
         if (action === 'assumir_npc') {
             const modal = new ModalBuilder().setCustomId('modal_mestre_voz_npc').setTitle('Assumir Voz de NPC');
@@ -1964,6 +2003,144 @@ client.on('interactionCreate', async interaction => {
             } catch(e) {
                 console.error(e);
                 return await interaction.editReply({ content: `✗ Erro ao gerar fala improvisada com IA: ${e.message}` });
+            }
+        }
+        if (interaction.customId === 'modal_mestre_vtt_iniciar') {
+            const colunas = parseInt(interaction.fields.getTextInputValue('colunas_input'), 10) || 12;
+            const linhas = parseInt(interaction.fields.getTextInputValue('linhas_input'), 10) || 10;
+            const fundoUrl = interaction.fields.getTextInputValue('fundo_input').trim() || null;
+            const cid = interaction.channelId;
+
+            cenasAtivas.set(cid, { 
+                linhas, colunas, fundoUrl,
+                estado: 'ABERTA', rodada: 1, turnoAtual: 0, players: [], msgId: null
+            });
+
+            await interaction.deferReply({ ephemeral: true });
+            await repintarMapaNovo(interaction.channel, cenasAtivas.get(cid));
+            return await interaction.editReply({ content: `✓ Nova cena VTT criada com sucesso no grid ${colunas}x${linhas}!` });
+        }
+
+        if (interaction.customId === 'modal_mestre_vtt_arena_iniciar') {
+            const jogadoresRaw = interaction.fields.getTextInputValue('jogadores_input');
+            const tempoTurno = parseInt(interaction.fields.getTextInputValue('tempo_input'), 10) || 60;
+
+            const regex = /<@!?(\d+)>/g;
+            const matches = [...jogadoresRaw.matchAll(regex)];
+            const capitaesIds = matches.map(m => m[1]).slice(0, 2);
+
+            if (capitaesIds.length < 2) return await interaction.reply({ content: '✗ Voce precisa mencionar pelo menos 2 jogadores (@J1 @J2) para o draft da Arena.', ephemeral: true });
+
+            await interaction.deferReply({ ephemeral: true });
+
+            const embed = new EmbedBuilder()
+                .setColor(0x8B0000)
+                .setTitle('⚔ Arena - Fase de Picks & Bans')
+                .setDescription(`Capitães: <@${capitaesIds[0]}> e <@${capitaesIds[1]}>\nTempo de Turno: ${tempoTurno}s\n\nÉ a vez de <@${capitaesIds[0]}> banir um mapa!`);
+
+            const rows = [];
+            let currentRow = new ActionRowBuilder();
+            MAPAS_ARENA.forEach((mapa, index) => {
+                currentRow.addComponents(new ButtonBuilder().setCustomId(`arena_ban_${mapa.id}`).setLabel(`Banir ${mapa.nome}`).setStyle(ButtonStyle.Danger));
+                if (currentRow.components.length === 5 || index === MAPAS_ARENA.length - 1) {
+                    rows.push(currentRow);
+                    currentRow = new ActionRowBuilder();
+                }
+            });
+
+            const draftData = {
+                capitaes: capitaesIds,
+                turnoCapitao: 0,
+                mapasRestantes: [...MAPAS_ARENA],
+                tempoTurnoMs: tempoTurno * 1000
+            };
+
+            const buffer = await renderDraft(draftData);
+            const attachment = new AttachmentBuilder(buffer, { name: 'draft.png' });
+
+            const msg = await interaction.channel.send({ content: `<@${capitaesIds[0]}> <@${capitaesIds[1]}> O Draft da Arena começou!`, embeds: [embed], files: [attachment], components: rows });
+            arenasDraft.set(msg.id, draftData);
+
+            return await interaction.editReply({ content: '✓ Draft da Arena inicializado e enviado para o canal!' });
+        }
+
+        if (interaction.customId === 'modal_mestre_consulta_perfil') {
+            const charName = interaction.fields.getTextInputValue('char_input').trim();
+            await interaction.deferReply({ ephemeral: true });
+            try {
+                const res = await axios.get(`${ARKANDIA_API}/personagens/${encodeURIComponent(charName)}`, { headers: { 'X-API-Key': API_KEY } });
+                const p = res.data;
+                if (!p) return await interaction.editReply({ embeds: [embedErro('Personagem nao encontrado.')] });
+
+                const buffer = await gerarBannerPerfil(p);
+                const attachment = new AttachmentBuilder(buffer, { name: 'perfil.png' });
+                
+                const embed = new EmbedBuilder()
+                    .setColor(p.indice_poder_cor || 0x3498DB)
+                    .setImage('attachment://perfil.png');
+                
+                let components = [];
+                if (p.build_skills && p.build_skills.length > 0) {
+                    const options = p.build_skills.slice(0, 25).map(s => ({
+                        label: `${formatarTexto(s.nome)} (Grau ${s.grau})`,
+                        description: formatarTexto(s.tipo) || '',
+                        value: s.id
+                    }));
+
+                    const row = new ActionRowBuilder().addComponents(
+                        new StringSelectMenuBuilder()
+                            .setCustomId('select_profile_skill')
+                            .setPlaceholder('Selecione uma habilidade equipada para ver detalhes')
+                            .addOptions(options)
+                    );
+                    components.push(row);
+                }
+
+                const msg = await interaction.channel.send({ embeds: [embed], files: [attachment], components });
+                if (p.build_skills && p.build_skills.length > 0) {
+                    skillsCache.set(msg.id, { personagem: p, skills: p.build_skills });
+                }
+                return await interaction.editReply({ content: `✓ Ficha de **${p.nome}** consultada e postada no canal com sucesso!` });
+            } catch (e) {
+                console.error(e);
+                return await interaction.editReply({ embeds: [embedErro(`Erro ao buscar o personagem: ${e.message}`)] });
+            }
+        }
+
+        if (interaction.customId === 'modal_mestre_consulta_inventario') {
+            const charName = interaction.fields.getTextInputValue('char_input').trim();
+            await interaction.deferReply({ ephemeral: true });
+            try {
+                const res = await axios.get(`${ARKANDIA_API}/personagens/${encodeURIComponent(charName)}`, { headers: { 'X-API-Key': API_KEY } });
+                const p = res.data;
+                if (!p) return await interaction.editReply({ embeds: [embedErro('Personagem nao encontrado.')] });
+
+                const itens = p.inventario || p.itens || [];
+
+                // Armazenar inventario completo no cache para paginação funcional
+                const cacheKey = `inventario_${interaction.user.id}_${p.id}`;
+                skillsCache.set(cacheKey, { personagem: p, itens });
+
+                const embed = new EmbedBuilder()
+                    .setColor(p.indice_poder_cor || 0x3498DB)
+                    .setTitle(`Inventario de ${formatarTexto(p.nome)}`)
+                    .setDescription(`**Saldo:** \`${(p.libras || p.saldo || 0).toLocaleString('pt-BR')} Libras\`\n**Categoria:** Tudo | Página 1\n\n` + 
+                        (itens.length === 0 ? '*Nenhum item encontrado.*' : 
+                        itens.slice(0, 8).map(i => {
+                            const itemNome = formatarTexto(i.nome || i.item?.nome || 'Item Desconhecido');
+                            const qtd = i.quantidade || 1;
+                            const raridade = (i.raridade || i.item?.raridade || 'comum').toLowerCase();
+                            const raridadeLabel = formatarTexto(raridade);
+                            const catLabel = formatarTexto(i.categoria || i.item?.categoria || '');
+                            const equipStatus = i.equipado ? ' *(Equipado)*' : '';
+                            return `[${raridadeLabel}] **${itemNome}** (x${qtd}) - *${catLabel}*${equipStatus}`;
+                        }).join('\n')));
+
+                await interaction.channel.send({ embeds: [embed] });
+                return await interaction.editReply({ content: `✓ Inventario de **${p.nome}** postado no canal com sucesso!` });
+            } catch (e) {
+                console.error(e);
+                return await interaction.editReply({ embeds: [embedErro(`Erro ao carregar o inventario: ${e.message}`)] });
             }
         }
     }

@@ -1,0 +1,953 @@
+{
+  "id": "8fa9587e-c669-4a62-a601-435c93336ae5",
+  "nome": "Shanks",
+  "titulo": "O Yonkou",
+  "classe": "espadachim",
+  "raca": "humano",
+  "origem": "vermecia",
+  "estamento": null,
+  "nivel": 35,
+  "xp_total": 133519,
+  "rank": "B",
+  "rating_arena_max": 0,
+  "retrato_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/avatares/8fa9587e-c669-4a62-a601-435c93336ae5/retrato.webp?t=1779324348091",
+  "avatar_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/avatares/8fa9587e-c669-4a62-a601-435c93336ae5/avatar.webp?t=1779324330402",
+  "moldura_icone": "elo-bronze",
+  "background": "## What is Lorem Ipsum?\n\n**Lorem Ipsum** is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.\n\n## What is Lorem Ipsum?\n\n**Lorem Ipsum** is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+  "criado_em": "2026-04-04T05:29:23.203011+00:00",
+  "indice_poder": 249397,
+  "indice_poder_faixa": 6,
+  "indice_poder_cor": "#EF4444",
+  "build": {
+    "slot_racial": "35cfbdc5-93f0-49e5-8151-7b1a0d207690",
+    "slot_1": "2ba4b2cf-95fc-48dc-84a7-2cb6a8f44931",
+    "slot_2": "56d45c11-97a4-4aa4-ac8d-bd6c426837bd",
+    "slot_3": "c18c7a7e-611b-4156-9622-e5795dda8c5c",
+    "slot_4": null,
+    "slot_5": null,
+    "slot_6": "fd155d81-5cf1-4dd4-99e4-63c98d17cb60",
+    "slot_7": "77d905cd-a69b-4064-9515-81478e82eb9a"
+  },
+  "build_skills": [
+    {
+      "slot": "racial",
+      "id": "35cfbdc5-93f0-49e5-8151-7b1a0d207690",
+      "grau": 1,
+      "nome": "Plasticidade Mortal",
+      "tipo": "passiva",
+      "classe": "humano",
+      "origem": "classe",
+      "descricao": "Acesso pleno aos **10 Designios de Maestria** sem nenhuma restrição cultural ou racial, pode aprender qualquer Designio em qualquer combinação. Além disso, dotado de grande adaptabilidade e facilidade de aprendizado, recebe **Custo reduzido em Runas (-10%)** para skills de qualquer Designio.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1779162720564-tw79l3.webp"
+    },
+    {
+      "slot": "1",
+      "id": "2ba4b2cf-95fc-48dc-84a7-2cb6a8f44931",
+      "grau": 4,
+      "nome": "Palma Mística",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "maestria",
+      "descricao": "O portador estende a palma sobre aliado em **Toque** (1 quadrado adjacente) e canaliza *Éter* curativo em luz verde-clara. *Palma Mística* fecha ferimentos físicos de **Grau 4 ou inferior** completamente em 1 turno e neutraliza venenos comuns de **Grau 3 ou inferior**. Contra ferimentos de **Grau 5 ou superior**, estanca hemorragia mas não fecha. Identifica males internos do paciente pela aural durante o canalizar (parasitismo, gravidez, possessão leve). O portador consome reserva equivalente a uma refeição após cada uso.\n\n**Cooldown: 2 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/palma-mistica.jpg"
+    },
+    {
+      "slot": "2",
+      "id": "56d45c11-97a4-4aa4-ac8d-bd6c426837bd",
+      "grau": 19,
+      "nome": "Lâmina da Conquistadora",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador ergue sua arma acima da cabeça, infunde a *Aura do Conquistador* da linhagem Sieghart e desce um único corte vertical. A *Lâmina da Conquistadora* atravessa qualquer defesa, escudo ou barreira como se nada existisse, parte montanhas e fende o ar em linha reta até **12 quadrados** à frente, herança da vontade que selou Zoth no centro de Vermécia. Adversários com **resistência mental de Grau 18 ou inferior** são nocauteados ao perceber a intenção do golpe sem precisar ser tocados; resistências mentais de **Grau 19 ou superior** ainda enfrentam a lâmina, mesmo sem defesa eficaz.\n\n**Cooldown: uma vez por combate.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775012585522-34mrde.png"
+    },
+    {
+      "slot": "3",
+      "id": "c18c7a7e-611b-4156-9622-e5795dda8c5c",
+      "grau": 4,
+      "nome": "Réplica",
+      "tipo": "ativa",
+      "classe": "espadachim",
+      "origem": "classe",
+      "descricao": "Contra-ataque reativo a um golpe corpo a corpo em **Corpo-a-corpo** (1 quadrado). O espadachim deflexiona a lâmina adversária com um toque lateral, redirecionando o momentum do oponente contra ele próprio e fazendo-o perder o equilíbrio. A estocada que se segue aproveita a abertura criada, perfurando tecidos moles e armaduras leves de **Grau 3 ou inferior** sem resistência significativa. Contra armas pesadas e oponentes com **defesas de Grau 4 ou superior**, perde precisão e a estocada apenas arranha. A skill não funciona contra ataques à distância nem criaturas muito maiores que o portador.\n\n***Cooldown:*** *2 turnos*",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1774136025742-3bqyhf.png"
+    },
+    {
+      "slot": "6",
+      "id": "fd155d81-5cf1-4dd4-99e4-63c98d17cb60",
+      "grau": 18,
+      "nome": "Império Carmesim",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador infunde a *Chama Interior* diretamente nos próprios membros e na arma empunhada. Por **3 turnos**, raios de fogo escarlate-dourado envolvem o portador como uma armadura viva. Cada ataque básico ou habilidade do portador **atravessa armaduras e defesas de Grau 17 ou inferior** sem resistência. A Chama queima Éter junto com matéria. Os movimentos do portador deixam rastros de chama no ar que dissipam após **1 turno** (criando combustível pra outras manifestações de fogo). Durante o efeito, o portador é **imune a fogo de Grau 17 ou inferior**. Está literalmente feito da mesma matéria. Após os 3 turnos: o portador **não pode conjurar skills ativas por 2 turnos** e **perde 1 ação por turno** durante esse período. A Chama consome o corpo de volta.\n\n**Cooldown: uma vez por combate.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775695670044-dto877.png"
+    },
+    {
+      "slot": "7",
+      "id": "77d905cd-a69b-4064-9515-81478e82eb9a",
+      "grau": 18,
+      "nome": "Decreto Eterno de Sieghart",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador canaliza por **1 turno** enquanto o ar ao redor se aquece visivelmente. No turno seguinte, pronuncia uma **declaração em Altas Palavras**, frase curta numa linguagem que o portador não conhece, mas o Eco fala por ele.\n\n**Todos os inimigos** dentro de **6 quadrados** (Curto) interrompem imediatamente o que estão fazendo: ataques cancelados no meio, canalizações quebradas, movimentos param.\n\n- Inimigos de **Rank inferior** ao portador ficam **paralisados por 1 turno completo** (não podem agir, mover nem reagir)\n- Inimigos de **Rank igual** ao portador apenas **perdem 1 ação no turno seguinte** (hesitam ao ouvir as Altas Palavras)\n- Inimigos de **Rank superior** apenas sentem o peso da declaração e agem normal no turno seguinte\n\nA paralisia segue **Rank**, não Grau da skill, porque as Altas Palavras precedem a hierarquia mortal. Esta é exceção identitária do Eco. Inimigos sem mente própria (mortos-vivos antigos sem alma, construtos puros, hordas instintivas) ignoram completamente.\n\nAliados dentro do raio recebem **+1 ação no próximo turno** (clareza incomum cedida pelo Eco). Após a ativação, o portador colapsa por **4 turnos** sem qualquer ação.\n\n**Cooldown: uma vez por combate.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775791708880-sh80y1.png"
+    }
+  ],
+  "skills_adquiridas": [
+    {
+      "id": "5d6f48cd-4569-417a-82a0-648b4e217f01",
+      "grau": 6,
+      "nome": "Convicção de Cid",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Sempre que o portador toma decisão clara e a executa sem hesitar (escolher alvo e atacar imediatamente, decidir defender alguém e se mover sem pensar, escolher caminho e seguir), a ação é executada com clareza incomum mesmo se a decisão tática não era a melhor possível. Aliados dentro de **3 quadrados** sentem a convicção como pressão emocional positiva. Ganham clareza pra agir imediatamente sem hesitar, **imunes a medo, dúvida induzida e desmoralização de Grau 6 ou inferior**. Contra **Grau 7 ou superior**, esses efeitos passam normalmente. A passiva enfraquece quando o portador hesita visivelmente: pondera demais, pede conselho antes de agir, recua pra reavaliar.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775161082633-sdgd6p.png"
+    },
+    {
+      "id": "35cfbdc5-93f0-49e5-8151-7b1a0d207690",
+      "grau": 1,
+      "nome": "Plasticidade Mortal",
+      "tipo": "passiva",
+      "classe": "humano",
+      "origem": "classe",
+      "descricao": "Acesso pleno aos **10 Designios de Maestria** sem nenhuma restrição cultural ou racial, pode aprender qualquer Designio em qualquer combinação. Além disso, dotado de grande adaptabilidade e facilidade de aprendizado, recebe **Custo reduzido em Runas (-10%)** para skills de qualquer Designio.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1779162720564-tw79l3.webp"
+    },
+    {
+      "id": "3f9a8662-a459-4317-9733-190b1b0330f1",
+      "grau": 3,
+      "nome": "Chama Comum",
+      "tipo": "passiva",
+      "classe": "encantamento",
+      "origem": "item",
+      "descricao": "A arma queima com chama persistente que não consome combustível ou material próprio. Cada golpe transfere calor à ferida e incendeia tecidos inflamáveis no contato (madeira seca, palha, óleo, pano leve). *Chama Comum* aplica queimadura leve em alvos com **resistência ao fogo de Grau 2 ou inferior**; contra **Grau 3 ou superior**, alcança mas o alvo dissipa o calor antes de cauterizar. A chama pode ser comandada pra acender ou apagar a qualquer momento e ilumina ambientes escuros num raio de **3 quadrados** ao redor do portador.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1778979968403-m1mda9.webp"
+    },
+    {
+      "id": "4216b4ac-1020-4dc0-98d5-9e40cdffdc4d",
+      "grau": 10,
+      "nome": "Mão do Primeiro Vento",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador manipula livremente *vento etérico ancestral*. O sopro original de *Ernas*, perceptível apenas pelo Éter que carrega. Em até **6 quadrados** ao redor, cria correntes que desviam projéteis de **Grau 10 ou inferior** (contra **Grau 11 ou superior**, o vento mantém o Grau do projétil mas altera a trajetória em até 45 graus, podendo desviar de alvos precisos), empurra alvos leves, levanta cortinas de poeira pra encobrir aliados, plana curtas distâncias e suaviza quedas de qualquer altura segura. Em ambientes selados sem fluxo de ar ou no fundo da água, a inata **opera como Grau 8** (2 Graus abaixo) e o raio cai para **3 quadrados**.\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775694784739-t8g34h.png"
+    },
+    {
+      "id": "c97322ab-233c-4f6f-9a60-1e907e7f1b09",
+      "grau": 1,
+      "nome": "Fio Aguçado",
+      "tipo": "passiva",
+      "classe": "espadachim",
+      "origem": "classe",
+      "descricao": "Sempre que o espadachim **utiliza uma habilidade da classe Espadachim** (ativa ou passiva ativada por gatilho), o **próximo ataque básico** desferido no turno seguinte ganha **+1 Grau de potência** (único modificador da skill, aplicado apenas ao ataque básico imediatamente posterior). O bônus não acumula entre múltiplas habilidades usadas no mesmo turno e expira se o ataque básico subsequente não for desferido no turno seguinte. ",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1774135600646-l59yor.png"
+    },
+    {
+      "id": "4e8fa7a4-3abd-41d3-9fa9-c5ca3f8919e4",
+      "grau": 6,
+      "nome": "Arco Crescente",
+      "tipo": "ativa",
+      "classe": "espadachim",
+      "origem": "classe",
+      "descricao": "Corte semicircular com rotação completa do corpo que projeta uma onda cortante em meia-lua num arco de **5×5 à frente**. Em **1 quadrado** (frente imediata), fende madeira grossa e abre fendas em alvenaria de **Grau 5 ou inferior**; a 2 quadrados rasga couro e causa ferimentos que sangram; a 3 quadrados empurra o alvo um passo deixando marcas superficiais. A onda viaja à altura da cintura e pode ser evitada agachando ou saltando. Contra muros de pedra ou escudos grossos de **Grau 6 ou superior**, não atravessa. *O ar estala no rastro da lâmina e há um cheiro breve de ozônio.*\n\n***Cooldown:*** *3 turnos*",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1774137482850-k901px.png"
+    },
+    {
+      "id": "a900056d-e0f1-4a29-836d-c93e00019ea9",
+      "grau": 2,
+      "nome": "Saque Veloz",
+      "tipo": "ativa",
+      "classe": "espadachim",
+      "origem": "classe",
+      "descricao": "Saque rápido que desembainha e corta num único movimento. A lâmina percorre um arco horizontal na altura do tronco em **Corpo-a-corpo** (1 quadrado à frente), retornando à bainha no mesmo gesto. Talha carne e osso exposto sem resistência, e contra couro reforçado de **Grau 1 ou inferior** abre um sulco profundo. Contra placas metálicas de **Grau 2 ou superior**, apenas arranha. O som é um estalo seco do aço na bainha seguido de um silvo curto. *O alvo costuma perceber o ferimento só quando o sangue escorre.*\n\n***Cooldown:*** *2 turnos*",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1774135713666-q90e3a.png"
+    },
+    {
+      "id": "6309ec33-62c6-4a55-95c3-9907b4bad336",
+      "grau": 8,
+      "nome": "Aparada Adamantina",
+      "tipo": "passiva",
+      "classe": "espadachim",
+      "origem": "classe",
+      "descricao": "Aprimoramento *permanente* da capacidade de aparar do portador. Em guarda, a espada intercepta golpes com potência de aríete, redirecionando lâminas, desviando flechas com a face plana, deflexionando investidas pesadas. O impacto é absorvido pela técnica, não pela força bruta. Funciona contra ataques físicos interceptáveis de **Grau 8 ou inferior**; contra **Grau 9 ou superior**, a parry forma mas o impacto residual ainda atinge o portador. A passiva não protege contra magias sem projétil, ondas de choque, venenos gasosos ou manipulação gravitacional. Requer **guarda consciente**: desprevenido ou com espada embainhada, não se manifesta.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1774137833864-ipvkyi.png"
+    },
+    {
+      "id": "120e142c-7bb6-4249-aade-95d62ed98c70",
+      "grau": 9,
+      "nome": "Severância",
+      "tipo": "ativa",
+      "classe": "espadachim",
+      "origem": "classe",
+      "descricao": "Golpe vertical descendente de potência máxima numa linha de **1 quadrado de largura** por profundidade de **3 quadrados**. O corte direto divide concreto armado ao meio e fende chapas de aço de **Grau 8 ou inferior**. A propagação pelo solo racha pedra e abre fissuras ao longo do mesmo alcance, e contra estruturas de **Grau 9 ou superior**, apenas arranha. *Um silêncio antinatural precede a execução, e o som chega com atraso, grave e profundo, acompanhado de poeira e fragmentos ao longo da fissura.* A linha de impacto é estreita e previsível lateralmente. Requer pés firmes no chão e deixa o braço dominante trêmulo por **1 turno** após o uso.\n\n***Cooldown:*** *uma vez por combate*",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1774137948251-gozpy6.png"
+    },
+    {
+      "id": "a19c9ce0-ca67-4166-91fb-b94b8dd96c00",
+      "grau": 9,
+      "nome": "Investida da Valáquia",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador avança em linha reta por **6 quadrados** com a arma à frente. A carga de El Cid. Aliados dentro de **3 quadrados** atrás podem optar por avançar junto, sentindo o Eco ressoar. Os que acompanham ficam **imunes a medo, dúvida e hesitação induzidos de Grau 9 ou inferior** durante a carga e por 1 turno depois. Contra **Grau 10 ou superior**, esses efeitos passam. Aliados acompanhando mantêm posicionamento sincronizado instintivo durante o avanço. Não tropeçam uns nos outros, não bloqueiam linha de visão, ocupam o terreno como ensaiado. Se 2+ aliados acompanharam, o golpe final é tratado como **1 grau acima** (único modificador). A carga é em linha reta. Não pode ser redirecionada após iniciar.\n\n**Cooldown: 4 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775161115570-l61qii.png"
+    },
+    {
+      "id": "c7d6b061-5cfd-4405-ad04-60e9a7516d0d",
+      "grau": 3,
+      "nome": "Gelo Adormecedor",
+      "tipo": "passiva",
+      "classe": "encantamento",
+      "origem": "item",
+      "descricao": "A arma carrega frio cortante que congela parcialmente a superfície tocada. Cada golpe entorpece brevemente o membro atingido em alvos com **resistência ao gelo de Grau 2 ou inferior** sem falhar (membro perde mobilidade por **1 turno**, gesto fica lento); contra **Grau 3 ou superior**, encosta mas o alvo se livra do entorpecimento no turno seguinte. *Gelo Adormecedor* apaga chamas comuns ao contato e impede acúmulo imediato de sangue nas feridas (ferimentos hibernam frios por minutos).",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1778980141247-lb7lh4.webp"
+    },
+    {
+      "id": "397cd38a-231d-4fa8-ac17-8390f28766f8",
+      "grau": 3,
+      "nome": "Valsa de Lâminas",
+      "tipo": "ativa",
+      "classe": "espadachim",
+      "origem": "classe",
+      "descricao": "Sequência encadeada de **três cortes** (diagonal descendente, horizontal reverso, estocada ascendente), executados enquanto o espadachim avança por uma área **5×5 à frente**. Cada golpe usa o momentum do anterior, dificultando bloqueio sequencial: quem defende o primeiro se expõe ao segundo, e a troca constante de ângulos é o que causa o estrago real. Contra escudos pesados de **Grau 2 ou inferior** mantidos firmes, os três cortes desgastam a guarda. Contra escudos de **Grau 3 ou superior**, o terceiro golpe chega sem força significativa. *O aço canta três notas rápidas no ar.*\n\n***Cooldown:*** *3 turnos*",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1774135807844-lsak5z.png"
+    },
+    {
+      "id": "b0000008-0000-0000-0000-000000000008",
+      "grau": 8,
+      "nome": "Portão do Tesouro do Rei",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Gilgamesh guardava cada arma que precedeu a humanidade no Portão do Tesouro. Este Eco abre fragmento do Portão. O portador conjura até **3 portais dourados etéricos simultâneos** ao redor de si, num raio de **3 quadrados** (Corpo-a-corpo). Cada portal materializa **uma relíquia menor de Grau 8** à escolha do jogador no momento da conjuração, dentro deste catálogo:\n\n- **Lâmina curta** (adaga, gládio): pode ser empunhada ou disparada como projétil de **alcance 4 quadrados**, ferimento de corte Grau 8\n- **Lança**: alcance 2 quadrados em mão ou projétil de **6 quadrados**, perfura armaduras de **Grau 7 ou inferior** sem resistência\n- **Escudo pequeno**: defesa passiva de Grau 8, absorve 1 impacto antes de dissipar\n- **Corrente curta**: prende 1 alvo a até **3 quadrados** por **1 turno**, contra **resistência física de Grau 7 ou inferior**\n- **Cálice**: bebido como ação, cura 1 ferimento físico leve do portador ou aliado em contato\n\nAs relíquias funcionam como **Grau 8** (atravessam defesas de Grau 7-, falham contra Grau 8+). Cada uma dissipa **após o uso** ou após **1 turno sem uso**. Pode ter no máximo 3 portais ativos simultaneamente (invocar 4º dissipa o mais antigo).\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776222067768-n0amcf.png"
+    },
+    {
+      "id": "c18c7a7e-611b-4156-9622-e5795dda8c5c",
+      "grau": 4,
+      "nome": "Réplica",
+      "tipo": "ativa",
+      "classe": "espadachim",
+      "origem": "classe",
+      "descricao": "Contra-ataque reativo a um golpe corpo a corpo em **Corpo-a-corpo** (1 quadrado). O espadachim deflexiona a lâmina adversária com um toque lateral, redirecionando o momentum do oponente contra ele próprio e fazendo-o perder o equilíbrio. A estocada que se segue aproveita a abertura criada, perfurando tecidos moles e armaduras leves de **Grau 3 ou inferior** sem resistência significativa. Contra armas pesadas e oponentes com **defesas de Grau 4 ou superior**, perde precisão e a estocada apenas arranha. A skill não funciona contra ataques à distância nem criaturas muito maiores que o portador.\n\n***Cooldown:*** *2 turnos*",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1774136025742-3bqyhf.png"
+    },
+    {
+      "id": "ff11cbc7-7ee9-4f1c-b5d7-98c12369cdb6",
+      "grau": 5,
+      "nome": "Instinto de Aço",
+      "tipo": "passiva",
+      "classe": "espadachim",
+      "origem": "classe",
+      "descricao": "Reflexos *permanentes* que operam abaixo da consciência. O corpo reage a ameaças físicas dentro de **3 quadrados** antes da mente processar, ajustando postura, recuando ou erguendo a guarda. Ataques surpresa de **Grau 4 ou inferior** perdem vantagem: um corte que deceparia um braço se torna um talho no antebraço, e uma estocada ao coração desvia para as costelas. Contra ataques de **Grau 5 ou superior**, a passiva atenua mas não anula. Funciona apenas contra ameaças físicas no campo de visão, e não protege contra venenos, manipulação mental, magias sem componente visível ou ataques de **ponto cego total**.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1774137305992-asefc7.png"
+    },
+    {
+      "id": "3caba5b3-ede7-4121-b82e-3f1c3a29df8d",
+      "grau": 8,
+      "nome": "Chama Eterna Interior",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Liesel acendeu a **Chama Interior** dos Drakharn, e Ercnard a carregou ao trono. O portador acessa fragmento dessa chama essencial dracônica e invoca livremente **labaredas escarlates-douradas** num raio de **3 quadrados** (Corpo-a-corpo) ao redor de si. Pode escolher a cada turno como ação livre:\n\n- **Revestir lâmina**: a arma do portador queima por 1 turno, ferimentos físicos causados deixam queimadura residual de Grau 8\n- **Barreira de fogo**: parede curta de chamas (até 2 quadrados de extensão), bloqueia movimento de inimigos com **resistência ao fogo de Grau 7 ou inferior** por 1 turno\n- **Trilha incandescente**: marca chão por onde passou, aliados ganham **1 quadrado adicional de movimento** ao caminhar na trilha (dura 2 turnos)\n- **Aquecimento ambiente**: neutraliza frio natural num raio de 3 quadrados (não afeta frio mágico de Grau 9+)\n\nAs chamas **não queimam aliados** (o Eco reconhece quem caminha com o portador). Contra resistências de **Grau 8 ou superior**, os efeitos passam normais sem dano residual. Contra fogo elemental de **Grau 9 ou superior**, o portador pode atravessar a chama hostil **uma vez por combate** sem se ferir (o Eco reconhece um igual).\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775791694604-t2xgrg.png"
+    },
+    {
+      "id": "c598197b-53f7-45af-9c8a-36abdec9e46d",
+      "grau": 11,
+      "nome": "Ressonância de Linhagem",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O Eco reconhece **linhagens dracônicas**. Se o portador é **Draconato (qualquer subraça)**, a Chama Interior emerge naturalmente: pequenas escamas escarlates nas têmporas e antebraços durante combate, olhos com brilho dourado.\n\n**Bônus condicional para Draconatos** (único modificador racial do kit):\n\n- Os raios das skills do Pergaminho (Chama Eterna Interior, Coroa de Duas Eras) ganham **+1 quadrado** de alcance\n- A duração dos efeitos da **Coroa de Duas Eras** estende em **1 turno**\n- A canalização do **Decreto Eterno de Sieghart** pode ser feita em **0 turnos** (efeito imediato no turno da ativação)\n\nSe o portador é de outra raça, o Pergaminho funciona normalmente sem manifestações nem bônus.\n\n**Independente da raça**, confere **regeneração lenta passiva**: ferimentos físicos leves (cortes rasos, escoriações) se fecham automaticamente entre combates; venenos comuns de **Grau 9 ou inferior** são neutralizados em 2 turnos. Contra venenos de **Grau 10 ou superior**, a regeneração apenas atrasa o efeito em 1 turno, sem anular.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775791725081-h22vik.png"
+    },
+    {
+      "id": "35aa452b-3f81-4c5a-abb2-c2369c30c126",
+      "grau": 15,
+      "nome": "Coroa de Duas Eras",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador invoca o **manto duplo**, a presença simultânea de Petrânia caída e Arkandia nascente. Por **3 turnos**, fica envolto em aura visível de **luz dourada com correntes de chamas escarlates**.\n\nDurante o efeito:\n\n- **Ofensivo**: ataques do portador **atravessam defesas convencionais de Grau 14 ou inferior** (armaduras, escudos físicos, barreiras mágicas comuns cedem antes de se ajustar). Contra defesas de **Grau 15 ou superior**, seguem a regra binária normal\n- **Controle**: inimigos a até **3 quadrados** (Corpo-a-corpo) com **resistência mental de Grau 14 ou inferior** perdem **1 ação no primeiro turno** da aura, atrasados pela presença das duas eras. Contra Grau 15+, sentem peso mas agem normal\n- **Proteção aliada**: aliados a até **3 quadrados** ganham **escudo único** que absorve 1 impacto de **Grau 14 ou inferior** sem ferimento. Contra Grau 15+, o escudo é rompido mas reduz o impacto em 1 categoria\n- **Reconhecimento dracônico**: inimigos com sangue dracônico dentro da aura têm seus ataques físicos contra o portador com **dano reduzido em 1 categoria** (o Eco reconhece a Chama de Liesel, e quem partilha do sangue hesita)\n\nApós o término, a aura dissipa e o portador **não pode ativar skills por 1 turno**.\n\n**Cooldown: 5 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775791735577-r7w2f8.png"
+    },
+    {
+      "id": "63cec077-b1f0-44ec-aba5-21329fc5dc3d",
+      "grau": 9,
+      "nome": "Visão Amaldiçoada",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Alathor governava o Norte sob luz mortal eterna, e seus olhos se ajustaram. O portador enxerga perfeitamente em qualquer ambiente sem luz natural (cavernas, calabouços, noite sem lua), e detecta criaturas vivas ocultas (camufladas, invisíveis, atrás de cobertura fina) num raio de **6 quadrados** (Curto).\n\nInvoca livremente **névoa negra leve** num raio de **3 quadrados** (Corpo-a-corpo) ao redor de si. Inimigos dentro da névoa que tentem mirar no portador sofrem **dificuldade de mira de Grau 9**, ataques à distância de **Grau 9 ou inferior** contra ele têm **chance reduzida de acertar** (atacante mira a forma errada na névoa). Contra **Grau 10 ou superior**, a névoa é atravessada sem efeito.\n\nPode apagar pequenas fontes de luz natural (tochas, lanternas, fogueiras de até 1m) com gesto, dentro do raio de 6 quadrados. Em luz solar direta plena, a névoa não se forma e a deteção de ocultos cai para **3 quadrados**.\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775165114371-9pmlhf.png"
+    },
+    {
+      "id": "041d8bc8-f2fe-4b74-a70f-42f8795a5f0f",
+      "grau": 10,
+      "nome": "Chama Interior",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador manifesta livremente a *Chama Interior* dracônica. Fogo escarlate-dourado que ***queima Éter junto com a matéria***. Diferente de pirocinese comum: barreiras etéricas tocadas pela Chama de *Liesel* **perdem 1 grau de potência** temporariamente por **1 turno**. Em até **6 quadrados** ao redor, o portador cria lâminas de fogo, projéteis, escudos chamejantes, jatos, marcação ardente em alvos, ou ignição de combustíveis a distância. A chama funciona contra barreiras e matéria de **Grau 9 ou inferior** sem resistência; contra **Grau 10 ou superior**, **queima como Grau 8** (2 Graus abaixo da inata). ***Exceção identitária declarada***: em **Drakhari** portadores, o grau efetivo da inata sobe pra **11**. Único modificador do kit, condicional racial pela linhagem mais próxima do sangue real de *Petrânia*.\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775695374603-3bml2a.png"
+    },
+    {
+      "id": "77d905cd-a69b-4064-9515-81478e82eb9a",
+      "grau": 18,
+      "nome": "Decreto Eterno de Sieghart",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador canaliza por **1 turno** enquanto o ar ao redor se aquece visivelmente. No turno seguinte, pronuncia uma **declaração em Altas Palavras**, frase curta numa linguagem que o portador não conhece, mas o Eco fala por ele.\n\n**Todos os inimigos** dentro de **6 quadrados** (Curto) interrompem imediatamente o que estão fazendo: ataques cancelados no meio, canalizações quebradas, movimentos param.\n\n- Inimigos de **Rank inferior** ao portador ficam **paralisados por 1 turno completo** (não podem agir, mover nem reagir)\n- Inimigos de **Rank igual** ao portador apenas **perdem 1 ação no turno seguinte** (hesitam ao ouvir as Altas Palavras)\n- Inimigos de **Rank superior** apenas sentem o peso da declaração e agem normal no turno seguinte\n\nA paralisia segue **Rank**, não Grau da skill, porque as Altas Palavras precedem a hierarquia mortal. Esta é exceção identitária do Eco. Inimigos sem mente própria (mortos-vivos antigos sem alma, construtos puros, hordas instintivas) ignoram completamente.\n\nAliados dentro do raio recebem **+1 ação no próximo turno** (clareza incomum cedida pelo Eco). Após a ativação, o portador colapsa por **4 turnos** sem qualquer ação.\n\n**Cooldown: uma vez por combate.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775791708880-sh80y1.png"
+    },
+    {
+      "id": "6a8b07c2-0bd4-4865-8452-237e09a9331d",
+      "grau": 3,
+      "nome": "Postura do Recruta",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O Eco recompensa **quem fica de pé quando ninguém mais consegue**. Quando o portador está em ***desvantagem numérica*** (2+ inimigos visíveis dentro de **3 quadrados**), é **imune a medo, intimidação e desespero de Grau 3 ou inferior**, e os reflexos defensivos se aguçam. Golpes saem ligeiramente fora do alvo, aberturas se abrem entre atacantes. Contra efeitos mentais de **Grau 4 ou superior**, passa normalmente. ***Quando o portador chega ao estado crítico de saúde***, o Eco lembra do momento em que Nealie atacou cinco inimigos com onze ferimentos: por **2 turnos**, entra em ***estado de teimosia absoluta***. É **imune a derrubadas e deslocamentos forçados de Grau 4 ou inferior**, não recua de propósito. Contra **Grau 5 ou superior**, é derrubado normalmente. Teimosia **uma vez por combate**. Em vantagem numérica e saúde plena, a passiva não dá benefício.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776205383836-qxpe2c.png"
+    },
+    {
+      "id": "15b92f6e-26c9-4a45-a251-0ed970209c74",
+      "grau": 5,
+      "nome": "Último Suspiro do Meio-Dragão",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O Eco preserva o ***único momento em que a herança dracônica diluída de Nealie despertou***. O portador respira fundo e libera ***única exalação de fogo dracônico fraco***. Não a chama plena dos Drakharn, apenas o **eco diluído**. Cone de **3 quadrados** à frente, **área 5×5**, Grau 5. O fogo queima carne, derrete tecido leve, deixa marcas permanentes em armaduras simples de **Grau 4 ou inferior**; contra **Grau 5 ou superior**, apenas esquenta sem causar dano durável. Inimigos atingidos sofrem queimaduras que ardem por **1 turno** após o impacto. ***Se o portador estiver em estado crítico de saúde no uso***, o cone é maior (**área 7×7**) e o fogo é tratado como **Grau 6** (único modificador, condicional à saúde crítica). O Eco ressoa mais forte em quem está prestes a cair. Após o uso, calor residual nas mãos por 1 turno.\n\n**Cooldown: uma vez por combate.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776205405040-s7j747.png"
+    },
+    {
+      "id": "24beb3df-c999-47e1-ba35-cbc3da3cf798",
+      "grau": 12,
+      "nome": "Fardo da Chama Negra",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Quando o portador sofre ferimento significativo, uma **fumaça negra fina** escapa da ferida e ela ***estabiliza imediatamente*** (para sangrar e piorar, não cura). Durante a janela da fumaça, o portador é **imune a medo, dúvida e desespero de Grau 12 ou inferior**. Contra **Grau 13 ou superior**, esses efeitos passam normalmente. É também **imune a magias de luz purificadora hostis de Grau 12 ou inferior**; contra luz solar direta canalizada como arma (skills de **Grau 13+**), a imunidade falha. Intensifica em escuridão, funciona fraco sob luz solar direta.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775165159319-k98lap.png"
+    },
+    {
+      "id": "4fa67c14-57b5-4896-9acd-983871994fd3",
+      "grau": 7,
+      "nome": "Conjuração da Academia Violeta",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador acessa a **fundação arcana destrutiva** da *Academia de Magia Violeta*. Não magias específicas, mas a **maleabilidade de Éter de combate**. Conjura livremente: **dardos arcanos violetas** (até 3 simultâneos por turno, alcance de **6 quadrados**, Grau 7 cada), **pequenos escudos translúcidos** que bloqueiam 1 ataque de Grau 7 ou inferior cada (até 2 ativos; contra Grau 8+, são rompidos), uma **chama arcana persistente** sobre a mão (ilumina ambiente e pode ser arremessada como projétil único), ou **runas instantâneas** no chão pra atrasar inimigos (raio de **3 quadrados**, dura 1 turno. Alvos com **resistência física de Grau 7 ou inferior** são retardados; contra **Grau 8+**, ignoram).\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776197135759-dz9dic.png"
+    },
+    {
+      "id": "be0acb4d-8c11-49cb-af71-bc24dc75c00f",
+      "grau": 8,
+      "nome": "Passada da Fundação",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Titanus ergueu Vermécia do chão pisando o solo como dono. O Eco preserva a fundação. O portador marca o terreno em volta de si num raio de **6 quadrados** (Curto) como **território próprio**. A marcação é instantânea e o território se desloca com o portador a cada passo.\n\n**Dentro do território**:\n\n- O portador é **imune a desequilíbrio, tropeço e quedas causadas por terreno irregular de Grau 7 ou inferior** (pedras, lama, raízes, areia, escombros, gelo natural são tratados como chão firme). Contra terreno mágico mantido por **Grau 8 ou superior**, pode tropeçar normal\n- O portador lê instintivamente ângulos cegos: detecta presenças hostis chegando ao limite do território com **1 turno de antecedência** (não vê o alvo, mas sente direção e distância aproximada)\n- Aliados dentro do território ganham **+1 quadrado de movimento por turno** enquanto permanecerem (familiaridade emprestada pelo Eco) e **não tropeçam** em terreno irregular de **Grau 7 ou inferior** dentro do raio\n\n**Fora do território**, todos os bônus cessam. Aliados que saem perdem o bônus de movimento até voltarem.\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775791640372-wbeeym.png"
+    },
+    {
+      "id": "5f764546-51ff-4a9d-a385-32c6f6343c17",
+      "grau": 11,
+      "nome": "Vigia da Irmandade",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O Eco reconhece quem **luta junto com outros magos**. Quando o portador tem **pelo menos 1 aliado mago** (estudioso arcano, personagem que canaliza Éter ativamente) dentro de **6 quadrados**, ambos operam com ***coordenação arcana instintiva***: conjurações de um e do outro **não interferem entre si**. A Irmandade dos Magos foi treinada pra operar em meio a magos rivais. Dentro do alcance, ambos ***ignoram interferência arcana ambiental de Grau 10 ou inferior*** (Éter caótico, anti-magia comum, áreas saturadas de feitiços conflitantes). Contra **Grau 11 ou superior**, a interferência afeta normalmente. Quando o portador conjura magia defensiva (escudo, barreira, dispel) próximo a aliado mago, o Eco **silenciosamente estende a defesa pra cobrir os dois**, mesmo que originalmente fosse pessoal. Sem aliados arcanos próximos, a passiva não ativa.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776197149352-jqnvc2.png"
+    },
+    {
+      "id": "f3aa8f53-9cc3-4557-91cb-ff7d548b8e8d",
+      "grau": 14,
+      "nome": "Soberano Supremo",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "A presença do portador *dobra o ar ao redor*. Inimigos dentro de **3 quadrados** de Rank inferior ao portador sentem o corpo hesitar antes de obedecer: cada ataque deles contra o portador exige **1 ação adicional** pra completar (efetivamente atacam 1 vez a cada 2 turnos). Inimigos de mesmo Rank sentem pressão sem efeito mecânico. O portador é **imune ao primeiro efeito de medo, intimidação ou controle mental de Grau 14 ou inferior por combate**. Quem nasceu pra reinar não recua. Adicionalmente: contra inimigos de **2 ou mais Ranks abaixo**, raios escuros vermelho-pretos visíveis envolvem o portador permanentemente. Esses inimigos sofrem a mesma interferência etérica **e não podem usar habilidades de canalização longa** enquanto estiverem no raio. Esta é a manifestação etérica completa da autoridade que Petrania impunha sobre o mundo.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775695540212-gb3xs4.png"
+    },
+    {
+      "id": "d03ef389-8c65-4208-b20e-a9ff76f385e6",
+      "grau": 14,
+      "nome": "Veredito da Arcontessa",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador aponta a mão pra um alvo dentro de **6 quadrados** e ***profere sentença arcana***: o alvo é envolto em **runas violetas giratórias** por **3 turnos**, visíveis a todos. Durante a marca, ***o alvo perde a capacidade de se beneficiar de defesas mágicas próprias de Grau 13 ou inferior***. Escudos arcanos pessoais falham, barreiras não se manifestam, dispels não funcionam contra ataques direcionados ao marcado. Contra defesas mágicas de **Grau 14 ou superior**, o alvo se defende normalmente. Ataques de qualquer aliado mago contra o marcado são tratados como **1 grau acima** (único modificador). Apenas **1 alvo marcado por vez**. Invocar em novo alvo cancela a marca anterior. Se o marcado cai durante a duração, as runas dissipam e o portador recupera reserva de Éter suficiente pra **1 conjuração extra da inata no mesmo turno**, sem custar ação adicional.\n\n**Cooldown: 4 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776197162730-nqdz6f.png"
+    },
+    {
+      "id": "505eb242-9d6a-4b57-a944-9e48297cf842",
+      "grau": 15,
+      "nome": "Brecha Setentrional",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "A manobra que rompeu a defesa do Norte. O portador escolhe **um alvo** a até **6 quadrados** (Curto) e canaliza por **1 turno** acumulando chamas negras frias ao redor da arma ou das mãos. No turno seguinte, executa **golpe único concentrado** de Grau 15.\n\nO golpe atravessa **armaduras, escudos físicos e barreiras mágicas comuns de Grau 14 ou inferior** sem resistência (cedem antes de se ajustar à natureza do ataque). Contra defesas de **Grau 15 ou superior**, segue a regra binária normal de defesa.\n\nSe o alvo está em **formação fechada** (com 2+ aliados em posições adjacentes), o golpe quebra a coordenação: os aliados adjacentes ao alvo perdem **1 ação defensiva por 1 turno** (não podem usar bloqueios reativos, escudos coordenados ou skills de defesa em grupo) e seus próximos ataques contra o portador sofrem **dificuldade de Grau 15**. Contra hordas sem coordenação real (bestas, mortos-vivos sem oficial, construtos isolados), o efeito secundário não se aplica.\n\n**Cooldown: 4 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775165204041-ug5ywn.png"
+    },
+    {
+      "id": "22fc73cf-d853-47a0-83dd-5b7cb5a051c2",
+      "grau": 10,
+      "nome": "Aurora Sobre os Aliados",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador conjura livremente ***luz dourada quente*** num raio de **6 quadrados**. A luz se manifesta plena sobre aliados. Ilumina armadura, estabiliza pequenos ferimentos sangrando, mas ***sobre o próprio portador aparece apenas como brilho opaco***. Aliados iluminados são **imunes a medo, desorientação e escuridão arcana de Grau 10 ou inferior**. **Contra Grau 11 ou superior**, a proteção plena falha. Efeitos pequenos ainda são mitigados, mas o benefício principal desliga. O portador pode excluir aliados específicos (infiltrados, corrompidos). Em escuridão absoluta de Grau 11+, funciona apenas como clarão fraco.\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776209857651-w45j5r.png"
+    },
+    {
+      "id": "4d7db1c2-1ee5-4129-beb0-c3689019abbe",
+      "grau": 4,
+      "nome": "Discernimento de Forjalta",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O Eco recompensa **quem entende suas ferramentas**. Equipamentos manejados pelo portador ***resistem melhor a quebras, falhas mecânicas e sobrecarga etérica*** de **Grau 7 ou inferior**. Lâminas não cedem em momentos críticos, armaduras não rasgam, mecanismos não falham. Contra esforços de **Grau 8 ou superior**, cedem normalmente. O portador ***identifica intuitivamente qualidade e propriedades*** de armas e itens dentro de **3 quadrados** sem exame longo (raridade, dano, propriedade mágica, material, provável forjador). Ataques com a arma que o portador carrega há tempo (escolha do jogador como arma \"favorita\") saem com precisão incomum. O portador conhece cada grama e cada milímetro do balanço, lê o ponto exato em que a lâmina morde melhor, antecipa o instante em que o cabo desliza na mão.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776204694530-e1srl5.png"
+    },
+    {
+      "id": "e3831933-001b-46de-8cdf-81cdc322e942",
+      "grau": 6,
+      "nome": "Reforço da Confraria",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador toca um aliado em até **3 quadrados** e canaliza brevemente o conhecimento da Confraria do Açobranco. Por **3 turnos**, o equipamento físico do aliado é ***reforçado etericamente***: armas ***resistem a quebra e ficam mais firmes*** nos golpes, armaduras ***resistem a deformação por impactos sucessivos***, e qualquer ***falha mecânica de equipamento*** é automaticamente prevenida. O reforço funciona contra desgaste e esforços de **Grau 11 ou inferior**; contra **Grau 12 ou superior**, o equipamento pode falhar normalmente. Se o aliado for artífice, ferreiro, alquimista ou perfil similar, ganha clareza e velocidade incomuns em ações de criar/reparar durante a duração. **Não funciona em si mesmo**. Granthev sempre dizia que o artífice serve outros, não a si.\n\n**Cooldown: 5 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776204708150-dsihec.png"
+    },
+    {
+      "id": "0077ec5d-1888-423b-a75f-0b083f3a860f",
+      "grau": 10,
+      "nome": "Manto de Gaia",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador manipula livremente *terra*, *pedra*, *raízes* e *solo* num raio de **6 quadrados** ao redor. Cria barreiras de pedra (seguram **1 impacto Grau 10**), pilares pra cobertura, plataformas elevadas, raízes que prendem alvos brevemente, fissuras superficiais que desestabilizam terreno. Em **terreno natural** (florestas, montanhas, planícies, desertos), o controle se estende e as vibrações sentidas no solo amplificam o raio para **12 quadrados**. Em ambientes artificiais (cidades, calabouços), funciona apenas com material disponível. Pedras de construção, fundações, escombros. Sem nenhum solo natural ou pedra ao alcance, a inata é severamente limitada.\n \n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775689227745-sx3jmu.png"
+    },
+    {
+      "id": "7fc08b7c-cde5-4a93-ba4e-e5a379d01f0a",
+      "grau": 18,
+      "nome": "Maldição de Robarth Invertida",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Robarth maldisse o Norte com luz que mata. Alathor inverteu a maldição. O portador canaliza por **1 turno** enquanto a fumaça de **Fardo da Chama Negra** se intensifica. No turno seguinte, libera escuridão fria num raio de **6 quadrados** (Curto). A área é coberta por **escuridão absoluta** por **3 turnos**, e a escuridão precede as regras de luz mortal local.\n\nDentro do raio:\n\n- Inimigos perdem completamente a visão. Visão noturna comum, magias de luz e fontes naturais são engolidas\n- Magias de luz inimigas de **Grau 18 ou inferior** falham ao tentar dispersar a escuridão. Contra **Grau 19 ou superior**, dispersam parcialmente após 1 turno de canalização\n- Inimigos conscientes com **resistência mental de Grau 18 ou inferior** sofrem medo crescente: perdem **1 ação por turno** enquanto permanecerem na escuridão\n- Aliados enxergam normalmente dentro da escuridão (o Eco reconhece quem caminha com Alathor) e ganham **vantagem tática**: o primeiro ataque de cada aliado contra inimigo dentro do raio é tratado como **Grau 18**, independente da arma usada\n\nApós o uso, o portador colapsa por **3 turnos**, incapaz de qualquer ação.\n\n**Cooldown: uma vez por combate.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775165231117-tfntno.png"
+    },
+    {
+      "id": "35cd6691-d87d-4a5e-bb5e-f9a7b90a45ac",
+      "grau": 6,
+      "nome": "Voto Rubro",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O Eco recompensa quem **luta ao lado de aliados de elite**. Quando o portador tem **pelo menos 1 aliado de Rank igual ou superior** dentro de **3 quadrados**, ambos operam como ***Cavaleiros Vermelhos***: são **imunes a medo, intimidação e dúvida induzida de Grau 6 ou inferior** enquanto dentro do alcance um do outro. Contra **Grau 7 ou superior**, esses efeitos passam normalmente. Ferimentos físicos leves que ambos sofrem se fecham mais rápido entre combates. Quando estão a no máximo **3 quadrados** um do outro, ***se cobrem mutuamente sem precisar combinar***. Ataques pelos flancos contra qualquer um são instintivamente bloqueados ou desviados pelo outro (formação fechada, coordenação inata). Se o portador está sozinho ou apenas com aliados de Rank inferior, a passiva não se ativa.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776203354437-ft2x1w.png"
+    },
+    {
+      "id": "3baf0d5f-ca29-4d97-998f-952bec283f44",
+      "grau": 9,
+      "nome": "Carga Carmesim",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador invoca a ***Carga Vermelha***. Avança em linha reta por até **6 quadrados** com a arma à frente. Aliados a até **3 quadrados atrás** podem optar por ***avançar junto em carga sincronizada***. Aliados que acompanham recebem por **2 turnos**: ***imunidade a medo, dúvida e hesitação induzidos de Grau 8 ou inferior*** (contra **Grau 9 ou superior**, falham), cobertura passiva de ataques laterais, e clareza tática incomum. ***Se ao menos 2 aliados acompanharam***, o golpe final do portador é tratado como **1 grau acima** (único modificador). Se ninguém acompanhou, funciona como investida normal de Grau 9 sem amplificação. A carga é em linha reta. Não pode ser redirecionada após iniciar. Marcas vermelhas etéricas no chão dissipam após 1 turno.\n\n**Cooldown: 4 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776203376048-3ft4us.png"
+    },
+    {
+      "id": "b0000009-0000-0000-0000-000000000009",
+      "grau": 12,
+      "nome": "Soberba do Primogênito",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Gilgamesh precedeu a hierarquia mortal, e a presença dele intimidava reis. O Eco preserva o peso. Inimigos dentro de **3 quadrados** (Corpo-a-corpo) do portador sentem opressão hierárquica:\n\n- Criaturas de **Rank inferior** ao portador perdem **1 ação no primeiro turno em que entram no raio** (hesitam ao reconhecer presença superior) e seus ataques contra o portador no primeiro turno sofrem **dificuldade de Grau 12**\n- Criaturas de **Rank igual** ao portador sentem peso mas agem normalmente\n- Criaturas de **Rank superior** ignoram a aura completamente\n\nO portador é **imune a intimidação, charme e manipulação emocional de Grau 12 ou inferior**. Contra **Grau 13 ou superior**, a imunidade falha.\n\n**Exceção identitária**: contra outros portadores do Eco de Gilgamesh, ou figuras de autoridade ancestral equivalente (Ercnard Sieghart, Liesel, Rei-Dragão e equivalentes), a imunidade não se aplica, dois reis não se intimidam, mas reconhecem um ao outro como par.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776222084295-vca9ta.png"
+    },
+    {
+      "id": "24467768-c6f0-4578-ace6-6fb85a8ae3e4",
+      "grau": 5,
+      "nome": "Compostura do Soberano",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O Eco confere ***serenidade governante***. O portador é **imune a pânico, atordoamento mental, dúvida induzida e indecisão forçada de Grau 5 ou inferior**. Contra **Grau 6 ou superior**, esses efeitos passam normalmente. Tentativas de intimidação, manipulação emocional, charme arcano leve e desorientação mental dentro do limite falham contra o portador. Em ***situações sociais tensas*** (negociação, julgamento, audiência, confronto verbal), a presença do portador carrega ***peso reconhecido instintivamente*** pelos ouvintes. Sua palavra é tratada com mais seriedade, opositores hesitam em descartá-la, aliados sentem confiança automática. Helena nunca lutou pessoalmente. O foco da passiva é a política, não o combate direto.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776203966201-rwld30.png"
+    },
+    {
+      "id": "4124cc30-92aa-4783-8633-2a5826726f77",
+      "grau": 8,
+      "nome": "Véu Diplomático",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador invoca o ***véu diplomático***. Por **2 turnos**, envolto em **aura sutil prateada-violeta** quase imperceptível. Durante o efeito, ***a primeira ação ofensiva inimiga direcionada ao portador é automaticamente desviada***. O golpe sai mirando errado, a flecha curva, a magia se dispersa. Funciona contra ataques de **Grau 8 ou inferior**; contra **Grau 9 ou superior**, o ataque atinge normalmente. Uma vez por uso da skill. Inimigos e aliados dentro de **3 quadrados** sentem a aura: inimigos comuns inclinam-se a hesitar antes de agir contra o portador, dando fração de segundo aos aliados; aliados ganham clareza pra agir defensivamente. O véu **não funciona contra inimigos completamente determinados** (berserkers, fanáticos, mortos-vivos sem mente). Ignoram.\n\n**Cooldown: 4 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776204034122-6r74gw.png"
+    },
+    {
+      "id": "6b5c2db2-2bfc-4386-a0f1-00ecfd4ac416",
+      "grau": 11,
+      "nome": "Baluarte do Rei",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Titanus liderava do front, e o Eco reconhece o ato de proteger quem segue atrás. Enquanto o portador está **à frente de pelo menos 1 aliado visível em até 3 quadrados** (Corpo-a-corpo), os seguintes efeitos ativam:\n\n- **Mira desviada**: inimigos que atacam o portador com **resistência mental de Grau 10 ou inferior** sofrem **dificuldade de mira de Grau 11** (golpes saem desviados para zonas não-vitais, ombros, braços, perna em vez de pescoço, peito, cabeça). Ferimentos críticos sofridos pelo portador viram **ferimentos graves sobrevivíveis**. Contra inimigos de **resistência mental de Grau 11 ou superior**, miram com clareza normal\n- **Imunidade a deslocamento**: o portador é **imune a derrubadas, knockbacks e deslocamentos forçados de Grau 10 ou inferior**. Contra **Grau 11 ou superior**, é deslocado normal\n- **Regeneração leve**: ferimentos físicos leves (cortes rasos, escoriações, contusões de Grau 10 ou inferior) se fecham automaticamente entre turnos. Ferimentos graves ou críticos persistem\n\nSe o portador fica completamente sozinho (sem nenhum aliado visível em **3 quadrados**), todos os efeitos desativam silenciosamente. Reativa imediatamente ao haver aliado próximo novamente.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775791654168-qqs7un.png"
+    },
+    {
+      "id": "fd155d81-5cf1-4dd4-99e4-63c98d17cb60",
+      "grau": 18,
+      "nome": "Império Carmesim",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador infunde a *Chama Interior* diretamente nos próprios membros e na arma empunhada. Por **3 turnos**, raios de fogo escarlate-dourado envolvem o portador como uma armadura viva. Cada ataque básico ou habilidade do portador **atravessa armaduras e defesas de Grau 17 ou inferior** sem resistência. A Chama queima Éter junto com matéria. Os movimentos do portador deixam rastros de chama no ar que dissipam após **1 turno** (criando combustível pra outras manifestações de fogo). Durante o efeito, o portador é **imune a fogo de Grau 17 ou inferior**. Está literalmente feito da mesma matéria. Após os 3 turnos: o portador **não pode conjurar skills ativas por 2 turnos** e **perde 1 ação por turno** durante esse período. A Chama consome o corpo de volta.\n\n**Cooldown: uma vez por combate.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775695670044-dto877.png"
+    },
+    {
+      "id": "55afce86-2725-4e14-b03a-592816e18dd3",
+      "grau": 6,
+      "nome": "Ricochete Tiefling",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O Eco herda fragmentos da relíquia ***Tirfling***. Arma conhecida por **devolver dano contra quem o dirigia**. Sempre que o portador é atingido por ***ataque mágico*** (arcano, elemental, etérico. Não físico puro), o Eco ***rebate fração da energia ao atacante*** automaticamente. O atacante sofre dano residual arcano imediato após o golpe inicial. Não cancela o ataque original. O rebound funciona plenamente contra ataques mágicos de **Grau 6 ou inferior**. Contra **Grau 7 ou superior**, o rebound ocorre mas causa apenas dano residual mínimo. Tirfling não digere energia tão densa. Contra **ataques físicos puros** (lâminas, flechas comuns, golpes desarmados), a passiva não ativa. Tirfling era especificamente anti-mágica.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776202989392-o1wd89.png"
+    },
+    {
+      "id": "0e61257d-4add-4ca8-be24-1fabc22cb73e",
+      "grau": 6,
+      "nome": "Fé Operacional",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Quando o portador canaliza habilidade defensiva ou de cura sem hesitação visível, o Eco amplifica o efeito. A certeza da fé operacional vira realidade, sem amplificação numérica direta. Quando canaliza com hesitação visível, o efeito é apenas o normal. A passiva não se manifesta. O contraste ensina o portador rapidamente: hesitar enfraquece, decidir fortalece. Adicionalmente, é **resistente a magias inimigas que tentem semear dúvida ou hesitação de Grau 6 ou inferior**. Contra **Grau 7 ou superior**, a dúvida passa normalmente.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775162012720-dos1rl.png"
+    },
+    {
+      "id": "8a862ca3-7973-4372-b629-625022885264",
+      "grau": 5,
+      "nome": "Toque da Falsa Percepção",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador invoca pequenas ilusões locais: cria **imagem residual de si mesmo** a até **2 quadrados** ao lado (inimigos comuns miram na imagem, criando margem de esquiva), altera pequenos detalhes visuais ao redor (porta parece mais longe, sombra com forma humanóide, som vindo de direção errada), ou faz aliado dentro de **3 quadrados** parecer momentaneamente em local diferente. Ilusões pequenas e locais. Não criam personagens nem cenários, apenas detalhes que confundem percepção rápida. Contra inimigos com sentidos comuns de **Grau 5 ou inferior**, a ilusão engana; contra **Grau 6 ou superior**, percebem que algo está errado mesmo sem identificar o quê. Mortos-vivos sem mente, construtos e bestas instintivas ignoram as ilusões completamente.\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775159765378-aijdyy.png"
+    },
+    {
+      "id": "dd5ada57-f85f-4d3b-a182-958afd613fd5",
+      "grau": 8,
+      "nome": "Véu do Herdeiro",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador invoca **véu de confusão** sobre um aliado escolhido dentro de **6 quadrados**. Por **3 turnos**, o aliado protegido é ***parcialmente difícil de identificar como alvo prioritário*** pelos inimigos. Ataques inimigos contra ele saem com hesitação, magias mirantes erram o ângulo, foco hostil se desvia pra outros alvos quando possível. Contra percepção inimiga de **Grau 8 ou inferior**, o véu funciona plenamente; contra **Grau 9 ou superior**, o véu é penetrado e o aliado é alvejado normalmente. O aliado continua visível, atacável e funcional. Apenas a percepção dele como ameaça é distorcida. Durante a duração, o aliado sente clareza incomum em ações defensivas. A skill **não funciona em si mesmo**. Morfeu protegia outros, nunca a si. Contra sentidos aguçados ou criaturas sem mente, efeito parcial ou nulo.\n\n**Cooldown: 4 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775159805760-b5pxxn.png"
+    },
+    {
+      "id": "1164e959-b2f8-4e58-a84f-5f95576ff9af",
+      "grau": 8,
+      "nome": "Lâminas Carmesim",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "A arma do portador projeta lâminas de *energia vital carmesim* que se estendem até **6 quadrados** e assumem a forma escolhida no instante: corte longo, gancho, lança ou pinça. Inflamadas pela *Chama Interior* da Sieghart, as lâminas atingem com **Grau 8** e queimam o tecido mesmo após o corte. Atravessam mimetismo, intangibilidade e cobertura mágica de **Grau 7 ou inferior**, falhando contra **Grau 8 ou superior**.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775012070466-y5rsmy.png"
+    },
+    {
+      "id": "cdc6b7d5-9e0c-44fd-a80e-cc59250598f8",
+      "grau": 11,
+      "nome": "Cruz dos Cavaleiros Vermelhos",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador canaliza por **1 turno** e sua arma assume o brilho do *sangue dos Cavaleiros Vermelhos*. No turno seguinte, traça um X no ar e dispara duas **ondas de choque carmesim** em direções opostas, alcançando até **6 quadrados** cada. As ondas atravessam paredes, pilares e barreiras de **Grau 10 ou inferior** sem reduzir velocidade, e param ao colidir com obstáculos de **Grau 11 ou superior**. Cada onda termina com uma explosão de Grau 11 numa área **7×7** no ponto final.\n\n**Cooldown: 4 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775012127931-upg073.png"
+    },
+    {
+      "id": "7bd8f170-8173-450c-bf9f-f8c87508ec5c",
+      "grau": 15,
+      "nome": "Sentença da Heroína",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador salta aos céus e canaliza por **1 turno**. No turno seguinte, mergulha em rasante e colide sua arma contra a superfície, liberando uma onda de pressão e *Éter* carmesim que se propaga em todas as direções por **6 quadrados**. Estruturas e obstáculos de **Grau 14 ou inferior** colapsam com o impacto. O peso etérico do golpe **silencia ou paralisa adversários com resistência mental de Grau 14 ou inferior** por 1 turno; resistências mentais de **Grau 15 ou superior** sentem apenas o trovão. Durante a canalização, o portador distingue companheiros e os poupa da onda.\n\n**Cooldown: uma vez por combate.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775012223752-dig947.png"
+    },
+    {
+      "id": "56d45c11-97a4-4aa4-ac8d-bd6c426837bd",
+      "grau": 19,
+      "nome": "Lâmina da Conquistadora",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador ergue sua arma acima da cabeça, infunde a *Aura do Conquistador* da linhagem Sieghart e desce um único corte vertical. A *Lâmina da Conquistadora* atravessa qualquer defesa, escudo ou barreira como se nada existisse, parte montanhas e fende o ar em linha reta até **12 quadrados** à frente, herança da vontade que selou Zoth no centro de Vermécia. Adversários com **resistência mental de Grau 18 ou inferior** são nocauteados ao perceber a intenção do golpe sem precisar ser tocados; resistências mentais de **Grau 19 ou superior** ainda enfrentam a lâmina, mesmo sem defesa eficaz.\n\n**Cooldown: uma vez por combate.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775012585522-34mrde.png"
+    },
+    {
+      "id": "d55a9452-dfb8-4f3e-9a98-6fcf9eabfaa4",
+      "grau": 10,
+      "nome": "Decreto do Inquisidor",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador estende a mão e ***pronuncia sentença inquisitorial*** sobre um alvo dentro de **6 quadrados**. O alvo é envolto em **runas violetas escuras** por **3 turnos**, visíveis a todos. Durante a marca, ***o alvo perde capacidade de fugir efetivamente***. Tentativas de se afastar do portador são desviadas, as pernas pesam, o alvo perde direção ao tentar correr contrário (efetivo contra alvos com **resistência etérica de Grau 9 ou inferior**; contra **Grau 10 ou superior**, o alvo se move normalmente). Adicionalmente, ***as defesas mágicas do alvo falham contra ataques especificamente do portador***. Escudos arcanos pessoais não bloqueiam seus feitiços, barreiras automáticas falham silenciosamente. A quebra de defesa funciona contra proteções de **Grau 9 ou inferior**; contra **Grau 10 ou superior**, defendem normalmente. Apenas **1 alvo marcado por vez**. Invocar em novo alvo cancela a marca.\n\n**Cooldown: 4 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776203027660-prn7bx.png"
+    },
+    {
+      "id": "da16d1bb-cef9-4088-b8ac-37f7b50b11c4",
+      "grau": 6,
+      "nome": "Toque Necrótico",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador invoca **toque de drenagem** nas mãos. Contato físico direto com inimigos próximos rouba pequenas quantidades de energia vital, deixando marcas pretas-arroxeadas nos pontos de contato. Pode interagir com Éter necrótico de outras fontes sem ser corrompido: tocar ferramentas necróticas sem dano, atravessar zonas de Éter morto, identificar instintivamente magias necróticas inimigas antes de se completarem, absorver fragmentos ambientais pra restaurar pequenas reservas pessoais. Contra Éter necrótico de **Grau 6 ou inferior**, o portador é imune a absorção hostil; contra **Grau 7 ou superior**, é afetado. Mortos-vivos comuns sem mente reconhecem o portador como afim e não atacam por instinto. Mortos-vivos com mente própria (vampiros, lichs) não são afetados. Em ambientes etericamente puros (santuários sagrados, zonas de luz canalizada), a inata enfraquece.\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775162690317-bkmih0.png"
+    },
+    {
+      "id": "7c46e3e0-7f53-4445-8e3a-90e5e9a2420f",
+      "grau": 7,
+      "nome": "Calma do Pastor",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador herda a serenidade de Lucian. ***o pastor que enfrentou o caos sem nunca ter aprendido a temer***. Invoca livremente **luz dourada suave** num raio de **3 quadrados**: ilumina escuridão (dispersa escuridão mágica de **Grau 6 ou inferior**; contra **Grau 7 ou superior**, a escuridão permanece), purifica ar viciado por venenos comuns de **Grau 6 ou inferior**, dissipa nevoeiros não-mágicos, ***acalma criaturas hostis simples*** (animais selvagens, bestas não-corrompidas, equinos assustados de **Grau 5 ou inferior**), e ***reconforta aliados*** dentro do raio que estejam sob medo, desespero ou dúvida. Não cura instantaneamente, mas dá a eles clareza pra pensar e agir. O portador é **imune a medo e desespero comuns de Grau 6 ou inferior** enquanto a luz está ativa; contra **Grau 7 ou superior**, esses efeitos passam. A luz não cresce em intensidade nem alcance. Lucian era pastor, não guerreiro. Não fere inimigos.\n\n**Sem cooldown (inata).**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776199220163-mj9kq3.png"
+    },
+    {
+      "id": "655c8a1c-d285-440b-9463-2900c51c3654",
+      "grau": 13,
+      "nome": "Vigília Eterna",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Quando um aliado a até **6 quadrados** está prestes a sofrer um golpe de **Grau 14 ou superior** que o derrubaria, o portador **troca de posição instantaneamente** com esse aliado e absorve o golpe no lugar dele. O Eco de Luterra não permite que ele veja alguém cair se há como impedir. Funciona **uma vez por aliado por combate**. Não pode salvar o mesmo aliado duas vezes. Adicionalmente, ataques que atingem o portador enquanto ele está fisicamente protegendo outro (cobertura, escudo erguido, posicionamento à frente) **operam como Grau 12 ou inferior contra armaduras de Grau 13 ou superior**. O Eco recompensa quem se coloca no lugar dos outros. A passiva é permanente e não consome ação.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775694824505-g5lw7i.png"
+    },
+    {
+      "id": "542071fb-43dc-45ef-b02d-db1e7e10106c",
+      "grau": 15,
+      "nome": "As Primeiras Muralhas",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador crava uma mão no chão e ergue ***muralhas etéricas douradas***, evocando o ato fundador de Titanus. O momento em que decidiu que **ali seria uma cidade**. Quatro paredes de luz dourada de ~2m de altura materializam-se num raio de **6 quadrados** em formato quadrado (ou adaptado ao terreno). São **defesa passiva de Grau 15** e suportam **2-3 impactos consecutivos de Grau 15** antes de ceder. Bloqueiam ataques e projéteis de **Grau 14 ou inferior** em ambas as direções; contra **Grau 15** seguem a regra de defesa passiva; contra **Grau 16 ou superior**, cedem em um único impacto. Inimigos que estavam dentro do espaço no momento da invocação ***são empurrados pra fora automaticamente*** pelo Éter. As muralhas persistem por **4 turnos** ou até destruídas. O portador e aliados atravessam livremente.\n\n**Cooldown: 5 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775791667803-clk06d.png"
+    },
+    {
+      "id": "5359083e-7c3b-4e52-bec6-d50012dca961",
+      "grau": 10,
+      "nome": "Trilhou o Caminho Sombrio",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador é **resistente a corrupção etérica de origem necrótica, demoníaca ou profana de Grau 10 ou inferior**. Efeitos que normalmente corromperiam (charme demoníaco, transformação por necromancia, possessão, drenagem de alma, marca de pacto involuntário) falham contra ele, ou são significativamente atrasados. Contra **Grau 11 ou superior**, a corrupção passa normalmente. Quando o portador derrota criatura de natureza profana ou necrótica (mortos-vivos, demônios menores, abominações), pequena quantidade de Éter é drenada e absorvida. Ferimentos físicos leves se fecham, exaustão dissipa. Não funciona contra criaturas comuns ou aliados. A passiva tem custo: uso prolongado deixa aparência ligeiramente etérea. Pele mais pálida, olhos com brilho frio, presença que NPCs percebem como estranha. Marca da travessia, não corrupção real.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775162718194-ob2vw5.png"
+    },
+    {
+      "id": "a6747318-dff1-4963-9f8f-d8e35e3e9f7f",
+      "grau": 12,
+      "nome": "Verbotener Name",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "A segunda inata. O portador acessa fragmentos da *Linguagem dos Pilares*. Idioma dracônico que impunha leis à realidade. Pronunciar uma única palavra impõe ***condição local etérica*** por **1 turno**. Exemplos: *\"Pare\"* (alvo único imobilizado), *\"Queime\"* (área **5×5** sofre ignição passiva), *\"Caia\"* (gravidade dobra em área), *\"Silêncio\"* (área **7×7** anula sons e canalizações verbais), *\"Pertença\"* (objeto não-vivo responde ao portador), *\"Aguarde\"* (alvo não pode atacar o portador). Escolha do jogador no momento. **Contra alvos/efeitos de Grau 11 ou inferior**, a palavra funciona sem resistência. **Contra Grau 12 ou superior**, a palavra se forma mas dissipa no mesmo turno. ***Exceção identitária***: em **Drakhari**, o grau da palavra sobe pra **13**. Único modificador do kit, condicional racial pela linhagem mais próxima do sangue real. Apenas **1 palavra por turno**. Uso contínuo por **3+ turnos seguidos** causa hemorragia etérica. O portador sangra Éter e perde **1 grau efetivo em todas as ações por 2 turnos** após cessar.\n\n**Sem cooldown (inata). Limite por hemorragia etérica.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775695801666-riley0.png"
+    },
+    {
+      "id": "ae861cbc-1050-4fa0-96f2-f1124b2ad6b5",
+      "grau": 13,
+      "nome": "Depósito do Trovão",
+      "tipo": "passiva",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "Cada vez que o portador ***sofre um golpe dirigido a um aliado*** (interposição, escolta, bloqueio consciente) ou ***suporta dano enquanto protege/cura/escolta aliados***, o Eco armazena ***uma carga de relâmpago justo***. Esfera branca-azulada visível orbitando o portador. Até **5 cargas simultâneas**. ***Golpes dirigidos originalmente a si mesmo não armazenam carga***. O Reflexo não confunde dor pessoal com sacrifício. Cargas persistem o combate inteiro e dissipam no fim. Dissipam instantaneamente se o portador realizar ato cruel ou injusto (matar rendido, ferir civil, trair pacto).",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1776209934203-h0wywc.png"
+    },
+    {
+      "id": "3f1565a6-ffba-40f3-a96b-486e7e57ebcc",
+      "grau": 7,
+      "nome": "Passo Fantasma",
+      "tipo": "ativa",
+      "classe": "espadachim",
+      "origem": "classe",
+      "descricao": "Avanço em linha reta de até **3 quadrados** a uma velocidade que ultrapassa a percepção, desferindo um corte ao chegar. Uma imagem residual translúcida persiste na posição original por um instante, confundindo observadores. O corte amplificado pelo momentum racha pilares de madeira maciça ou abre fendas em paredes de tijolos de **Grau 6 ou inferior**. O deslocamento é em linha reta, e obstáculos no caminho bloqueiam o avanço. Contra observadores com percepção etérica de **Grau 7 ou superior**, a imagem residual não engana. Após o uso, há um instante de câimbra que torna movimentos bruscos desconfortáveis por **1 turno**.\n\n***Cooldown:*** *4 turnos*",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1774137663119-qk8h15.png"
+    },
+    {
+      "id": "64e3f930-a473-4290-bcb4-550030368ea4",
+      "grau": 9,
+      "nome": "Barreira Sacerdotal",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "pergaminho",
+      "descricao": "O portador ergue uma mão e manifesta **barreira sagrada de luz branca-dourada** num raio de **3 quadrados** ao redor de si ou ao redor de um aliado escolhido a até **6 quadrados**. Cúpula translúcida por **3 turnos**. Bloqueia ataques que tentam atravessá-la de fora pra dentro. **Grau 9 ou inferior** é barrado por completo; contra **Grau 10 ou superior**, é rompida. Contra ataques necróticos, profanos ou demoníacos especificamente, a barreira segura impactos até **Grau 11** (especialização herdada da Guerra Santa contra Zoth). Aliados dentro podem atacar pra fora (barreira unidirecional defensiva). Inimigos que estavam dentro no momento da invocação ficam dentro sem proteção. Dissipa após 3 turnos em luz suave.\n\n**Cooldown: 4 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/1775162044944-56yswr.png"
+    },
+    {
+      "id": "2ba4b2cf-95fc-48dc-84a7-2cb6a8f44931",
+      "grau": 4,
+      "nome": "Palma Mística",
+      "tipo": "ativa",
+      "classe": null,
+      "origem": "maestria",
+      "descricao": "O portador estende a palma sobre aliado em **Toque** (1 quadrado adjacente) e canaliza *Éter* curativo em luz verde-clara. *Palma Mística* fecha ferimentos físicos de **Grau 4 ou inferior** completamente em 1 turno e neutraliza venenos comuns de **Grau 3 ou inferior**. Contra ferimentos de **Grau 5 ou superior**, estanca hemorragia mas não fecha. Identifica males internos do paciente pela aural durante o canalizar (parasitismo, gravidez, possessão leve). O portador consome reserva equivalente a uma refeição após cada uso.\n\n**Cooldown: 2 turnos.**",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/palma-mistica.jpg"
+    },
+    {
+      "id": "fe7d633b-d623-4d6d-bb1f-6bbba43cf00c",
+      "grau": 2,
+      "nome": "Fluxo Estável",
+      "tipo": "inata",
+      "classe": null,
+      "origem": "maestria",
+      "descricao": "O portador exerce circulação livre do próprio *Éter* pelo corpo, formando manto invisível que estabiliza presença e reservas internas: aura selada como casca defensiva permanente, controle dos pontos de fuga (boca, olhos, palmas), respiração sincronizada ao fluxo, postura que retém energia em descanso. O manto sela vazamento espiritual em situações cotidianas: conjurações arcanas e espirituais de **Grau 2 ou superior** operam em **Grau pleno** mesmo após dias consecutivos de canalização. Sem o manto, conjurações de **Grau 3 ou superior** operam **1 Grau abaixo** após o terceiro turno consecutivo de canalização.",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/skills/fluxo-estavel.png"
+    }
+  ],
+  "pergaminhos": [
+    {
+      "id": "1ac3be8b-98a7-417b-aea8-5a819977f32a",
+      "nome": "Granthev Punholargo",
+      "figura": "Granthev Punholargo",
+      "raridade": "comum",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778283534558-bzhwyt.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "5d4dd654-0385-4f1a-8c51-62ba32825ed8",
+      "nome": "Pergaminho de Alathor",
+      "figura": "Alathor",
+      "raridade": "lendario",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1777872514167-lbc79i.webp",
+      "nivel_estrelas": 4
+    },
+    {
+      "id": "82528604-8e1f-423a-a7a3-1bf958a2018e",
+      "nome": "Iwindura",
+      "figura": "Iwindura",
+      "raridade": "raro",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778118823958-9g6b38.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "a0000004-0000-0000-0000-000000000004",
+      "nome": "Pergaminho de Gilgamesh",
+      "figura": "Gilgamesh",
+      "raridade": "lendario",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778247601602-co9ycr.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "0a58e763-6eb3-45b9-ab27-d4543fd0f9c5",
+      "nome": "Helena Savigny",
+      "figura": "Helena Savigny",
+      "raridade": "raro",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778095117918-gy4qwv.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "d7380396-167d-4731-a1b3-dd6d28d22b75",
+      "nome": "Pergaminho de Morfeu",
+      "figura": "Morfeu Azatanabris",
+      "raridade": "comum",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778122764760-ix228d.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "54b7d509-5341-4773-91d8-63391b14a855",
+      "nome": "Pergaminho de Liesel Heckmann",
+      "figura": "Liesel Heckmann",
+      "raridade": "mitico",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778247436891-3s4j44.webp",
+      "nivel_estrelas": 4
+    },
+    {
+      "id": "43ab793d-e334-4dd6-856c-084c988f254e",
+      "nome": "Pergaminho de Elesis Sieghart",
+      "figura": "Elesis Sieghart",
+      "raridade": "lendario",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778220525464-3w56xr.webp",
+      "nivel_estrelas": 4
+    },
+    {
+      "id": "b4e9bf13-b12a-473b-99f3-7efa16dbbdf3",
+      "nome": "Pergaminho de Ercnard Sieghart",
+      "figura": "Ercnard Sieghart",
+      "raridade": "lendario",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778119156842-mkvs4t.webp",
+      "nivel_estrelas": 4
+    },
+    {
+      "id": "3a75fe34-38c8-43f6-acba-3cb177b73e3a",
+      "nome": "Lucian Lightbringer",
+      "figura": "Lucian",
+      "raridade": "epico",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778385465164-c1i8r0.webp",
+      "nivel_estrelas": 1
+    },
+    {
+      "id": "6ed025ca-438f-423f-ac40-e8a0185cb5f8",
+      "nome": "Pergaminho de Alurion",
+      "figura": "Alurion",
+      "raridade": "mitico",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778130162623-fiyevp.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "460c86d2-dc76-48a8-9499-c79f9aa64eed",
+      "nome": "Pergaminho de Apsaras",
+      "figura": "Apsaras",
+      "raridade": "raro",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778284067520-td4hoo.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "7e60adb3-5d75-432c-b8e3-9b4ea69f17e5",
+      "nome": "Nealie",
+      "figura": "Nealie",
+      "raridade": "comum",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778095089388-7d6yyz.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "905cc561-c15a-431c-85e5-c20e0ccfa509",
+      "nome": "Pergaminho de Luterra",
+      "figura": "Luterra",
+      "raridade": "mitico",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778247198676-59hjbs.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "03367be2-5976-4af2-9f54-4748d049261b",
+      "nome": "Pergaminho de Esranyn",
+      "figura": "Esranyn Valois",
+      "raridade": "raro",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1777867613944-jc1ehr.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "f1039296-5bdd-40e2-9f15-509c47ba5d29",
+      "nome": "Liliana Montgomery",
+      "figura": "Liliana Montgomery",
+      "raridade": "epico",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778119361441-5h8zjm.webp",
+      "nivel_estrelas": 3
+    },
+    {
+      "id": "25f8c3c2-186b-46d3-b5f4-4f6e60dbd10c",
+      "nome": "Pergaminho de Titanus",
+      "figura": "Titanus",
+      "raridade": "lendario",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778119044746-v7f1pl.webp",
+      "nivel_estrelas": 3
+    },
+    {
+      "id": "b1abe978-43a3-46c7-8612-75ce1340ebb9",
+      "nome": "Pergaminho de Gaia",
+      "figura": "Gaia",
+      "raridade": "mitico",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778118934042-psdslq.webp",
+      "nivel_estrelas": 1
+    },
+    {
+      "id": "fa4c7c59-f2f8-42fa-b4fd-f1de71fef8e2",
+      "nome": "Valstar Orun",
+      "figura": "Valstar Orun",
+      "raridade": "raro",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778118899946-m9lg9g.webp",
+      "nivel_estrelas": 2
+    },
+    {
+      "id": "6ce2f49f-70c3-4001-9bb3-6170fb3d7126",
+      "nome": "Pergaminho de Betelgeuse",
+      "figura": "Betelgeuse",
+      "raridade": "raro",
+      "imagem_url": null,
+      "imagem_figura_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/figuras/1778285124966-3htgl2.webp",
+      "nivel_estrelas": 2
+    }
+  ],
+  "maestrias": [
+    {
+      "id": "49920add-ac57-441a-9498-4fd4518b417c",
+      "nome": "Canalização Etérica Interna",
+      "designio": "espiritual",
+      "raridade": "comum",
+      "imagem_url": null
+    },
+    {
+      "id": "808ea2e1-d690-4501-bbcd-9460a85d6edb",
+      "nome": "Cura Etérica",
+      "designio": "espiritual",
+      "raridade": "raro",
+      "imagem_url": null
+    },
+    {
+      "id": "ce413b70-aa1c-42ef-889a-1a573e0e34a1",
+      "nome": "Percepção Espiritual",
+      "designio": "espiritual",
+      "raridade": "comum",
+      "imagem_url": null
+    }
+  ],
+  "equipamento": [
+    {
+      "slot": "arma",
+      "id": "ba9caa13-a447-4211-96ad-9111bbf2c794",
+      "grau": 5,
+      "nome": "Espada Curta de Aço Negro",
+      "raridade": "raro",
+      "categoria": "arma",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/templates/espada_curta.png"
+    },
+    {
+      "slot": "consumivel",
+      "id": "1b74076a-9c48-4fbc-b749-2100eb8a613c",
+      "grau": 2,
+      "nome": "Antídoto Universal",
+      "raridade": "comum",
+      "categoria": "consumivel",
+      "imagem_url": "https://vfedyikgpxoefemyvcfa.supabase.co/storage/v1/object/public/assets/itens/1778210665839-p93fk3.webp"
+    }
+  ],
+  "conquistas": {
+    "bronze": 9,
+    "prata": 7,
+    "ouro": 3,
+    "total_desbloqueadas": 19,
+    "total_tiers": 32
+  }
+}

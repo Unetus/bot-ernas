@@ -125,6 +125,34 @@ Retry com mesmo UUID retorna o mesmo body da primeira resposta, mas com flag `id
 { "ok": true, "novo_saldo": 1500, "valor_creditado": 500, "idempotency_replay": true }
 ```
 
+### Quando o cache fica preenchido
+
+| Resposta inicial | Cacheada? | Retry devolve |
+|---|---|---|
+| 200 sucesso | ✓ | 200 + `idempotency_replay: true` |
+| 400 body inválido | ✓ | 400 cacheado. Pra body novo, **use Idempotency-Key novo** |
+| 402 saldo/quantidade insuficiente | ✓ | 402 cacheado. Pra retry após resolver, **use Idempotency-Key novo** |
+| 403 anti-IDOR | ✓ | 403 cacheado |
+| 404 não encontrado | ✓ | 404 cacheado |
+| 409 item equipado / race | ✓ | 409 cacheado |
+| 500 erro de servidor | ✗ libera | Próximo retry re-executa |
+| Exception não tratada | ✗ libera | Próximo retry re-executa |
+
+Lógica: **4xx é semântico** (o request foi entendido e rejeitado) — cachear evita re-executar débito duplicado se cliente fizer retry achando que foi erro de rede. **5xx é erro temporário** (Postgres caiu, Vercel hiccup) — liberar permite retry com mesmo Idempotency-Key sem ficar travado.
+
+### Status `409 in_flight` (duas requests paralelas)
+
+Se duas requests com o **mesmo Idempotency-Key** chegam paralelas (raro mas possível com retry agressivo), a primeira reserva a chave e processa. A segunda recebe:
+
+```
+HTTP 409 Conflict
+Retry-After: 2
+
+{ "error": "Request com mesma Idempotency-Key em andamento, retry em alguns segundos" }
+```
+
+Cliente deve aguardar 2-3s e fazer retry com o **mesmo UUID** — vai pegar a resposta cacheada da primeira execução.
+
 ### Validade
 
 Cache mantido por **24h** (depois o cron purga). Retry após 24h re-executa a operação — então retries longos devem usar UUID novo.
@@ -222,6 +250,40 @@ Pra resolver via Habbo nick ou Discord, ver endpoints abaixo.
   "maestrias": [
     { "id": "...", "nome": "Caminho da Espada", "raridade": "epico", "designio": "marcial", "imagem_url": "..." }
   ],
+  "inventario": [
+    {
+      "id": "a3f4b218-...",
+      "item_id": "9d2e7c01-...",
+      "nome": "Lâmina do Trovão",
+      "categoria": "arma",
+      "raridade": "lendario",
+      "grau": 18,
+      "descricao": "Espada longa forjada em...",
+      "imagem_url": "https://...",
+      "quantidade": 1,
+      "reservado": 0,
+      "disponivel": 1,
+      "equipado": true,
+      "slot_equipado": "arma_principal",
+      "criado_em": "2026-03-12T14:22:00Z"
+    },
+    {
+      "id": "7c1a98f2-...",
+      "item_id": "5e8b3d40-...",
+      "nome": "Lingote de Mithril",
+      "categoria": "material",
+      "raridade": "raro",
+      "grau": null,
+      "descricao": null,
+      "imagem_url": "https://...",
+      "quantidade": 17,
+      "reservado": 5,
+      "disponivel": 12,
+      "equipado": false,
+      "slot_equipado": null,
+      "criado_em": "2026-02-01T08:15:00Z"
+    }
+  ],
   "equipamento": [
     { "slot": "arma_principal", "id": "...", "nome": "Lâmina do Trovão", "categoria": "arma", "raridade": "lendario", "grau": 18, "imagem_url": "..." }
   ],
@@ -241,6 +303,12 @@ Pra resolver via Habbo nick ou Discord, ver endpoints abaixo.
 - **`build_skills`** = skills **EQUIPADAS** na build do personagem agora (max 8: 1 racial + 7 livres). Slots vazios são omitidos. **É isso que você usa pra mostrar "skills equipadas" num bot/UI.**
 - **`build`** = mesmas skills mas como **IDs brutos** por slot (`slot_racial`, `slot_1`, ..., `slot_7`). Útil pra correlacionar com catálogo. Slots vazios = `null`.
 - **`skills_adquiridas`** = **acervo completo** — todas as skills que o personagem aprendeu na vida (de pergaminhos despertados, maestrias dominadas, compradas da classe, encantamentos de itens). Pode ser bem maior que `build_skills` (jogador tem várias skills mas só pode equipar 8). **NÃO é "equipadas"** — bug clássico de quem assume que sim.
+
+**⚠ Atenção — `inventario` vs `equipamento`:**
+- **`inventario`** = **TODOS** os itens em posse do personagem (mochila + equipados). Cada row tem `id` (que é o `inventario_id` necessário pra `POST /personagens/:id/inventario/remover`), `quantidade` total, `reservado` (unidades comprometidas em marketplace ou negociações P2P) e `disponivel` (= `quantidade - reservado`, único valor seguro pra remoção/transferência). Ordenado por `criado_em DESC` (mais recente primeiro).
+- **`equipamento`** = view filtrada (apenas itens com `equipado=true`), formato achatado mais simples. Mantido pra compatibilidade com bots antigos. **Novos consumers devem preferir `inventario`** — tem todas as informações que `equipamento` tem + mais.
+- Armas e armaduras são **instâncias únicas**: cada unidade vira sua própria row em `inventario` com `quantidade=1` (mesmo que o jogador tenha 2 "Lâminas do Trovão" idênticas, são 2 rows com `id` distintos). Consumíveis e materiais empilham em uma única row com `quantidade > 1`.
+- `disponivel` é o valor que importa pra remoção. Se `quantidade=17` e `reservado=5` (o jogador tem 5 lingotes anunciados no marketplace), só `12` podem ser removidos via API antes de quebrar a reserva.
 
 ---
 
@@ -1094,7 +1162,7 @@ Aceita **`item_id` (UUID)** OU **`slug` (string)** — exatamente um dos dois, n
 
 Remove N unidades de **uma row específica** do inventário. Exige `inventario_id` (não `item_id`) porque armas/armaduras têm múltiplas rows com mesmo `item_id` (instâncias únicas) e o caller precisa escolher qual.
 
-**Como descobrir o `inventario_id`:** consulte a ficha completa via `GET /personagens/:nomeOuId` e use o `inventario.id` da row exata que quer mexer (futuro — endpoint de listagem direta do inventário ainda não existe; por ora extraia da ficha completa).
+**Como descobrir o `inventario_id`:** consulte a ficha completa via `GET /personagens/:nomeOuId` — o array `inventario` traz cada row com o campo `id`, que é exatamente o `inventario_id` esperado aqui. Use o `disponivel` (= `quantidade - reservado`) como limite seguro pra remoção.
 
 **Scope:** `inventory:write`
 **Cap:** `quantidade` máxima 100 por chamada
@@ -1133,14 +1201,15 @@ Se `quantidade_restante == 0` e não há reservas ativas em marketplace/negocia�
 | Status | Significado |
 |-------:|-------------|
 | `200` | Sucesso |
-| `400` | Query/path/body inválidos, ou Idempotency-Key ausente em POST |
+| `400` | Query/path/body inválidos, ou Idempotency-Key ausente/inválido em POST, ou personagem_id não é UUID |
 | `401` | Sem `X-API-Key` ou key inválida/revogada |
 | `402` | Saldo de Libras insuficiente OU quantidade de item indisponível |
 | `403` | Key sem scope necessário OU anti-IDOR (row de outro personagem) |
 | `404` | Recurso não existe |
-| `409` | Item equipado (no remover) ou race condition |
+| `409` | Item equipado, race condition, OU Idempotency-Key em flight (outra request paralela ainda processando — retry em 2s) |
 | `429` | Rate limit excedido (geral ou write) |
-| `500` | Erro interno (logado server-side, contate dono da API) |
+| `500` | Erro interno (Idempotency-Key liberada — pode retry com mesmo UUID) |
+| `503` | Falha ao reservar idempotência (raro — banco temporariamente indisponível) |
 
 ---
 
