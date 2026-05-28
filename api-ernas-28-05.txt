@@ -227,6 +227,7 @@ Pra resolver via Habbo nick ou Discord, ver endpoints abaixo.
   "indice_poder": 32450,
   "indice_poder_faixa": 4,
   "indice_poder_cor": "#8B5CF6",
+  "libras": 15000,
   "build": {
     "slot_racial": "uuid-skill",
     "slot_1": "uuid-skill",
@@ -265,6 +266,7 @@ Pra resolver via Habbo nick ou Discord, ver endpoints abaixo.
       "disponivel": 1,
       "equipado": true,
       "slot_equipado": "arma_principal",
+      "obtido_em": "2026-03-12T14:22:00Z",
       "criado_em": "2026-03-12T14:22:00Z"
     },
     {
@@ -281,6 +283,7 @@ Pra resolver via Habbo nick ou Discord, ver endpoints abaixo.
       "disponivel": 12,
       "equipado": false,
       "slot_equipado": null,
+      "obtido_em": "2026-02-01T08:15:00Z",
       "criado_em": "2026-02-01T08:15:00Z"
     }
   ],
@@ -309,6 +312,11 @@ Pra resolver via Habbo nick ou Discord, ver endpoints abaixo.
 - **`equipamento`** = view filtrada (apenas itens com `equipado=true`), formato achatado mais simples. Mantido pra compatibilidade com bots antigos. **Novos consumers devem preferir `inventario`** — tem todas as informações que `equipamento` tem + mais.
 - Armas e armaduras são **instâncias únicas**: cada unidade vira sua própria row em `inventario` com `quantidade=1` (mesmo que o jogador tenha 2 "Lâminas do Trovão" idênticas, são 2 rows com `id` distintos). Consumíveis e materiais empilham em uma única row com `quantidade > 1`.
 - `disponivel` é o valor que importa pra remoção. Se `quantidade=17` e `reservado=5` (o jogador tem 5 lingotes anunciados no marketplace), só `12` podem ser removidos via API antes de quebrar a reserva.
+- Timestamp da row é `obtido_em` (nome interno da coluna no banco). O alias `criado_em` é retornado como sinônimo pra clientes que assumiram o nome padrão — apontam pro mesmo valor.
+
+**Saldo de moedas:**
+- **`libras`** (campo na raiz) — saldo em Libras (moeda do RPG, comercializável entre jogadores no marketplace). Lido de `profiles.libras` (saldo é por conta auth, não por personagem). Valor inteiro, sem decimais.
+- **Runas não são expostas** na API pública por design. Runas são cashable (BRL → Runas via MercadoPago) e ficam fora do escopo de read pública. Painel Dev/GM é o único caminho pra inspecionar saldo de runas.
 
 ---
 

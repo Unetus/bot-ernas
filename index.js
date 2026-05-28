@@ -2161,13 +2161,8 @@ client.on('interactionCreate', async interaction => {
                     lootsEmProcessamento.delete(msgId);
 
                     // Atualiza a mensagem original para desabilitar o botão e mostrar quem coletou
-                    const embedOriginal = EmbedBuilder.from(interaction.message.embeds[0])
-                        .setColor(0x2E5A36)
-                        .setFooter({ text: `Coletado por ${personagem.nome}` });
-
                     await interaction.message.edit({
                         content: `✦ **${interaction.user.toString()}** (${personagem.nome}) coletou o item e ele foi adicionado ao seu inventário no site!`,
-                        embeds: [embedOriginal],
                         components: []
                     });
 
