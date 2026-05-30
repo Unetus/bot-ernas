@@ -20,7 +20,7 @@ const client = new Client({
     ]
 });
 
-const ARKANDIA_API = 'https://www.ernas.com.br/api/public/v1';
+const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
 
 // Caches
