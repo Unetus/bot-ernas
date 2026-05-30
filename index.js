@@ -1644,7 +1644,7 @@ const commands = [
         .addSubcommand(sub => sub.setName('encerrar').setDescription('[Mestre] Deleta o mapa atual e apaga tudo')),
 
     new SlashCommandBuilder().setName('perfil').setDescription('Busca a ficha do personagem').addUserOption(o => o.setName('jogador').setDescription('@nome')).addStringOption(o => o.setName('nome').setDescription('nome exato')),
-    new SlashCommandBuilder().setName('mestre').setDescription('Ferramentas de DM').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('dropar').setDescription('Cria Loot').addStringOption(o => o.setName('item').setDescription('Nome do item').setRequired(true)).addIntegerOption(o => o.setName('quantidade').setDescription('Qtd').setRequired(false))).addSubcommand(sub => sub.setName('bestiario').setDescription('Consulta secreta de NPC').addStringOption(o => o.setName('nome').setDescription('Nome do NPC').setRequired(true))).addSubcommand(sub => sub.setName('painel').setDescription('Abre a central de controle interativa do Mestre (HUD)')),
+    new SlashCommandBuilder().setName('mestre').setDescription('Ferramentas de DM').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('dropar').setDescription('Cria Loot').addStringOption(o => o.setName('item').setDescription('Nome do item').setRequired(true)).addIntegerOption(o => o.setName('quantidade').setDescription('Qtd').setRequired(false))).addSubcommand(sub => sub.setName('painel').setDescription('Abre a central de controle interativa do Mestre (HUD)')),
     new SlashCommandBuilder().setName('narrar').setDescription('Sistema de Narração e Interpretação Imersiva para o Mestre').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('habilitar').setDescription('[Mestre] Habilita o modo de interpretação neste canal').addStringOption(o => o.setName('nome').setDescription('Nome do NPC ou Monstro do Bestiário (Deixe vazio para ser o Narrador)').setRequired(false))).addSubcommand(sub => sub.setName('desabilitar').setDescription('[Mestre] Desabilita o modo de interpretação neste canal')),
     new SlashCommandBuilder().setName('missao').setDescription('Sistema de Missões').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('preparar').setDescription('[Mestre] Prepara a HUD de uma missão da API').addStringOption(o => o.setName('nome').setDescription('Nome da Missão').setRequired(true))).addSubcommand(sub => sub.setName('iniciar').setDescription('[Mestre] Inicia a missão que está em preparação').addStringOption(o => o.setName('nome').setDescription('Nome da Missão').setRequired(true))),
     new SlashCommandBuilder().setName('mapa').setDescription('Sistema de Navegação do Mundo').setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages).addSubcommand(sub => sub.setName('painel').setDescription('[Mestre] Cria o Painel de Viagem Rápida neste canal')).addSubcommand(sub => sub.setName('configurar').setDescription('[Mestre] Define quais categorias pertencem ao mapa')),
@@ -2221,6 +2221,10 @@ client.on('interactionCreate', async interaction => {
 
         await interaction.update({ embeds: [skillEmbed], components: [interaction.message.components[0], row] });
         return;
+    }
+
+    if (interaction.isStringSelectMenu() && interaction.customId.startsWith('select_catalogo_')) {
+        return commandCatalogo.handleSelect(interaction);
     }
 
     if (interaction.isStringSelectMenu() && interaction.customId === 'select_profile_skill') {

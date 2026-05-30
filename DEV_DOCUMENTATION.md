@@ -20,7 +20,7 @@ O bot é construído utilizando a seguinte base tecnológica:
 
 ## 🏗️ Arquitetura do Sistema & Fluxo de Dados
 
-O bot opera sob um modelo reativo orientado a eventos do Discord (`interactionCreate`). Ele consome dados em tempo real da API de Arkandia e mantém um estado em memória cache para sessões ativas e VTT.
+O bot opera sob um modelo reativo orientado a eventos do Discord (`interactionCreate`). Ele consome dados em tempo real da API de Arkandia e mantém um estado em memória cache para sessões ativas e VTT. Na nova arquitetura, o bot também faz pré-carregamento de dados (Preload) via `catalogCache` para diminuir a latência de consultas estáticas (itens, skills e bestiário).
 
 ```mermaid
 graph TD
@@ -42,7 +42,12 @@ graph TD
 
 Por simplicidade e velocidade de acesso em canais de texto de RPG, parte do estado operacional do bot é mantido em memória, com persistência mínima em arquivos locais:
 
-### 1. Mapa de Configuração (`mapaConfig` & `mapa_config.json`)
+### 1. Sistema de Cache Global (`catalogCache` & `renderQueue`)
+Para garantir máxima performance durante a alta demanda (múltiplos jogadores consultando itens ou renderizando canvas), o bot implementa duas esteiras de otimização:
+*   **`catalogCache`**: Carrega e atualiza periodicamente em background os catálogos de `/itens`, `/skills` e `/bestiario` vindos da API. O comando `/catalogo` consulta esta memória Ram, poupando a API do site e respondendo instantaneamente.
+*   **`renderQueue`**: Uma fila (Queue) especializada em gerenciar a renderização Canvas no `@napi-rs/canvas`. Evita que requisições assíncronas concorrentes engasguem a single-thread do Node.js, processando no máximo 5 imagens simultâneas.
+
+### 2. Mapa de Configuração (`mapaConfig` & `mapa_config.json`)
 Armazena um array de IDs das categorias do Discord que representam regiões de RPG válidas no servidor para controle de viagem rápida.
 *   **Persistência:** Sincronizado automaticamente no arquivo `mapa_config.json` via `fs.writeFileSync`.
 
@@ -111,6 +116,9 @@ Utilizados para garantir integridade transacional na coleta de recompensas (bot�
 *   `lootsEmProcessamento`: Conjunto de `message.id` das coletas de item cujo processo da API (resolução + inserção POST) está em andamento. Bloqueia cliques concorrentes ou duplicados de forma imediata.
 *   `lootsColetados`: Conjunto de `message.id` das mensagens de loot que já foram totalmente coletadas por algum jogador. Previne que itens sejam resgatados mais de uma vez.
 
+### 9. Modularização de Comandos (`commands/`)
+Com o crescimento do projeto, a lógica pesada de alguns comandos (como paginação e filtros do `/catalogo`) é injetada a partir da pasta `/commands` no manipulador raiz de eventos.
+
 ---
 
 ## 🎨 Engine de Renderização 2D (VTT)
@@ -151,7 +159,7 @@ Todas as requisições para `https://www.ernas.com.br/api/public/v1` exigem o he
 2.  **Consulta a Itens e Drops:**
     *   `/itens/:ref` suporta UUID, slug e nome.
 3.  **NPCs e Bestiário:**
-    *   Para o sistema de impersonação (`/narrar habilitar` e `/cena npc_entrar`), o bot tenta carregar os dados de `/npcs/:ref` e, caso dê 404, recorre ao `/bestiario/:ref` para criaturas selvagens.
+    *   Para o sistema de impersonação (`/narrar habilitar` e `/cena npc_entrar`), o bot tenta carregar os dados de `/npcs/:ref` e, caso dê 404, recorre ao `/bestiario/:ref` para criaturas selvagens. Adicionalmente, o comando global `/bestiario` permite aos jogadores consultar as lendas destas criaturas.
 4.  **Inserção no Inventário:**
     *   Ao clicar no botão de coleta de drop, o bot efetua um `POST /personagens/:id/inventario/adicionar` passando o `item_id` e a `quantidade` para popular o inventário do jogador em tempo real no site do jogo, utilizando cabeçalhos de controle e autenticação (`X-API-Key` e `Idempotency-Key` com UUID v4 gerado no ato).
 
