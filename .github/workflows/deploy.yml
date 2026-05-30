@@ -15,22 +15,22 @@ jobs:
       - name: Copy files via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: 137.131.222.150
-          username: ubuntu
+          host: 212.38.89.129
+          username: dev
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           source: "index.js,package.json,package-lock.json,mapa.png,mapa_config.json,mapas-arena/"
-          target: "/home/ubuntu/bot"
+          target: "/home/dev/bot-ernas"
           rm: false
 
       - name: SSH and Restart Bot
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 137.131.222.150
-          username: ubuntu
+          host: 212.38.89.129
+          username: dev
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            cd ~/bot
+            cd ~/bot-ernas
             npm install --omit=dev
             pm2 restart rpg-bot
