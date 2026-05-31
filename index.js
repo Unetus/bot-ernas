@@ -4,6 +4,7 @@ const { Client, GatewayIntentBits, REST, Routes, Collection } = require('discord
 const fs = require('fs');
 
 const { mestresNarrando } = require('./utils/state');
+const catalogCache = require('./catalogCache');
 
 const client = new Client({
     intents: [
@@ -34,6 +35,12 @@ const commands = client.commands.map(cmd => cmd.data.toJSON());
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 client.once('ready', async () => { 
     console.log(`✓ Bot logado como ${client.user.tag}!`);
+    try {
+        await catalogCache.preload();
+        catalogCache.startAutoRefresh();
+    } catch (err) {
+        console.error('Erro ao inicializar o catalogCache:', err);
+    }
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); 
 });
 
