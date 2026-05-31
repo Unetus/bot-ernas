@@ -1,4 +1,36 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, SlashCommandBuilder } = require('discord.js');
+
+const data = new SlashCommandBuilder()
+    .setName('catalogo')
+    .setDescription('Navega pelos catálogos de Arkandia')
+    .addSubcommand(sub => sub.setName('itens').setDescription('Catálogo de itens (assinatura)')
+        .addStringOption(o => o.setName('nome').setDescription('Busca por nome específico'))
+        .addStringOption(o => o.setName('categoria').setDescription('Filtrar por categoria')
+            .addChoices(
+                { name: 'Arma', value: 'arma' },
+                { name: 'Armadura', value: 'armadura' },
+                { name: 'Consumível', value: 'consumivel' },
+                { name: 'Material', value: 'material' },
+                { name: 'Acessório', value: 'acessorio' },
+                { name: 'Chave', value: 'chave' }
+            ))
+        .addStringOption(o => o.setName('raridade').setDescription('Filtrar por raridade')
+            .addChoices(
+                { name: 'Comum', value: 'comum' },
+                { name: 'Raro', value: 'raro' },
+                { name: 'Épico', value: 'epico' },
+                { name: 'Lendário', value: 'lendario' },
+                { name: 'Mítico', value: 'mitico' }
+            ))
+    )
+    .addSubcommand(sub => sub.setName('skills').setDescription('Catálogo de habilidades')
+        .addStringOption(o => o.setName('nome').setDescription('Busca por nome específico'))
+        .addStringOption(o => o.setName('classe').setDescription('Filtrar por classe'))
+        .addStringOption(o => o.setName('tipo').setDescription('Filtrar por tipo (ativa/passiva)')
+            .addChoices({ name: 'Ativa', value: 'ativa' }, { name: 'Passiva', value: 'passiva' }))
+        .addStringOption(o => o.setName('origem').setDescription('Filtrar por origem (classe/maestria/geral)')
+            .addChoices({ name: 'Classe', value: 'classe' }, { name: 'Maestria', value: 'maestria' }, { name: 'Geral', value: 'geral' }))
+    );
 const catalogCache = require('../catalogCache');
 const { formatarTexto, embedErro } = require('../utils/helpers');
 
@@ -312,6 +344,7 @@ function buildSkillDetail(skill) {
 }
 
 module.exports = {
+    data,
     execute,
     handleButton,
     handleSelect
