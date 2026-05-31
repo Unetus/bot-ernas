@@ -4,6 +4,8 @@ const axios = require('axios');
 const https = require('https');
 const fs = require('fs');
 const { cenasAtivas, missoesPreparacao, renderTimers, arenasDraft, timersTurno, mestresNarrando } = require('../utils/state');
+const { AttachmentBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+
 async function loadImage(source) {
     if (typeof source === 'string' && source.includes('ernas.com.br/')) {
         if (source.includes('ernas.com.br/assets/')) {
