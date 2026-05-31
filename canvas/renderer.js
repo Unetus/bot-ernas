@@ -3,6 +3,7 @@ const { formatarTexto } = require('../utils/helpers');
 const axios = require('axios');
 const https = require('https');
 const fs = require('fs');
+const { cenasAtivas, missoesPreparacao, renderTimers, arenasDraft, timersTurno, mestresNarrando } = require('../utils/state');
 async function loadImage(source) {
     if (typeof source === 'string' && source.includes('ernas.com.br/')) {
         if (source.includes('ernas.com.br/assets/')) {
@@ -955,17 +956,17 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
 
     // Botões de Categorias
     const rowCats = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_todos`).setLabel('Tudo').setStyle(categoria === 'todos' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_armas`).setLabel('Armas').setStyle(categoria === 'armas' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_armaduras`).setLabel('Defesas').setStyle(categoria === 'armaduras' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_consumiveis`).setLabel('Consumíveis').setStyle(categoria === 'consumiveis' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inv_cat_${p.id}_materiais`).setLabel('Materiais').setStyle(categoria === 'materiais' ? ButtonStyle.Success : ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_todos`).setLabel('Tudo').setStyle(categoria === 'todos' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_armas`).setLabel('Armas').setStyle(categoria === 'armas' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_armaduras`).setLabel('Defesas').setStyle(categoria === 'armaduras' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_consumiveis`).setLabel('Consumíveis').setStyle(categoria === 'consumiveis' ? ButtonStyle.Success : ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_materiais`).setLabel('Materiais').setStyle(categoria === 'materiais' ? ButtonStyle.Success : ButtonStyle.Secondary)
     );
 
     // Botões de Paginação
     const rowPag = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`inv_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('Anterior').setStyle(ButtonStyle.Primary).setDisabled(pag === 0),
-        new ButtonBuilder().setCustomId(`inv_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo').setStyle(ButtonStyle.Primary).setDisabled(pag >= totalPaginas - 1)
+        new ButtonBuilder().setCustomId(`inventario_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('Anterior').setStyle(ButtonStyle.Primary).setDisabled(pag === 0),
+        new ButtonBuilder().setCustomId(`inventario_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo').setStyle(ButtonStyle.Primary).setDisabled(pag >= totalPaginas - 1)
     );
 
     const components = [rowCats];
@@ -1521,14 +1522,14 @@ function iniciarTimerTurno(channel, cena) {
 
 function getCenaBotoes(cena) {
     const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('move_up').setLabel('▲').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('move_down').setLabel('▼').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('move_left').setLabel('◀').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('move_right').setLabel('▶').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('modal_mover_coord').setLabel('⌖ Mover (Coord.)').setStyle(ButtonStyle.Primary)
+        new ButtonBuilder().setCustomId('cena_move_up').setLabel('▲').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('cena_move_down').setLabel('▼').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('cena_move_left').setLabel('◀').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('cena_move_right').setLabel('▶').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('cena_modal_mover_coord').setLabel('⌖ Mover (Coord.)').setStyle(ButtonStyle.Primary)
     );
     const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('passar_turno').setLabel('» Passar Turno').setStyle(ButtonStyle.Danger)
+        new ButtonBuilder().setCustomId('cena_passar_turno').setLabel('» Passar Turno').setStyle(ButtonStyle.Danger)
     );
     return [row, row2];
 }
@@ -1578,4 +1579,4 @@ async function repintarMapaNovo(channel, cena) {
 }
 
 
-module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelMestre };
+module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelMestre, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena };

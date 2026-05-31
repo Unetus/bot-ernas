@@ -116,10 +116,14 @@ Utilizados para garantir integridade transacional na coleta de recompensas (bot�
 *   `lootsEmProcessamento`: Conjunto de `message.id` das coletas de item cujo processo da API (resolução + inserção POST) está em andamento. Bloqueia cliques concorrentes ou duplicados de forma imediata.
 *   `lootsColetados`: Conjunto de `message.id` das mensagens de loot que já foram totalmente coletadas por algum jogador. Previne que itens sejam resgatados mais de uma vez.
 
-### 9. Modularização de Comandos (`commands/`)
-Com o crescimento do projeto, a lógica pesada de alguns comandos (como paginação e filtros do `/catalogo`) é injetada a partir da pasta `/commands` no manipulador raiz de eventos.
-
----
+### 9. Roteador Dinâmico e Modularização (`commands/` e Autoloader)
+Todo o controle do bot agora reside em um Autoloader ágil e robusto no `index.js` (~120 linhas). O bot importa dinamicamente cada comando da pasta `commands/` usando `client.commands.set(...)`. 
+As interações (`ChatInputCommand`, `Button`, `StringSelectMenu` e `ModalSubmit`) são despachadas automaticamente para os handlers dentro do próprio arquivo do comando:
+- `execute(interaction)`: Lógica base para Slash Commands.
+- `handleButton(interaction)`: Captura cliques em botões baseados no prefixo do comando.
+- `handleSelect(interaction)`: Captura seleções de menus.
+- `handleModal(interaction)`: Submissões de formulários.
+Essa arquitetura isolada garante altíssima escalabilidade e facilidade de manutenção.
 
 ## 🎨 Engine de Renderização 2D (VTT)
 
