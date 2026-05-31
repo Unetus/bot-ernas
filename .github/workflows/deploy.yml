@@ -19,7 +19,7 @@ jobs:
           username: dev
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          source: "index.js,package.json,package-lock.json,mapa.png,mapa_config.json,mapas-arena/"
+          source: "index.js,package.json,package-lock.json,mapa.png,mapa_config.json,apiClient.js,catalogCache.js,cooldown.js,renderQueue.js,canvas/**,commands/**,mapas-arena/**,utils/**"
           target: "/home/dev/bot-ernas"
           rm: false
 

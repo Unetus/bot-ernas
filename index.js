@@ -38,10 +38,13 @@ client.once('ready', async () => {
 });
 
 client.on('interactionCreate', async interaction => {
+    console.log(`[DEBUG] Recebeu interacao: ${interaction.type}`);
     if (interaction.isChatInputCommand()) {
+        console.log(`[DEBUG] Comando: ${interaction.commandName}`);
         const command = client.commands.get(interaction.commandName);
         if (command) {
             try {
+                console.log(`[DEBUG] Executando comando ${interaction.commandName}...`);
                 await command.execute(interaction);
             } catch (error) {
                 console.error(error);
