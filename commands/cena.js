@@ -8,8 +8,8 @@ const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/a
 const API_KEY = process.env.ARKANDIA_API_KEY;
 
 const MIN_GRID_SIZE = 3;
-const MAX_COLUMNS = 14;
-const MAX_ROWS = 12;
+const MAX_COLUMNS = 20;
+const MAX_ROWS = 20;
 const MIN_TURN_SECONDS = 15;
 const MAX_TURN_SECONDS = 600;
 

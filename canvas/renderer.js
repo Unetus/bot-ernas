@@ -1,4 +1,4 @@
-﻿const { createCanvas, loadImage: _originalLoadImage } = require('@napi-rs/canvas');
+const { createCanvas, loadImage: _originalLoadImage } = require('@napi-rs/canvas');
 const { formatarTexto } = require('../utils/helpers');
 const axios = require('axios');
 const https = require('https');
@@ -1872,40 +1872,40 @@ async function renderMap(scene) {
     }
 
     const listTop = mapY + 76;
-    const maxRows = Math.max(3, Math.floor((mapHeight - 135) / 38));
+    const maxRows = Math.max(3, Math.floor((mapHeight - 135) / 44));
     const visiblePlayers = scene.players.slice(0, maxRows);
     visiblePlayers.forEach((p, i) => {
-        const rowY = listTop + (i * 38);
+        const rowY = listTop + (i * 44);
         const isActive = scene.estado === 'COMBATE' && scene.turnoAtual === i;
         ctx.fillStyle = isActive ? 'rgba(212, 175, 55, 0.16)' : 'rgba(255,255,255,0.035)';
-        ctx.fillRect(sideX + 14, rowY - 18, SIDE_W - 28, 30);
+        ctx.fillRect(sideX + 14, rowY - 18, SIDE_W - 28, 38);
         ctx.fillStyle = p.incapacitado ? '#7F8C8D' : p.isNpc ? '#C44A4A' : '#6EA7D6';
-        ctx.fillRect(sideX + 14, rowY - 18, 4, 30);
+        ctx.fillRect(sideX + 14, rowY - 18, 4, 38);
         ctx.fillStyle = isActive ? HUD_GOLD : HUD_TEXT;
         ctx.font = 'bold 13px sans-serif';
         const name = p.name.length > 22 ? `${p.name.substring(0, 21)}.` : p.name;
-        ctx.fillText(`${i + 1}. ${name}`, sideX + 28, rowY + 1);
+        ctx.fillText(`${i + 1}. ${name}`, sideX + 28, rowY - 1);
         ctx.fillStyle = HUD_MUTED;
         ctx.font = '11px sans-serif';
-        ctx.fillText(`${String.fromCharCode(65 + p.x)}${p.y + 1}${p.incapacitado ? ' | Incapacitado' : ''}`, sideX + 28, rowY + 15);
+        ctx.fillText(`${String.fromCharCode(65 + p.x)}${p.y + 1}${p.incapacitado ? ' | Incapacitado' : ''}`, sideX + 28, rowY + 14);
     });
 
     if (scene.players.length > visiblePlayers.length) {
         ctx.fillStyle = HUD_MUTED;
         ctx.font = '12px sans-serif';
-        ctx.fillText(`+${scene.players.length - visiblePlayers.length} tokens`, sideX + 18, listTop + (visiblePlayers.length * 38) + 6);
+        ctx.fillText(`+${scene.players.length - visiblePlayers.length} tokens`, sideX + 18, listTop + (visiblePlayers.length * 44) + 6);
     }
 
-    const eventY = mapY + mapHeight - 48;
+    const eventY = mapY + mapHeight - 52;
     ctx.fillStyle = 'rgba(212, 175, 55, 0.18)';
-    ctx.fillRect(sideX + 14, eventY - 22, SIDE_W - 28, 48);
+    ctx.fillRect(sideX + 14, eventY - 24, SIDE_W - 28, 56);
     ctx.fillStyle = HUD_MUTED;
     ctx.font = '11px sans-serif';
     ctx.fillText('Ultimo evento', sideX + 24, eventY - 4);
     ctx.fillStyle = HUD_TEXT;
     ctx.font = '12px sans-serif';
     const eventText = String(scene.ultimoEvento || 'Aguardando movimentacao.').substring(0, 42);
-    ctx.fillText(eventText, sideX + 24, eventY + 15);
+    ctx.fillText(eventText, sideX + 24, eventY + 16);
 
     return canvas.toBuffer('image/png');
 }
