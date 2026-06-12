@@ -1413,7 +1413,7 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina, op
 
     const customIdPrefix = options.customIdPrefix || 'inventario';
     const prefixComponents = options.prefixComponents || [];
-    const catLabel = (value, label) => `${categoria === value ? 'â—†' : 'â—‡'} ${label}`;
+    const catLabel = (value, label) => `${categoria === value ? '◆' : '◇'} ${label}`;
 
     // Botões de Categorias
     const rowCats = new ActionRowBuilder().addComponents(
@@ -1426,8 +1426,8 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina, op
 
     // Botões de Paginação
     const rowPag = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('â— Anterior').setStyle(ButtonStyle.Secondary).setDisabled(pag === 0),
-        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo â–·').setStyle(ButtonStyle.Secondary).setDisabled(pag >= totalPaginas - 1)
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('◀ Anterior').setStyle(ButtonStyle.Secondary).setDisabled(pag === 0),
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo ▶').setStyle(ButtonStyle.Secondary).setDisabled(pag >= totalPaginas - 1)
     );
 
     const components = [...prefixComponents, rowCats];
