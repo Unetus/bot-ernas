@@ -1716,44 +1716,25 @@ async function renderMap(scene) {
     const playersStartY = 32;
     const centerX = PAD + ((playersStartX - PAD) / 2);
 
-    try {
-        const banner = await loadImage('./assets/ui/banner-cena.png');
-        ctx.drawImage(banner, 0, 0, width, HEADER_H + 20);
-    } catch(e) {}
+    const descHeight = scene.descricao ? 28 : 0;
+    drawHudBox(ctx, PAD - 14, 16, width - (PAD * 2) + 28, 70 + descHeight, 8);
 
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 32px serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(sceneName, PAD, 48);
 
-    if (scene.estado === 'COMBATE') {
-        ctx.fillStyle = HUD_GOLD;
-        ctx.font = 'bold 24px serif';
-        ctx.fillText(`${sceneName} | Combate - Rodada ${scene.rodada}`, centerX, 36);
-        
-        ctx.fillStyle = HUD_TEXT;
-        ctx.font = '15px sans-serif';
-        ctx.fillText(`Turno de ${active?.name || 'Ninguem'}. Controles abaixo.`, centerX, 64);
-        
-        if (scene.tempoTurnoMs && scene.fimTurnoTimestamp) {
-            const remainingSecs = Math.max(0, Math.ceil((scene.fimTurnoTimestamp - Date.now()) / 1000));
-            ctx.fillStyle = remainingSecs <= 10 ? '#E76F51' : '#A39D8E';
-            ctx.font = 'bold 15px sans-serif';
-            ctx.fillText(`Tempo restante: ${remainingSecs}s de ${scene.tempoTurnoMs / 1000}s.`, centerX, 88);
-        }
-    } else {
-        ctx.fillStyle = HUD_GOLD;
-        ctx.font = 'bold 26px serif';
-        ctx.fillText(`${sceneName} | Cena ${scene.estado || 'ABERTA'}`, centerX, 44);
-        
-        ctx.fillStyle = HUD_TEXT;
-        ctx.font = '16px sans-serif';
-        ctx.fillText(`Use os botoes abaixo para entrar/sair. Movimentacao livre.`, centerX, 76);
-    }
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = '16px sans-serif';
+    const subtitle = scene.estado === 'COMBATE'
+        ? `Rodada ${scene.rodada} | Turno de ${active?.name || 'Ninguem'}`
+        : `${scene.estado || 'ABERTA'} | ${totalCount} jogadores na cena`;
+    ctx.fillText(subtitle, PAD, 74);
 
     if (scene.descricao) {
         ctx.fillStyle = '#D7D0BE';
-        ctx.font = '13px sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(String(scene.descricao).substring(0, 120), PAD, HEADER_H - 10);
+        ctx.font = '14px sans-serif';
+        ctx.fillText(String(scene.descricao).substring(0, 120), PAD, 96);
     }
 
     ctx.textAlign = 'left';
@@ -2129,14 +2110,62 @@ function iniciarTimerTurno(channel, cena) {
     timersTurno.set(cena.msgId, interval);
 }
 
+async function renderBanner(scene) {
+    const width = 1000;
+    const height = 120;
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    
+    try {
+        const banner = await loadImage('./assets/ui/banner-cena.png');
+        ctx.drawImage(banner, 0, 0, width, height);
+    } catch(e) {
+        ctx.fillStyle = '#1A1C23';
+        ctx.fillRect(0, 0, width, height);
+    }
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const sceneName = formatarTexto(scene.nome || 'Cena Tatica');
+    const active = scene.estado === 'COMBATE' ? scene.players[scene.turnoAtual] : null;
+
+    if (scene.estado === 'COMBATE') {
+        ctx.fillStyle = HUD_GOLD;
+        ctx.font = 'bold 24px serif';
+        ctx.fillText(`${sceneName} | Combate - Rodada ${scene.rodada}`, width / 2, 38);
+        
+        ctx.fillStyle = HUD_TEXT;
+        ctx.font = '16px sans-serif';
+        ctx.fillText(`Turno de ${active?.name || 'Ninguem'}. Use os controles abaixo para mover ou passar o turno.`, width / 2, 68);
+        
+        if (scene.tempoTurnoMs && scene.fimTurnoTimestamp) {
+            const remainingSecs = Math.max(0, Math.ceil((scene.fimTurnoTimestamp - Date.now()) / 1000));
+            ctx.fillStyle = remainingSecs <= 10 ? '#E76F51' : HUD_MUTED;
+            ctx.font = 'bold 15px sans-serif';
+            ctx.fillText(`Tempo restante: ${remainingSecs}s de ${scene.tempoTurnoMs / 1000}s.`, width / 2, 94);
+        }
+    } else {
+        ctx.fillStyle = HUD_GOLD;
+        ctx.font = 'bold 26px serif';
+        ctx.fillText(`${sceneName} | Cena ${scene.estado || 'ABERTA'}`, width / 2, 48);
+        
+        ctx.fillStyle = HUD_TEXT;
+        ctx.font = '16px sans-serif';
+        ctx.fillText(`Use os botoes abaixo para entrar/sair. Movimentacao livre enquanto a cena estiver aberta.`, width / 2, 80);
+    }
+    
+    return canvas.toBuffer('image/png');
+}
+
 function getCenaBotoes(cena) {
     const rowMestre = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('cena_toggle_aberta').setLabel(cena.estado === 'FECHADA' ? 'Abrir Cena' : 'Fechar Cena').setStyle(cena.estado === 'FECHADA' ? ButtonStyle.Success : ButtonStyle.Danger),
-        new ButtonBuilder().setCustomId('cena_toggle_combate').setLabel(cena.estado === 'COMBATE' ? 'Encerrar Combate' : 'Iniciar Combate').setStyle(cena.estado === 'COMBATE' ? ButtonStyle.Danger : ButtonStyle.Primary)
+        new ButtonBuilder().setCustomId('cena_toggle_aberta').setLabel(cena.estado === 'FECHADA' ? 'Abrir Cena' : 'Fechar Cena').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('cena_toggle_combate').setLabel(cena.estado === 'COMBATE' ? 'Encerrar Combate' : 'Iniciar Combate').setStyle(ButtonStyle.Secondary)
     );
 
     const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('cena_toggle_entrar').setLabel('Entrar / Sair').setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId('cena_toggle_entrar').setLabel('Entrar / Sair').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('cena_move_up').setLabel('▲').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('cena_move_down').setLabel('▼').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('cena_move_left').setLabel('◀').setStyle(ButtonStyle.Secondary),
@@ -2148,7 +2177,7 @@ function getCenaBotoes(cena) {
     );
     
     if (cena.estado === 'COMBATE') {
-        row2.addComponents(new ButtonBuilder().setCustomId('cena_passar_turno').setLabel('◆ Passar Turno').setStyle(ButtonStyle.Primary));
+        row2.addComponents(new ButtonBuilder().setCustomId('cena_passar_turno').setLabel('◆ Passar Turno').setStyle(ButtonStyle.Secondary));
     }
 
     return [rowMestre, row, row2];
@@ -2163,9 +2192,13 @@ async function atualizarMapaDebounced(channel, cena) {
         renderTimers.delete(cena.msgId);
         try {
             const msg = await channel.messages.fetch(cena.msgId);
+            const bannerBuffer = await renderBanner(cena);
+            const attachmentBanner = new AttachmentBuilder(bannerBuffer, { name: 'banner.png' });
+            
             const buffer = await renderMap(cena);
-            const attachment = new AttachmentBuilder(buffer, { name: 'mapa.png' });
-            await msg.edit({ content: getCabecalhoCena(cena), files: [attachment], components: getCenaBotoes(cena) });
+            const attachmentMap = new AttachmentBuilder(buffer, { name: 'mapa.png' });
+            
+            await msg.edit({ content: '', files: [attachmentBanner, attachmentMap], components: getCenaBotoes(cena) });
         } catch (e) {
             console.error('Erro debounce', e);
         }
@@ -2199,9 +2232,14 @@ async function repintarMapaNovo(channel, cena) {
     if (cena.estado === 'COMBATE' && cena.tempoTurnoMs && (!cena.fimTurnoTimestamp || cena.msgRodada !== cena.rodada)) {
         cena.fimTurnoTimestamp = Date.now() + cena.tempoTurnoMs;
     }
+    
+    const bannerBuffer = await renderBanner(cena);
+    const attachmentBanner = new AttachmentBuilder(bannerBuffer, { name: 'banner.png' });
+    
     const buffer = await renderMap(cena);
-    const attachment = new AttachmentBuilder(buffer, { name: 'mapa.png' });
-    const msg = await channel.send({ content: '', files: [attachment], components: getCenaBotoes(cena) });
+    const attachmentMap = new AttachmentBuilder(buffer, { name: 'mapa.png' });
+    
+    const msg = await channel.send({ content: '', files: [attachmentBanner, attachmentMap], components: getCenaBotoes(cena) });
     
     cena.msgId = msg.id;
     cena.msgRodada = cena.rodada;

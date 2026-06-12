@@ -157,7 +157,7 @@ function addLog(cena, mensagem) {
     }
 }
 
-function createScene({ colunas, linhas, fundoUrl, nome, descricao, tempoTurnoMs }) {
+function createScene({ colunas, linhas, fundoUrl, nome, descricao, tempoTurnoMs, mestreId }) {
     return {
         linhas,
         colunas,
@@ -169,6 +169,7 @@ function createScene({ colunas, linhas, fundoUrl, nome, descricao, tempoTurnoMs 
         turnoAtual: 0,
         players: [],
         msgId: null,
+        mestreId: mestreId || null,
         tempoTurnoMs: tempoTurnoMs || null,
         logs: ['Cena aberta para entrada dos jogadores.'],
         turnStartPos: null
@@ -220,7 +221,8 @@ async function execute(interaction) {
             fundoUrl: fundo ? fundo.url : null,
             nome,
             descricao,
-            tempoTurnoMs: tempoTurno ? tempoTurno * 1000 : null
+            tempoTurnoMs: tempoTurno ? tempoTurno * 1000 : null,
+            mestreId: interaction.user.id
         });
 
         cenasAtivas.set(cid, cena);
