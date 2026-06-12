@@ -29,6 +29,14 @@ Este guia define o padrao visual para comandos que retornam HUDs em Canvas no Di
 - Paineis com botoes de abas devem atualizar o componente original quando uma aba for clicada, mantendo o item selecionado com `◆`.
 - Evitar emojis nos botoes de HUD. Preferir simbolos discretos e neutros.
 
+## Fluxo de Navegacao
+
+- O comando central do jogador e `/painel`.
+- HUDs abertas a partir do `/painel` devem substituir a mensagem original do painel com `editReply` ou `update`.
+- Evitar `followUp` para trocar entre HUDs visuais, pois isso empilha mensagens e polui a tela.
+- Interacoes internas da HUD, como filtros de inventario, abas de ranking e detalhes de skills, tambem devem substituir a mesma mensagem.
+- Use `followUp` apenas para avisos pontuais, erros sem relacao com a HUD atual ou acoes que precisam aparecer fora do painel.
+
 ## Comandos Ja Padronizados
 
 - `/painel`

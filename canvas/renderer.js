@@ -1381,7 +1381,7 @@ async function gerarBannerGuilda(guilda) {
     return canvas.toBuffer('image/png');
 }
 
-async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
+async function renderInventarioPage(interaction, p, itens, categoria, pagina, options = {}) {
     const ITEMS_PER_PAGE = 8;
 
     // Filtra itens por categoria
@@ -1408,32 +1408,34 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
         .setColor(0xD4AF37)
         .setImage('attachment://inventario.png');
 
+    const customIdPrefix = options.customIdPrefix || 'inventario';
+    const prefixComponents = options.prefixComponents || [];
     const catLabel = (value, label) => `${categoria === value ? '◆' : '◇'} ${label}`;
 
     // Botões de Categorias
     const rowCats = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_todos`).setLabel(catLabel('todos', 'Tudo')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_armas`).setLabel(catLabel('armas', 'Armas')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_armaduras`).setLabel(catLabel('armaduras', 'Defesas')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_consumiveis`).setLabel(catLabel('consumiveis', 'Consumíveis')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_materiais`).setLabel(catLabel('materiais', 'Materiais')).setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_todos`).setLabel(catLabel('todos', 'Tudo')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_armas`).setLabel(catLabel('armas', 'Armas')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_armaduras`).setLabel(catLabel('armaduras', 'Defesas')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_consumiveis`).setLabel(catLabel('consumiveis', 'Consumíveis')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_materiais`).setLabel(catLabel('materiais', 'Materiais')).setStyle(ButtonStyle.Secondary)
     );
 
     // Botões de Paginação
     const rowPag = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`inventario_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('◁ Anterior').setStyle(ButtonStyle.Secondary).setDisabled(pag === 0),
-        new ButtonBuilder().setCustomId(`inventario_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo ▷').setStyle(ButtonStyle.Secondary).setDisabled(pag >= totalPaginas - 1)
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('◁ Anterior').setStyle(ButtonStyle.Secondary).setDisabled(pag === 0),
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo ▷').setStyle(ButtonStyle.Secondary).setDisabled(pag >= totalPaginas - 1)
     );
 
-    const components = [rowCats];
+    const components = [...prefixComponents, rowCats];
     if (totalPaginas > 1) {
         components.push(rowPag);
     }
 
-    if (interaction.deferred || interaction.replied) {
-        return await interaction.editReply({ embeds: [embed], files: [attachment], components });
+    if (options.useEditReply || interaction.deferred || interaction.replied) {
+        return await interaction.editReply({ embeds: [embed], files: [attachment], attachments: [], components, content: null });
     } else {
-        return await interaction.update({ embeds: [embed], files: [attachment], components });
+        return await interaction.update({ embeds: [embed], files: [attachment], attachments: [], components, content: null });
     }
 }
 

@@ -21,6 +21,41 @@ const data = new SlashCommandBuilder()
     .addUserOption(o => o.setName('jogador').setDescription('@nome'))
     .addStringOption(o => o.setName('nome').setDescription('nome exato'));
 
+function buildProfileSkillRow(p) {
+    if (!p.build_skills || p.build_skills.length === 0) return null;
+
+    const options = p.build_skills.slice(0, 25).map(s => ({
+        label: `${formatarTexto(s.nome)} (Grau ${s.grau || 1})`,
+        description: formatarTexto(s.tipo) || 'Habilidade',
+        value: s.id
+    }));
+
+    return new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId(`select_perfil_skill_${p.id}`)
+            .setPlaceholder('Selecione uma habilidade equipada para ver detalhes')
+            .addOptions(options)
+    );
+}
+
+function buildSkillDetailEmbed(skill) {
+    const embed = new EmbedBuilder()
+        .setColor(0xD4AF37)
+        .setTitle(formatarTexto(skill.nome))
+        .setDescription(skill.descricao || '*Sem descrição.*')
+        .addFields(
+            { name: 'Tipo', value: formatarTexto(skill.tipo) || '-', inline: true },
+            { name: 'Origem', value: formatarTexto(skill.origem) || '-', inline: true }
+        );
+
+    if (skill.classe) embed.addFields({ name: 'Classe', value: formatarTexto(skill.classe), inline: true });
+    if (skill.nivel_min) embed.addFields({ name: 'Nível Mínimo', value: String(skill.nivel_min), inline: true });
+    if (skill.grau) embed.addFields({ name: 'Grau Máximo', value: String(skill.grau), inline: true });
+    if (skill.custo_runas) embed.addFields({ name: 'Custo de Runas', value: String(skill.custo_runas), inline: true });
+
+    return embed;
+}
+
 async function execute(interaction) {
     try {
         await interaction.deferReply();
@@ -43,22 +78,8 @@ async function execute(interaction) {
             .setColor(0xD4AF37)
             .setImage('attachment://perfil.png');
         
-        let components = [];
-        if (p.build_skills && p.build_skills.length > 0) {
-            const options = p.build_skills.slice(0, 25).map(s => ({
-                label: `${formatarTexto(s.nome)} (Grau ${s.grau || 1})`,
-                description: formatarTexto(s.tipo) || 'Habilidade',
-                value: s.id
-            }));
-
-            const row = new ActionRowBuilder().addComponents(
-                new StringSelectMenuBuilder()
-                    .setCustomId(`select_perfil_skill_${p.id}`)
-                    .setPlaceholder('Selecione uma habilidade equipada para ver detalhes')
-                    .addOptions(options)
-            );
-            components.push(row);
-        }
+        const skillRow = buildProfileSkillRow(p);
+        const components = skillRow ? [skillRow] : [];
 
         await interaction.editReply({ embeds: [embed], files: [attachment], components });
     } catch (e) {
@@ -83,27 +104,19 @@ async function handleSelect(interaction) {
         const skill = catalogCache.findSkill(selectedId);
         if (!skill) return await interaction.reply({ embeds: [embedErro('Habilidade não encontrada.')], ephemeral: true });
         
-        // Criar embed de skill similar ao do catalogo
-        const embed = new EmbedBuilder()
-            .setColor(0x3498DB)
-            .setTitle(`⚔️ ${formatarTexto(skill.nome)}`)
-            .setDescription(skill.descricao || '*Sem descrição.*')
-            .addFields(
-                { name: 'Tipo', value: formatarTexto(skill.tipo), inline: true },
-                { name: 'Origem', value: formatarTexto(skill.origem), inline: true }
-            );
-
-        if (skill.classe) embed.addFields({ name: 'Classe', value: formatarTexto(skill.classe), inline: true });
-        if (skill.nivel_min) embed.addFields({ name: 'Nível Mínimo', value: String(skill.nivel_min), inline: true });
-        if (skill.grau) embed.addFields({ name: 'Grau Máximo', value: String(skill.grau), inline: true });
-        if (skill.custo_runas) embed.addFields({ name: 'Custo de Runas', value: `🔮 ${skill.custo_runas}`, inline: true });
-
-        return await interaction.reply({ embeds: [embed], ephemeral: true });
+        return await interaction.update({
+            embeds: [buildSkillDetailEmbed(skill)],
+            files: [],
+            attachments: [],
+            components: interaction.message.components
+        });
     }
 }
 
 module.exports = {
     data,
     execute,
-    handleSelect
+    handleSelect,
+    buildProfileSkillRow,
+    buildSkillDetailEmbed
 };
