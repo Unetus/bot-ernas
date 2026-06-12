@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } = require('discord.js');
 const axios = require('axios');
-const { gerarBannerRanking, gerarBannerPerfil, renderInventarioPage } = require('../canvas/renderer');
+const { gerarBannerRanking, gerarBannerPerfil, gerarBannerPainelJogador, renderInventarioPage } = require('../canvas/renderer');
 const { embedErro } = require('../utils/helpers');
 const { skillsCache } = require('../utils/state');
 
@@ -12,29 +12,31 @@ const data = new SlashCommandBuilder()
     .setDescription('Abre a sua central de jogador (HUD)');
 
 async function execute(interaction) {
+    const buffer = await gerarBannerPainelJogador(interaction.user);
+    const attachment = new AttachmentBuilder(buffer, { name: 'painel-jogador.png' });
+
     const embed = new EmbedBuilder()
-        .setColor(0x3498DB)
-        .setTitle('✦ Central do Jogador ✦')
-        .setDescription('Bem-vindo à sua HUD interativa! Aqui você tem acesso rápido a todas as funcionalidades do seu personagem. Escolha uma opção abaixo:')
-        .setFooter({ text: 'Apenas você pode ver este painel.' });
+        .setColor(0xD4AF37)
+        .setImage('attachment://painel-jogador.png')
+        .setFooter({ text: 'Painel privado. Use os botões abaixo para navegar.' });
 
     const row1 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('painel_menu_perfil').setLabel('✦ Meu Perfil').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('painel_menu_inventario').setLabel('✦ Meu Inventário').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('painel_menu_missoes').setLabel('✦ Missões Ativas').setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId('painel_menu_perfil').setLabel('Perfil').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('painel_menu_inventario').setLabel('Inventário').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('painel_menu_missoes').setLabel('Missões').setStyle(ButtonStyle.Secondary)
     );
     
     const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('painel_menu_ranking').setLabel('✦ Rankings').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('painel_menu_guilda').setLabel('✦ Buscar Guilda').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('painel_menu_rp').setLabel('✦ Iniciar Cena RP').setStyle(ButtonStyle.Success)
+        new ButtonBuilder().setCustomId('painel_menu_ranking').setLabel('Rankings').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('painel_menu_guilda').setLabel('Guilda').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('painel_menu_rp').setLabel('Cena RP').setStyle(ButtonStyle.Success)
     );
 
     try {
-        await interaction.reply({ embeds: [embed], components: [row1, row2], ephemeral: true });
+        await interaction.reply({ embeds: [embed], files: [attachment], components: [row1, row2], ephemeral: true });
     } catch (e) {
         if (interaction.deferred) {
-            await interaction.editReply({ embeds: [embed], components: [row1, row2] });
+            await interaction.editReply({ embeds: [embed], files: [attachment], components: [row1, row2] });
         }
     }
 }

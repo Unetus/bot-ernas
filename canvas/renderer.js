@@ -983,6 +983,151 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
     }
 }
 
+async function gerarBannerPainelJogador(user = {}) {
+    const w = 1000;
+    const h = 560;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    const bgPath = './assets/ui/painel-hud-medieval.png';
+
+    ctx.fillStyle = '#0F1015';
+    ctx.fillRect(0, 0, w, h);
+
+    try {
+        const bg = await loadImage(bgPath);
+        const scale = Math.max(w / bg.width, h / bg.height);
+        const sw = w / scale;
+        const sh = h / scale;
+        const sx = (bg.width - sw) / 2;
+        const sy = (bg.height - sh) / 2;
+        ctx.drawImage(bg, sx, sy, sw, sh, 0, 0, w, h);
+    } catch (e) {
+        const grd = ctx.createLinearGradient(0, 0, 0, h);
+        grd.addColorStop(0, '#20222B');
+        grd.addColorStop(1, '#0F1015');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    const overlay = ctx.createLinearGradient(0, 0, 0, h);
+    overlay.addColorStop(0, 'rgba(6, 7, 10, 0.1)');
+    overlay.addColorStop(0.42, 'rgba(6, 7, 10, 0.32)');
+    overlay.addColorStop(1, 'rgba(6, 7, 10, 0.5)');
+    ctx.fillStyle = overlay;
+    ctx.fillRect(0, 0, w, h);
+
+    const drawPanel = (x, y, width, height, accent, title, body, tag) => {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 6;
+        ctx.fillStyle = 'rgba(18, 20, 27, 0.78)';
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x, y, width, height, 14);
+        else ctx.rect(x, y, width, height);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.strokeStyle = 'rgba(212, 175, 55, 0.28)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x, y, width, height, 14);
+        else ctx.rect(x, y, width, height);
+        ctx.stroke();
+
+        ctx.fillStyle = accent;
+        ctx.fillRect(x + 18, y + 20, 4, height - 40);
+
+        ctx.fillStyle = '#F4E7C8';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillText(title, x + 36, y + 42);
+
+        ctx.fillStyle = '#9FA8B5';
+        ctx.font = '15px sans-serif';
+        ctx.fillText(body, x + 36, y + 72);
+
+        ctx.fillStyle = 'rgba(212, 175, 55, 0.14)';
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x + width - 92, y + 22, 64, 28, 14);
+        else ctx.rect(x + width - 92, y + 22, 64, 28);
+        ctx.fill();
+
+        ctx.fillStyle = '#D4AF37';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(tag, x + width - 60, y + 41);
+        ctx.textAlign = 'left';
+    };
+
+    const displayName = user.globalName || user.username || 'Aventureiro';
+
+    ctx.fillStyle = '#D4AF37';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText('ARKANDIA PLAYER HUD', 82, 92);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 44px sans-serif';
+    ctx.fillText('Central do Jogador', 82, 142);
+
+    ctx.fillStyle = '#AEB6C2';
+    ctx.font = '18px sans-serif';
+    ctx.fillText(`Sessão privada para ${displayName}`, 84, 176);
+
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(82, 200);
+    ctx.lineTo(918, 200);
+    ctx.stroke();
+
+    const cards = [
+        ['Perfil', 'Ficha, atributos e deck equipado.', '#4FA3FF', 'FICHA'],
+        ['Inventário', 'Itens, moedas e equipamentos.', '#E0B94F', 'BOLSA'],
+        ['Missões', 'Contratos abertos e objetivos.', '#A56DFF', 'RPG'],
+        ['Rankings', 'Poder, nível, guildas e arena.', '#F05D5E', 'TOP'],
+        ['Guilda', 'Consulta rápida de reputação.', '#42D392', 'CLAN'],
+        ['Cena RP', 'Atalho para iniciar interpretação.', '#5ED6D6', 'LIVE']
+    ];
+
+    const startX = 82;
+    const startY = 232;
+    const cardW = 260;
+    const cardH = 92;
+    const gapX = 28;
+    const gapY = 24;
+
+    cards.forEach((card, i) => {
+        const col = i % 3;
+        const row = Math.floor(i / 3);
+        drawPanel(
+            startX + col * (cardW + gapX),
+            startY + row * (cardH + gapY),
+            cardW,
+            cardH,
+            card[2],
+            card[0],
+            card[1],
+            card[3]
+        );
+    });
+
+    ctx.fillStyle = 'rgba(15, 16, 21, 0.72)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(82, 478, 836, 44, 12);
+    else ctx.rect(82, 478, 836, 44);
+    ctx.fill();
+
+    ctx.fillStyle = '#D4AF37';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('COMANDOS DISPONIVEIS', 106, 505);
+
+    ctx.fillStyle = '#AEB6C2';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('Use os botões abaixo para navegar sem expor seus dados no canal.', 285, 505);
+
+    return canvas.toBuffer('image/png');
+}
+
 
 // =====================================
 // IA NARRATIVA E HUD DO MESTRE (ETAPAS 5.4 E 3.4)
@@ -1581,4 +1726,4 @@ async function repintarMapaNovo(channel, cena) {
 }
 
 
-module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelMestre, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponents };
+module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerPainelMestre, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponents };

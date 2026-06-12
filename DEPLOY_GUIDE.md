@@ -1,79 +1,73 @@
-# Guia de Deploy e Atualização do Bot de RPG
+# Guia de Deploy e Atualizacao do Bot de RPG
 
-Este documento serve como manual de referência rápida sobre como gerenciar, atualizar e fazer o deploy do bot de RPG na nuvem.
+Este projeto usa GitHub Actions para publicar o bot automaticamente em producao sempre que houver `git push` na branch `main` do repositorio `https://github.com/Unetus/bot-ernas.git`.
 
-Atualmente, o projeto está configurado com um fluxo de **Integração e Entrega Contínuas (CI/CD) via GitHub Actions**, o que significa que as atualizações do bot acontecem de forma 100% automatizada a cada push!
+## Producao Atual
 
----
+- Provedor/host: servidor Linux acessado via SSH.
+- Host configurado no workflow: `212.38.89.129`
+- Usuario SSH configurado no workflow: `dev`
+- Diretorio remoto do bot: `/home/dev/bot-ernas`
+- Processo PM2: `rpg-bot`
+- Workflow: `.github/workflows/deploy.yml`
 
-## 🖥️ Informações do Servidor
+> Observacao: havia documentacao antiga apontando para `137.131.222.150` com usuario `ubuntu`. O workflow ativo usa `212.38.89.129` com usuario `dev`; por isso este guia foi atualizado para refletir o deploy real.
 
-* **Provedor:** Oracle Cloud (Always Free - AMD Micro)
-* **IP Público:** `137.131.222.150`
-* **Usuário SSH:** `ubuntu`
-* **Chave Privada SSH:** `ssh-key-2026-05-25.key` (localizada na raiz do projeto local)
-* **Diretório do Bot no Servidor:** `/home/ubuntu/bot`
+## Como o Deploy Funciona
 
----
+Ao enviar commits para `main`, o GitHub Actions:
 
-## ⚡ Fluxo Automatizado (GitHub Actions)
+1. Faz checkout do codigo.
+2. Copia os arquivos necessarios para `/home/dev/bot-ernas`.
+3. Instala dependencias de producao com `npm install --omit=dev`.
+4. Reinicia o processo `rpg-bot` no PM2.
+5. Se o processo ainda nao existir, inicia `index.js` com o nome `rpg-bot`.
+6. Salva a configuracao do PM2 com `pm2 save`.
 
-A cada `git push` na branch `main` do repositório do GitHub (`https://github.com/Unetus/bot-ernas.git`), o servidor é atualizado automaticamente.
+O deploy inclui as pastas e arquivos usados em runtime, incluindo `assets/**`, `canvas/**`, `commands/**`, `mapas-arena/**` e `utils/**`.
 
-### 🔑 Configuração Inicial (Uma única vez)
+## Secrets Necessarios no GitHub
 
-Para que a automação do GitHub consiga conectar na sua VM e atualizar os arquivos, você precisa adicionar a sua chave SSH nas configurações do repositório no GitHub:
+Configure em `Settings > Secrets and variables > Actions`:
 
-1. Abra o arquivo `ssh-key-2026-05-25.key` no seu VS Code e copie todo o conteúdo dele (incluindo as linhas `-----BEGIN RSA PRIVATE KEY-----` e `-----END RSA PRIVATE KEY-----`).
-2. Acesse o seu repositório no GitHub: `https://github.com/Unetus/bot-ernas`.
-3. Vá em **Settings** (Configurações) ➔ **Secrets and variables** (no menu esquerdo) ➔ **Actions**.
-4. Clique no botão **New repository secret** (Novo segredo do repositório).
-5. Preencha os campos exatamente assim:
-   * **Name:** `SSH_PRIVATE_KEY`
-   * **Secret:** Cole o conteúdo completo da chave `.key` que você copiou.
-6. Clique em **Add secret**.
+- `SSH_PRIVATE_KEY`: chave privada que permite o acesso SSH do usuario `dev` ao host `212.38.89.129`.
 
-Pronto! Agora a automação tem permissão segura para conectar na sua VM.
+Nunca envie para o GitHub arquivos locais sensiveis como `.env`, `*.key` ou `db.json`. Eles ja estao protegidos pelo `.gitignore`.
 
----
+## Como Publicar uma Atualizacao
 
-### 🚀 Como atualizar o Bot daqui para frente
+```powershell
+git status --short
+node test_commands.js
+git add .github/workflows/deploy.yml DEPLOY_GUIDE.md COMMANDS_AND_FEATURES.md DEV_DOCUMENTATION.md canvas/renderer.js commands/painel.js assets/ui/painel-hud-medieval.png
+git commit -m "feat(painel): rework player hud visual"
+git push origin main
+```
 
-Com a chave configurada no GitHub, a atualização do bot se resume a este simples fluxo:
+Depois do push, acompanhe a execucao em:
 
-1. **Desenvolva** a nova função ou ajuste no seu PC.
-2. **Envie para o GitHub** pelo terminal local:
-   ```bash
-   git add .
-   git commit -m "Minha nova funcionalidade incrível"
-   git push origin main
-   ```
-3. **Acompanhe o deploy automático:**
-   * Acesse a aba **Actions** no seu repositório do GitHub.
-   * Você verá o pipeline rodando e, em cerca de 15 segundos, o GitHub terá copiado os arquivos novos e reiniciado o bot no servidor sozinho!
+`https://github.com/Unetus/bot-ernas/actions`
 
-> ⚠️ **IMPORTANTE:** O arquivo `.gitignore` local está configurado para **nunca** enviar para o GitHub seus arquivos confidenciais:
-> * `.env` (contém seu token do Discord)
-> * `ssh-key-2026-05-25.key` (sua chave privada)
-> * `db.json` (seu banco de dados dinâmico de RPG)
-> * `node_modules/` (dependências locais)
->
-> Isso protege sua segurança e impede que o banco de dados do servidor seja apagado ou sobrescrito a cada atualização!
+## Verificacao em Producao
 
----
+Quando o deploy finalizar, valide:
 
-## 🛠️ Gerenciamento Manual (Fallback / Resolução de Problemas)
+```bash
+pm2 status
+pm2 logs rpg-bot --lines 80
+```
 
-Caso precise acessar o servidor diretamente para ver logs ou gerenciar o bot manualmente:
+No Discord, execute:
 
-1. **Conectar na VM:**
-   ```powershell
-   ssh -i .\ssh-key-2026-05-25.key ubuntu@137.131.222.150
-   ```
+```text
+/painel
+```
 
-2. **Comandos úteis do PM2 na VM:**
-   * **Ver logs do bot em tempo real:** `pm2 logs rpg-bot`
-   * **Parar o bot:** `pm2 stop rpg-bot`
-   * **Iniciar o bot:** `pm2 start rpg-bot`
-   * **Reiniciar o bot:** `pm2 restart rpg-bot`
-   * **Ver consumo de memória/CPU:** `pm2 status`
+O retorno esperado e um painel privado com banner medieval moderno, botoes nativos do Discord e a imagem `painel-jogador.png` anexada no embed.
+
+## Troubleshooting
+
+- Se o GitHub Actions falhar com `Permission denied (publickey)`, atualize o secret `SSH_PRIVATE_KEY`.
+- Se o bot nao aparecer no PM2, o workflow tentara criar o processo com `pm2 start index.js --name rpg-bot`.
+- Se o painel aparecer sem imagem de fundo, confirme se `assets/ui/painel-hud-medieval.png` existe no servidor e se o workflow esta copiando `assets/**`.
+- Se comandos novos nao aparecerem no Discord, aguarde alguns minutos ou reinicie o bot; o `index.js` registra slash commands no evento `ready`.

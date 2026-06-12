@@ -19,7 +19,7 @@ jobs:
           username: dev
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
-          source: "index.js,package.json,package-lock.json,mapa.png,mapa_config.json,apiClient.js,catalogCache.js,cooldown.js,renderQueue.js,canvas/**,commands/**,mapas-arena/**,utils/**"
+          source: "index.js,package.json,package-lock.json,mapa.png,mapa_config.json,apiClient.js,catalogCache.js,cooldown.js,renderQueue.js,assets/**,canvas/**,commands/**,mapas-arena/**,utils/**"
           target: "/home/dev/bot-ernas"
           rm: false
 
@@ -33,4 +33,5 @@ jobs:
           script: |
             cd ~/bot-ernas
             npm install --omit=dev
-            pm2 restart rpg-bot
+            pm2 describe rpg-bot >/dev/null 2>&1 && pm2 restart rpg-bot || pm2 start index.js --name rpg-bot
+            pm2 save
