@@ -1016,7 +1016,7 @@ async function gerarBannerPainelJogador(user = {}) {
     ctx.fillStyle = overlay;
     ctx.fillRect(0, 0, w, h);
 
-    const drawPanel = (x, y, width, height, accent, title, body, tag) => {
+    const drawPanel = (x, y, width, height, title) => {
         ctx.save();
         ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
         ctx.shadowBlur = 12;
@@ -1035,58 +1035,42 @@ async function gerarBannerPainelJogador(user = {}) {
         else ctx.rect(x, y, width, height);
         ctx.stroke();
 
-        ctx.fillStyle = accent;
+        ctx.fillStyle = '#D4AF37';
         ctx.fillRect(x + 18, y + 20, 4, height - 40);
 
         ctx.fillStyle = '#F4E7C8';
-        ctx.font = 'bold 22px sans-serif';
-        ctx.fillText(title, x + 36, y + 42);
-
-        ctx.fillStyle = '#9FA8B5';
-        ctx.font = '15px sans-serif';
-        ctx.fillText(body, x + 36, y + 72);
-
-        ctx.fillStyle = 'rgba(212, 175, 55, 0.14)';
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(x + width - 92, y + 22, 64, 28, 14);
-        else ctx.rect(x + width - 92, y + 22, 64, 28);
-        ctx.fill();
-
-        ctx.fillStyle = '#D4AF37';
-        ctx.font = 'bold 12px sans-serif';
+        ctx.font = 'bold 26px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(tag, x + width - 60, y + 41);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(title, x + width / 2, y + height / 2 + 1);
         ctx.textAlign = 'left';
+        ctx.textBaseline = 'alphabetic';
     };
 
     const displayName = user.globalName || user.username || 'Aventureiro';
 
-    ctx.fillStyle = '#D4AF37';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText('ARKANDIA PLAYER HUD', 82, 92);
-
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 44px sans-serif';
-    ctx.fillText('Central do Jogador', 82, 142);
+    ctx.fillText('Painel do Jogador', 82, 132);
 
     ctx.fillStyle = '#AEB6C2';
     ctx.font = '18px sans-serif';
-    ctx.fillText(`Sessão privada para ${displayName}`, 84, 176);
+    ctx.fillText(`Sessão privada para ${displayName}`, 84, 166);
 
     ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(82, 200);
-    ctx.lineTo(918, 200);
+    ctx.moveTo(82, 194);
+    ctx.lineTo(918, 194);
     ctx.stroke();
 
     const cards = [
-        ['Perfil', 'Ficha, atributos e deck equipado.', '#4FA3FF', 'FICHA'],
-        ['Inventário', 'Itens, moedas e equipamentos.', '#E0B94F', 'BOLSA'],
-        ['Missões', 'Contratos abertos e objetivos.', '#A56DFF', 'RPG'],
-        ['Rankings', 'Poder, nível, guildas e arena.', '#F05D5E', 'TOP'],
-        ['Guilda', 'Consulta rápida de reputação.', '#42D392', 'CLAN'],
-        ['Cena RP', 'Atalho para iniciar interpretação.', '#5ED6D6', 'LIVE']
+        'Perfil',
+        'Inventário',
+        'Missões',
+        'Rankings',
+        'Guilda',
+        'Cena RP'
     ];
 
     const startX = 82;
@@ -1104,10 +1088,7 @@ async function gerarBannerPainelJogador(user = {}) {
             startY + row * (cardH + gapY),
             cardW,
             cardH,
-            card[2],
-            card[0],
-            card[1],
-            card[3]
+            card
         );
     });
 
@@ -1117,13 +1098,11 @@ async function gerarBannerPainelJogador(user = {}) {
     else ctx.rect(82, 478, 836, 44);
     ctx.fill();
 
-    ctx.fillStyle = '#D4AF37';
-    ctx.font = 'bold 13px sans-serif';
-    ctx.fillText('COMANDOS DISPONIVEIS', 106, 505);
-
     ctx.fillStyle = '#AEB6C2';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('Use os botões abaixo para navegar sem expor seus dados no canal.', 285, 505);
+    ctx.font = '15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Use os botões abaixo para navegar sem expor seus dados no canal.', w / 2, 505);
+    ctx.textAlign = 'left';
 
     return canvas.toBuffer('image/png');
 }

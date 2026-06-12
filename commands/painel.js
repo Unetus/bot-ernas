@@ -21,15 +21,15 @@ async function execute(interaction) {
         .setFooter({ text: 'Painel privado. Use os botões abaixo para navegar.' });
 
     const row1 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('painel_menu_perfil').setLabel('Perfil').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('painel_menu_inventario').setLabel('Inventário').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('painel_menu_missoes').setLabel('Missões').setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId('painel_menu_perfil').setLabel('◇ Perfil').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('painel_menu_inventario').setLabel('▣ Inventário').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('painel_menu_missoes').setLabel('※ Missões').setStyle(ButtonStyle.Secondary)
     );
     
     const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('painel_menu_ranking').setLabel('Rankings').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('painel_menu_guilda').setLabel('Guilda').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('painel_menu_rp').setLabel('Cena RP').setStyle(ButtonStyle.Success)
+        new ButtonBuilder().setCustomId('painel_menu_ranking').setLabel('△ Rankings').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('painel_menu_guilda').setLabel('♜ Guilda').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('painel_menu_rp').setLabel('✦ Cena RP').setStyle(ButtonStyle.Success)
     );
 
     try {
