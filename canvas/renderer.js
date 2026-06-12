@@ -32,7 +32,10 @@ const HUD_MUTED = '#AEB6C2';
 const HUD_PANEL = 'rgba(18, 20, 27, 0.78)';
 const HUD_BORDER = 'rgba(212, 175, 55, 0.28)';
 
-async function drawHudBase(ctx, w, h) {
+async function drawHudBase(ctx, w, h, options = {}) {
+    const focusX = Math.max(0, Math.min(1, options.focusX ?? 0.5));
+    const focusY = Math.max(0, Math.min(1, options.focusY ?? 0.5));
+
     ctx.fillStyle = '#0F1015';
     ctx.fillRect(0, 0, w, h);
 
@@ -41,8 +44,8 @@ async function drawHudBase(ctx, w, h) {
         const scale = Math.max(w / bg.width, h / bg.height);
         const sw = w / scale;
         const sh = h / scale;
-        const sx = (bg.width - sw) / 2;
-        const sy = (bg.height - sh) / 2;
+        const sx = Math.max(0, (bg.width - sw) * focusX);
+        const sy = Math.max(0, (bg.height - sh) * focusY);
         ctx.drawImage(bg, sx, sy, sw, sh, 0, 0, w, h);
     } catch (e) {
         const grd = ctx.createLinearGradient(0, 0, 0, h);
@@ -476,7 +479,7 @@ async function gerarBannerPerfil(p) {
     const h = 500;
     const canvas = createCanvas(w, h);
     const ctx = canvas.getContext('2d');
-    await drawHudBase(ctx, w, h);
+    await drawHudBase(ctx, w, h, { focusY: 0.38 });
 
     const nome = formatarTexto(p.nome || 'Aventureiro');
     const titulo = p.titulo ? formatarTexto(p.titulo) : '';
@@ -484,7 +487,7 @@ async function gerarBannerPerfil(p) {
     const classe = formatarTexto(p.classe || '');
     const identidade = [raca, classe].filter(Boolean).join(' • ');
 
-    drawHudHeader(ctx, trimToWidth(ctx, nome, 520), titulo || identidade || 'Ficha do personagem', 330, 84, 690);
+    drawHudHeader(ctx, trimToWidth(ctx, nome, 520), titulo || identidade || 'Ficha do personagem', 330, 96, 690);
 
     const avatarSize = 210;
     const avatarX = 82;
@@ -513,7 +516,7 @@ async function gerarBannerPerfil(p) {
     if (identidade && titulo) {
         ctx.fillStyle = HUD_MUTED;
         ctx.font = '18px sans-serif';
-        ctx.fillText(identidade, 332, 184);
+        ctx.fillText(identidade, 332, 196);
     }
 
     const romanTiers = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V', 6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X' };

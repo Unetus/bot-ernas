@@ -462,6 +462,8 @@ module.exports = {
     execute,
     handleButton,
     handleSelect,
+    buildItemDetail,
+    buildSkillDetail,
     // Exportados para reutilização no atalho de bestiário
     buildBestiarioPage,
     buildBestiarioDetail,

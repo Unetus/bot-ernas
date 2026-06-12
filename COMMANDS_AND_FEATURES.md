@@ -204,3 +204,18 @@ Permite que o jogador consulte o conteúdo completo da sua mochila (inventário)
     *   **Menu de Abas**: Botões de categorias para filtrar itens (`Tudo 🎒`, `Armas ⚔`, `Defesas 🛡`, `Consumíveis 🧪`, `Materiais 💎`).
     *   **Paginação**: Botões de navegação (`Anterior ◀` e `Próximo ▶`) para listar itens grandes organizados por páginas.
     *   **Raridade**: Exibe os itens marcados por cores temáticas de acordo com a raridade do item (⚪ Comum, 🔵 Raro, 🟣 Épico, 🟠 Lendário, 🔴 Mítico).
+
+### 📚 `/enciclopedia`
+Unifica a consulta dos registros oficiais de Ernas em uma única interface privada.
+*   **Categorias integradas**:
+    *   `Itens`: equipamentos, consumíveis, materiais e afins.
+    *   `Habilidades`: skills catalogadas no mundo.
+    *   `Bestiário`: criaturas e monstros registrados.
+    *   `Canônes`: NPCs canônicos e figuras conhecidas.
+*   **Busca inteligente por modal**:
+    *   O botão `Busca` abre um modal para o jogador informar o nome desejado.
+    *   Se houver correspondência exata, o registro é aberto diretamente.
+    *   Se o nome vier incompleto ou impreciso, a HUD sugere os resultados mais próximos sem abrir nova mensagem.
+*   **Atalho no `/painel`**:
+    *   A Enciclopédia também fica acessível pela central do jogador.
+    *   Dentro do `/painel`, a HUD reduz os botões para `Início` + categorias da própria enciclopédia, mantendo o chat limpo.

@@ -44,7 +44,7 @@ Por simplicidade e velocidade de acesso em canais de texto de RPG, parte do esta
 
 ### 1. Sistema de Cache Global (`catalogCache` & `renderQueue`)
 Para garantir máxima performance durante a alta demanda (múltiplos jogadores consultando itens ou renderizando canvas), o bot implementa duas esteiras de otimização:
-*   **`catalogCache`**: Carrega e atualiza periodicamente em background os catálogos de `/itens`, `/skills` e `/bestiario` vindos da API. O comando `/catalogo` consulta esta memória Ram, poupando a API do site e respondendo instantaneamente.
+*   **`catalogCache`**: Carrega e atualiza periodicamente em background os catálogos de `/itens`, `/skills`, `/bestiario` e `/npcs` vindos da API. Os comandos `/catalogo`, `/bestiario` e `/enciclopedia` consultam esta memória Ram, poupando a API do site e respondendo instantaneamente.
 *   **`renderQueue`**: Uma fila (Queue) especializada em gerenciar a renderização Canvas no `@napi-rs/canvas`. Evita que requisições assíncronas concorrentes engasguem a single-thread do Node.js, processando no máximo 5 imagens simultâneas.
 
 ### 2. Mapa de Configuração (`mapaConfig` & `mapa_config.json`)
@@ -125,6 +125,13 @@ As interações (`ChatInputCommand`, `Button`, `StringSelectMenu` e `ModalSubmit
 - `handleModal(interaction)`: Submissões de formulários.
 Essa arquitetura isolada garante altíssima escalabilidade e facilidade de manutenção.
 
+### Padrao Atual de HUDs do Jogador
+As HUDs abertas pelo `/painel` seguem um roteamento de mensagem unica:
+*   A tela inicial exibe o menu completo do jogador.
+*   Ao entrar em uma sub-HUD, o bot reduz os componentes para `Inicio` + controles locais daquela tela.
+*   Inventario, ranking, perfil, enciclopedia e detalhes internos atualizam a mesma mensagem via `editReply` ou `update`.
+*   Modais de busca, como o da `/enciclopedia`, devem substituir a HUD original em vez de publicar uma nova resposta visual.
+
 ## 🎨 Engine de Renderização 2D (VTT)
 
 O VTT desenha dinamicamente um mapa tático utilizando `@napi-rs/canvas`. 
@@ -162,8 +169,10 @@ Todas as requisições para `https://www.ernas.com.br/api/public/v1` exigem o he
     *   O bot resolve automaticamente o personagem buscando por Discord ID (`GET /personagens/discord/:idOuUsername`).
 2.  **Consulta a Itens e Drops:**
     *   `/itens/:ref` suporta UUID, slug e nome.
-3.  **NPCs e Bestiário:**
-    *   Para o sistema de impersonação (`/narrar habilitar` e `/cena npc_entrar`), o bot tenta carregar os dados de `/npcs/:ref` e, caso dê 404, recorre ao `/bestiario/:ref` para criaturas selvagens. Adicionalmente, o comando global `/bestiario` permite aos jogadores consultar as lendas destas criaturas.
+3.  **NPCs, Bestiário e Enciclopédia:**
+    *   Para o sistema de impersonação (`/narrar habilitar` e `/cena npc_entrar`), o bot tenta carregar os dados de `/npcs/:ref` e, caso dê 404, recorre ao `/bestiario/:ref` para criaturas selvagens.
+    *   O comando global `/bestiario` continua como atalho rápido para criaturas.
+    *   O comando `/enciclopedia` consolida itens, habilidades, bestiário e NPCs canônicos em uma só interface com busca modal e correspondência aproximada.
 4.  **Inserção no Inventário:**
     *   Ao clicar no botão de coleta de drop, o bot efetua um `POST /personagens/:id/inventario/adicionar` passando o `item_id` e a `quantidade` para popular o inventário do jogador em tempo real no site do jogo, utilizando cabeçalhos de controle e autenticação (`X-API-Key` e `Idempotency-Key` com UUID v4 gerado no ato).
 
