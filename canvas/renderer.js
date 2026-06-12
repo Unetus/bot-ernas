@@ -25,7 +25,91 @@ async function loadImage(source) {
     return _originalLoadImage(source);
 }
 
-async function gerarBannerPerfil(p) {
+const HUD_ASSET_PATH = './assets/ui/painel-hud-medieval.png';
+const HUD_GOLD = '#D4AF37';
+const HUD_TEXT = '#F4E7C8';
+const HUD_MUTED = '#AEB6C2';
+const HUD_PANEL = 'rgba(18, 20, 27, 0.78)';
+const HUD_BORDER = 'rgba(212, 175, 55, 0.28)';
+
+async function drawHudBase(ctx, w, h) {
+    ctx.fillStyle = '#0F1015';
+    ctx.fillRect(0, 0, w, h);
+
+    try {
+        const bg = await loadImage(HUD_ASSET_PATH);
+        const scale = Math.max(w / bg.width, h / bg.height);
+        const sw = w / scale;
+        const sh = h / scale;
+        const sx = (bg.width - sw) / 2;
+        const sy = (bg.height - sh) / 2;
+        ctx.drawImage(bg, sx, sy, sw, sh, 0, 0, w, h);
+    } catch (e) {
+        const grd = ctx.createLinearGradient(0, 0, 0, h);
+        grd.addColorStop(0, '#20222B');
+        grd.addColorStop(1, '#0F1015');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    const overlay = ctx.createLinearGradient(0, 0, 0, h);
+    overlay.addColorStop(0, 'rgba(6, 7, 10, 0.12)');
+    overlay.addColorStop(0.45, 'rgba(6, 7, 10, 0.38)');
+    overlay.addColorStop(1, 'rgba(6, 7, 10, 0.55)');
+    ctx.fillStyle = overlay;
+    ctx.fillRect(0, 0, w, h);
+}
+
+function drawHudBox(ctx, x, y, w, h, radius = 12) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 6;
+    ctx.fillStyle = HUD_PANEL;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, radius);
+    else ctx.rect(x, y, w, h);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = HUD_BORDER;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, radius);
+    else ctx.rect(x, y, w, h);
+    ctx.stroke();
+}
+
+function drawHudHeader(ctx, title, subtitle, x, y, width) {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 42px sans-serif';
+    ctx.fillText(title, x, y);
+
+    if (subtitle) {
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '18px sans-serif';
+        ctx.fillText(subtitle, x + 2, y + 34);
+    }
+
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 62);
+    ctx.lineTo(x + width, y + 62);
+    ctx.stroke();
+}
+
+function trimToWidth(ctx, text, maxWidth) {
+    const str = String(text || '');
+    if (ctx.measureText(str).width <= maxWidth) return str;
+    let out = str;
+    while (out.length > 1 && ctx.measureText(`${out}...`).width > maxWidth) {
+        out = out.slice(0, -1);
+    }
+    return `${out}...`;
+}
+
+async function gerarBannerPerfilLegacy(p) {
     const canvas = createCanvas(1100, 415);
     const ctx = canvas.getContext('2d');
 
@@ -387,6 +471,163 @@ async function gerarBannerPerfil(p) {
     return canvas.toBuffer('image/png');
 }
 
+async function gerarBannerPerfil(p) {
+    const w = 1100;
+    const h = 500;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    await drawHudBase(ctx, w, h);
+
+    const nome = formatarTexto(p.nome || 'Aventureiro');
+    const titulo = p.titulo ? formatarTexto(p.titulo) : '';
+    const raca = formatarTexto(p.raca || '');
+    const classe = formatarTexto(p.classe || '');
+    const identidade = [raca, classe].filter(Boolean).join(' • ');
+
+    drawHudHeader(ctx, trimToWidth(ctx, nome, 520), titulo || identidade || 'Ficha do personagem', 330, 84, 690);
+
+    const avatarSize = 210;
+    const avatarX = 82;
+    const avatarY = 82;
+
+    drawHudBox(ctx, 58, 58, 258, 258, 18);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.clip();
+    try {
+        const avatar = await loadImage(p.avatar_url || 'https://i.imgur.com/vHqB3q0.png');
+        ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
+    } catch (e) {
+        ctx.fillStyle = '#20222B';
+        ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = HUD_GOLD;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2 + 2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    if (identidade && titulo) {
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '18px sans-serif';
+        ctx.fillText(identidade, 332, 184);
+    }
+
+    const romanTiers = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V', 6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X' };
+    const tierNum = p.indice_poder_faixa || 1;
+    const tierRomano = romanTiers[tierNum] || String(tierNum);
+    const stats = [
+        ['Rank', p.rank || '-'],
+        ['Nível', p.nivel || 1],
+        ['Tier', tierRomano],
+        ['Poder', (p.indice_poder || 0).toLocaleString('pt-BR')]
+    ];
+
+    stats.forEach((stat, i) => {
+        const x = 330 + i * 174;
+        drawHudBox(ctx, x, 216, 150, 82, 12);
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(stat[0].toUpperCase(), x + 75, 242);
+        ctx.fillStyle = HUD_TEXT;
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillText(String(stat[1]), x + 75, 277);
+        ctx.textAlign = 'left';
+    });
+
+    drawHudBox(ctx, 58, 350, 698, 104, 14);
+    ctx.fillStyle = HUD_GOLD;
+    ctx.fillRect(82, 376, 4, 52);
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('DECK DE HABILIDADES', 104, 382);
+
+    const skills = p.build_skills || [];
+    const slots = [
+        skills.find(s => s.slot === 'racial'),
+        skills.find(s => s.slot === '1'),
+        skills.find(s => s.slot === '2'),
+        skills.find(s => s.slot === '3'),
+        skills.find(s => s.slot === '4'),
+        skills.find(s => s.slot === '5'),
+        skills.find(s => s.slot === '6'),
+        skills.find(s => s.slot === '7')
+    ];
+
+    for (let i = 0; i < 8; i++) {
+        const slotX = 104 + i * 78;
+        const slotY = 396;
+        const slotSize = 52;
+        const skill = slots[i];
+
+        ctx.save();
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(slotX, slotY, slotSize, slotSize, 9);
+        else ctx.rect(slotX, slotY, slotSize, slotSize);
+        ctx.clip();
+        try {
+            if (skill?.imagem_url) {
+                const img = await loadImage(skill.imagem_url);
+                ctx.drawImage(img, slotX, slotY, slotSize, slotSize);
+            } else {
+                ctx.fillStyle = 'rgba(15, 16, 21, 0.86)';
+                ctx.fillRect(slotX, slotY, slotSize, slotSize);
+            }
+        } catch (e) {
+            ctx.fillStyle = 'rgba(15, 16, 21, 0.86)';
+            ctx.fillRect(slotX, slotY, slotSize, slotSize);
+        }
+        ctx.restore();
+
+        ctx.strokeStyle = skill ? HUD_GOLD : 'rgba(212, 175, 55, 0.18)';
+        ctx.lineWidth = skill ? 2 : 1.5;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(slotX, slotY, slotSize, slotSize, 9);
+        else ctx.rect(slotX, slotY, slotSize, slotSize);
+        ctx.stroke();
+    }
+
+    drawHudBox(ctx, 790, 350, 252, 104, 14);
+    ctx.fillStyle = HUD_GOLD;
+    ctx.fillRect(814, 376, 4, 52);
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('EQUIPAMENTO', 836, 382);
+
+    const equips = p.equipamento || [];
+    const equipSlots = [
+        ['Elmo', ['capacete', 'cabeca', 'helmet', 'head', 'elmo']],
+        ['Peito', ['armadura', 'peito', 'chest', 'armor', 'body', 'veste']],
+        ['Arma', ['arma_principal', 'arma', 'weapon', 'main_hand', 'espada', 'arco', 'bastao', 'machado', 'lança']],
+        ['Botas', ['sapatos', 'botas', 'boots', 'shoes', 'feet', 'pes', 'bota']]
+    ];
+
+    equipSlots.forEach((slot, i) => {
+        const item = equips.find(e => slot[1].includes(e.slot?.toLowerCase()));
+        const x = 836 + i * 48;
+        const y = 398;
+        ctx.fillStyle = item ? 'rgba(212, 175, 55, 0.14)' : 'rgba(15, 16, 21, 0.86)';
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x, y, 38, 38, 8);
+        else ctx.rect(x, y, 38, 38);
+        ctx.fill();
+        ctx.strokeStyle = item ? HUD_GOLD : 'rgba(212, 175, 55, 0.18)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = item ? HUD_TEXT : '#5E6673';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(slot[0].slice(0, 3).toUpperCase(), x + 19, y + 24);
+        ctx.textAlign = 'left';
+    });
+
+    return canvas.toBuffer('image/png');
+}
+
 async function gerarBannerLoot(item, qtd) {
     const canvas = createCanvas(800, 200);
     const ctx = canvas.getContext('2d');
@@ -482,7 +723,7 @@ async function gerarBannerLoot(item, qtd) {
     return canvas.toBuffer('image/png');
 }
 
-async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas) {
+async function gerarBannerInventarioLegacy(p, sliceItens, categoria, pag, totalPaginas) {
     const w = 1000;
     const h = 580;
     const canvas = createCanvas(w, h);
@@ -631,7 +872,138 @@ async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas
     return canvas.toBuffer('image/png');
 }
 
-async function gerarBannerRanking(tipo, dados) {
+async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas) {
+    const w = 1000;
+    const h = 580;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    await drawHudBase(ctx, w, h);
+
+    const categoriaLabel = formatarTexto(categoria === 'todos' ? 'Tudo' : categoria);
+    const libras = p.libras || p.saldo || 0;
+    drawHudHeader(ctx, `Inventário de ${formatarTexto(p.nome || 'Aventureiro')}`, `${categoriaLabel} • ${libras.toLocaleString('pt-BR')} Libras`, 82, 100, 836);
+
+    const raridades = {
+        comum: '#8B949E',
+        raro: '#3498DB',
+        epico: '#8B5CF6',
+        lendario: '#F59E0B',
+        mitico: '#EF4444'
+    };
+
+    const cols = 4;
+    const marginX = 82;
+    const marginY = 196;
+    const cardW = 198;
+    const cardH = 128;
+    const gapX = 20;
+    const gapY = 22;
+
+    for (let i = 0; i < 8; i++) {
+        const row = Math.floor(i / cols);
+        const col = i % cols;
+        const x = marginX + col * (cardW + gapX);
+        const y = marginY + row * (cardH + gapY);
+        const item = sliceItens[i];
+
+        drawHudBox(ctx, x, y, cardW, cardH, 12);
+        ctx.fillStyle = HUD_GOLD;
+        ctx.fillRect(x + 14, y + 22, 4, cardH - 44);
+
+        if (!item) {
+            ctx.fillStyle = '#5E6673';
+            ctx.font = 'bold 18px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Vazio', x + cardW / 2, y + cardH / 2 + 6);
+            ctx.textAlign = 'left';
+            continue;
+        }
+
+        const raridade = (item.raridade || item.item?.raridade || 'comum').toLowerCase();
+        const corRaridade = raridades[raridade] || HUD_MUTED;
+        const iconSize = 58;
+        const iconX = x + 32;
+        const iconY = y + 28;
+        const qtd = item.quantidade || 1;
+
+        ctx.save();
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(iconX, iconY, iconSize, iconSize, 10);
+        else ctx.rect(iconX, iconY, iconSize, iconSize);
+        ctx.clip();
+        try {
+            const url = item.imagem_url || item.item?.imagem_url;
+            if (url) {
+                const img = await loadImage(url);
+                ctx.drawImage(img, iconX, iconY, iconSize, iconSize);
+            } else {
+                ctx.fillStyle = '#101116';
+                ctx.fillRect(iconX, iconY, iconSize, iconSize);
+            }
+        } catch (e) {
+            ctx.fillStyle = '#101116';
+            ctx.fillRect(iconX, iconY, iconSize, iconSize);
+        }
+        ctx.restore();
+
+        ctx.strokeStyle = corRaridade;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(iconX, iconY, iconSize, iconSize, 10);
+        else ctx.rect(iconX, iconY, iconSize, iconSize);
+        ctx.stroke();
+
+        if (qtd > 1) {
+            ctx.fillStyle = 'rgba(15, 16, 21, 0.9)';
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(iconX + 34, iconY + 37, 34, 24, 10);
+            else ctx.rect(iconX + 34, iconY + 37, 34, 24);
+            ctx.fill();
+            ctx.fillStyle = HUD_TEXT;
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`x${qtd}`, iconX + 51, iconY + 54);
+            ctx.textAlign = 'left';
+        }
+
+        const itemNome = formatarTexto(item.nome || item.item?.nome || 'Item Desconhecido');
+        const catLabel = formatarTexto(item.categoria || item.item?.categoria || '');
+
+        ctx.fillStyle = HUD_TEXT;
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText(trimToWidth(ctx, itemNome, 92), x + 104, y + 48);
+
+        ctx.fillStyle = corRaridade;
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(formatarTexto(raridade), x + 104, y + 70);
+
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '12px sans-serif';
+        ctx.fillText(trimToWidth(ctx, catLabel, 82), x + 104, y + 90);
+
+        if (item.equipado) {
+            ctx.fillStyle = HUD_GOLD;
+            ctx.font = 'bold 10px sans-serif';
+            ctx.fillText('EQUIPADO', x + 32, y + 106);
+        }
+    }
+
+    ctx.fillStyle = 'rgba(15, 16, 21, 0.72)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(82, 510, 836, 38, 12);
+    else ctx.rect(82, 510, 836, 38);
+    ctx.fill();
+
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Página ${pag + 1} de ${totalPaginas}`, w / 2, 535);
+    ctx.textAlign = 'left';
+
+    return canvas.toBuffer('image/png');
+}
+
+async function gerarBannerRankingLegacy(tipo, dados) {
     const canvas = createCanvas(800, 620);
     const ctx = canvas.getContext('2d');
 
@@ -754,6 +1126,86 @@ async function gerarBannerRanking(tipo, dados) {
         }
 
         ctx.fillText(valorText, 730, y + rowHeight / 2 + 5);
+        ctx.textAlign = 'left';
+    }
+
+    return canvas.toBuffer('image/png');
+}
+
+async function gerarBannerRanking(tipo, dados) {
+    const w = 800;
+    const h = 620;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    await drawHudBase(ctx, w, h);
+
+    const tipoTraduzido = {
+        poder: 'Índice de Poder',
+        nivel: 'Nível e Experiência',
+        guildas: 'Guildas de Vermécia',
+        arena: 'Pontos de Arena'
+    }[String(tipo).toLowerCase()] || formatarTexto(tipo);
+
+    drawHudHeader(ctx, 'Ranking', tipoTraduzido, 62, 92, 676);
+
+    const list = Array.isArray(dados) ? dados : (dados.personagens || dados.guildas || dados.rankings || dados.data || []);
+    const top10 = list.slice(0, 10);
+
+    if (top10.length === 0) {
+        drawHudBox(ctx, 62, 230, 676, 130, 14);
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Nenhum dado encontrado no ranking no momento.', w / 2, 306);
+        ctx.textAlign = 'left';
+        return canvas.toBuffer('image/png');
+    }
+
+    const startY = 174;
+    const rowHeight = 38;
+
+    for (let i = 0; i < top10.length; i++) {
+        const item = top10[i];
+        const y = startY + i * rowHeight;
+
+        drawHudBox(ctx, 62, y, 676, 32, 9);
+        ctx.fillStyle = i === 0 ? 'rgba(212, 175, 55, 0.28)' : 'rgba(212, 175, 55, 0.12)';
+        ctx.fillRect(82, y + 8, 4, 16);
+
+        ctx.fillStyle = i === 0 ? HUD_GOLD : HUD_MUTED;
+        ctx.font = 'bold 15px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`#${i + 1}`, 110, y + 22);
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = i === 0 ? '#FFFFFF' : HUD_TEXT;
+        ctx.font = i === 0 ? 'bold 15px sans-serif' : '14px sans-serif';
+
+        let nomeStr = item.nome || 'Desconhecido';
+        if (item.sigla) nomeStr = `${nomeStr} [${item.sigla}]`;
+
+        let subText = '';
+        if (item.classe && item.raca) {
+            subText = ` • ${formatarTexto(item.raca)} / ${formatarTexto(item.classe)}`;
+        }
+
+        ctx.fillText(trimToWidth(ctx, nomeStr + subText, 410), 146, y + 22);
+
+        let valorText = '';
+        if (tipo === 'poder') {
+            valorText = `${(item.poder || item.indice_poder || 0).toLocaleString('pt-BR')} Poder`;
+        } else if (tipo === 'nivel') {
+            valorText = `Nível ${item.nivel || 1}`;
+        } else if (tipo === 'guildas') {
+            valorText = `${(item.xp_total_guilda || 0).toLocaleString('pt-BR')} XP`;
+        } else if (tipo === 'arena') {
+            valorText = `${item.rating || item.pontos_arena || item.arena_pontos || 0} pts`;
+        }
+
+        ctx.textAlign = 'right';
+        ctx.fillStyle = i === 0 ? HUD_GOLD : HUD_MUTED;
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText(trimToWidth(ctx, valorText, 150), 710, y + 22);
         ctx.textAlign = 'left';
     }
 
@@ -953,22 +1405,24 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina) {
     const attachment = new AttachmentBuilder(buffer, { name: 'inventario.png' });
 
     const embed = new EmbedBuilder()
-        .setColor(p.indice_poder_cor || 0x3498DB)
+        .setColor(0xD4AF37)
         .setImage('attachment://inventario.png');
+
+    const catLabel = (value, label) => `${categoria === value ? '◆' : '◇'} ${label}`;
 
     // Botões de Categorias
     const rowCats = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_todos`).setLabel('Tudo').setStyle(categoria === 'todos' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_armas`).setLabel('Armas').setStyle(categoria === 'armas' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_armaduras`).setLabel('Defesas').setStyle(categoria === 'armaduras' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_consumiveis`).setLabel('Consumíveis').setStyle(categoria === 'consumiveis' ? ButtonStyle.Success : ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_materiais`).setLabel('Materiais').setStyle(categoria === 'materiais' ? ButtonStyle.Success : ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_todos`).setLabel(catLabel('todos', 'Tudo')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_armas`).setLabel(catLabel('armas', 'Armas')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_armaduras`).setLabel(catLabel('armaduras', 'Defesas')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_consumiveis`).setLabel(catLabel('consumiveis', 'Consumíveis')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`inventario_cat_${p.id}_materiais`).setLabel(catLabel('materiais', 'Materiais')).setStyle(ButtonStyle.Secondary)
     );
 
     // Botões de Paginação
     const rowPag = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`inventario_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('Anterior').setStyle(ButtonStyle.Primary).setDisabled(pag === 0),
-        new ButtonBuilder().setCustomId(`inventario_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo').setStyle(ButtonStyle.Primary).setDisabled(pag >= totalPaginas - 1)
+        new ButtonBuilder().setCustomId(`inventario_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('◁ Anterior').setStyle(ButtonStyle.Secondary).setDisabled(pag === 0),
+        new ButtonBuilder().setCustomId(`inventario_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo ▷').setStyle(ButtonStyle.Secondary).setDisabled(pag >= totalPaginas - 1)
     );
 
     const components = [rowCats];

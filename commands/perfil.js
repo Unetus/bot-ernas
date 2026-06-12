@@ -40,7 +40,7 @@ async function execute(interaction) {
         const attachment = new AttachmentBuilder(buffer, { name: 'perfil.png' });
         
         const embed = new EmbedBuilder()
-            .setColor(p.indice_poder_cor || 0x3498DB)
+            .setColor(0xD4AF37)
             .setImage('attachment://perfil.png');
         
         let components = [];

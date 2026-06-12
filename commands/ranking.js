@@ -6,6 +6,22 @@ const { embedErro } = require('../utils/helpers');
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
 
+function getRankingButtons(tipo) {
+    const options = [
+        ['poder', 'Poder'],
+        ['nivel', 'Nível'],
+        ['guildas', 'Guildas'],
+        ['arena', 'Arena']
+    ];
+
+    return new ActionRowBuilder().addComponents(
+        ...options.map(([value, label]) => new ButtonBuilder()
+            .setCustomId(`ranking_switch_${value}`)
+            .setLabel(`${tipo === value ? '◆' : '◇'} ${label}`)
+            .setStyle(ButtonStyle.Secondary))
+    );
+}
+
 const data = new SlashCommandBuilder()
     .setName('ranking')
     .setDescription('Visualiza o ranking global de Arkandia');
@@ -22,12 +38,7 @@ async function execute(interaction) {
             .setColor(0xD4AF37)
             .setImage('attachment://ranking.png');
 
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('Poder').setStyle(tipo === 'poder' ? ButtonStyle.Success : ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('ranking_switch_nivel').setLabel('Nível').setStyle(tipo === 'nivel' ? ButtonStyle.Success : ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('ranking_switch_guildas').setLabel('Guildas').setStyle(tipo === 'guildas' ? ButtonStyle.Success : ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('ranking_switch_arena').setLabel('Arena').setStyle(tipo === 'arena' ? ButtonStyle.Success : ButtonStyle.Secondary)
-        );
+        const row = getRankingButtons(tipo);
 
         return await interaction.editReply({ embeds: [embed], files: [attachment], components: [row] });
     } catch (e) {
@@ -55,12 +66,7 @@ async function handleButton(interaction) {
             .setColor(0xD4AF37)
             .setImage('attachment://ranking.png');
 
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('Poder').setStyle(tipo === 'poder' ? ButtonStyle.Success : ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('ranking_switch_nivel').setLabel('Nível').setStyle(tipo === 'nivel' ? ButtonStyle.Success : ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('ranking_switch_guildas').setLabel('Guildas').setStyle(tipo === 'guildas' ? ButtonStyle.Success : ButtonStyle.Secondary),
-            new ButtonBuilder().setCustomId('ranking_switch_arena').setLabel('Arena').setStyle(tipo === 'arena' ? ButtonStyle.Success : ButtonStyle.Secondary)
-        );
+        const row = getRankingButtons(tipo);
 
         return await interaction.editReply({ embeds: [embed], files: [attachment], components: [row] });
     } catch (e) {

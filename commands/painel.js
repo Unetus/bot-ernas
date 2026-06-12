@@ -21,15 +21,15 @@ async function execute(interaction) {
         .setFooter({ text: 'Painel privado. Use os botões abaixo para navegar.' });
 
     const row1 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('painel_menu_perfil').setLabel('◇ Perfil').setStyle(ButtonStyle.Primary),
-        new ButtonBuilder().setCustomId('painel_menu_inventario').setLabel('▣ Inventário').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId('painel_menu_perfil').setLabel('◇ Perfil').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('painel_menu_inventario').setLabel('▣ Inventário').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('painel_menu_missoes').setLabel('※ Missões').setStyle(ButtonStyle.Secondary)
     );
     
     const row2 = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('painel_menu_ranking').setLabel('△ Rankings').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('painel_menu_guilda').setLabel('♜ Guilda').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('painel_menu_rp').setLabel('✦ Cena RP').setStyle(ButtonStyle.Success)
+        new ButtonBuilder().setCustomId('painel_menu_rp').setLabel('✦ Cena RP').setStyle(ButtonStyle.Secondary)
     );
 
     try {
@@ -84,8 +84,8 @@ async function handleButton(interaction) {
                 .setImage('attachment://ranking.png');
                 
             const row = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('Poder').setStyle(ButtonStyle.Primary),
-                new ButtonBuilder().setCustomId('ranking_switch_riqueza').setLabel('Riqueza').setStyle(ButtonStyle.Secondary)
+                new ButtonBuilder().setCustomId('ranking_switch_poder').setLabel('◆ Poder').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('ranking_switch_riqueza').setLabel('◇ Riqueza').setStyle(ButtonStyle.Secondary)
             );
             
             return await interaction.editReply({ embeds: [embed], files: [attachment], components: [row] });
