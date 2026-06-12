@@ -248,9 +248,8 @@ async function handleButton(interaction) {
 
     if (menu === 'enciclopedia') {
         return await interaction.editReply({
-            ...enciclopediaCmd.buildHomePayload({ panelMode: true }),
-            attachments: [],
-            files: []
+            ...(await enciclopediaCmd.buildHomePayload({ panelMode: true })),
+            attachments: []
         });
     }
 

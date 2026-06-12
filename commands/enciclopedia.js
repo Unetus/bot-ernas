@@ -4,12 +4,14 @@ const {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
+    AttachmentBuilder,
     StringSelectMenuBuilder,
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle
 } = require('discord.js');
 const catalogCache = require('../catalogCache');
+const { gerarBannerEnciclopedia } = require('../canvas/renderer');
 const { formatarTexto, embedErro } = require('../utils/helpers');
 const catalogoCmd = require('./catalogo');
 
@@ -298,11 +300,18 @@ function buildSearchSuggestions(query, results, options = {}) {
     };
 }
 
-function buildHomePayload(options = {}) {
+async function buildHomePayload(options = {}) {
     const { panelMode = false } = options;
+    const buffer = await gerarBannerEnciclopedia();
+    const attachment = new AttachmentBuilder(buffer, { name: 'enciclopedia.png' });
+    const embed = new EmbedBuilder()
+        .setColor(0xD4AF37)
+        .setImage('attachment://enciclopedia.png');
+
     return {
         content: HOME_TEXT,
-        embeds: [],
+        embeds: [embed],
+        files: [attachment],
         components: buildControls(null, { panelMode, homeActive: true })
     };
 }
@@ -334,14 +343,14 @@ async function renderCategory(interaction, category, page = 0, searchKey = null,
 }
 
 async function execute(interaction) {
-    await interaction.reply({ ...buildHomePayload(), ephemeral: true });
+    await interaction.reply({ ...(await buildHomePayload()), ephemeral: true });
 }
 
 async function handleButton(interaction) {
     const panelMode = isPanelContext(interaction.message);
 
     if (interaction.customId === 'enciclopedia_btn_home') {
-        return await interaction.update(buildHomePayload());
+        return await interaction.update(await buildHomePayload());
     }
 
     if (interaction.customId.startsWith('enciclopedia_btn_busca_')) {

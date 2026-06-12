@@ -1577,6 +1577,72 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
     return canvas.toBuffer('image/png');
 }
 
+async function gerarBannerEnciclopedia() {
+    const w = 1000;
+    const h = 560;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    await drawHudBase(ctx, w, h, { focusY: 0.42 });
+
+    drawHudHeader(ctx, 'Enciclopedia', 'Acervo oficial do universo de Ernas', 82, 108, 836);
+
+    const cards = [
+        {
+            title: 'Itens',
+            lines: ['Equipamentos', 'Consumiveis', 'Materiais']
+        },
+        {
+            title: 'Habilidades',
+            lines: ['Grimorios', 'Skills de classe', 'Tecnicas registradas']
+        },
+        {
+            title: 'Bestiario',
+            lines: ['Criaturas', 'Monstros', 'Entidades de Ernas']
+        },
+        {
+            title: 'Canones',
+            lines: ['NPCs', 'Figuras historicas', 'Nomes conhecidos']
+        }
+    ];
+
+    const cardW = 390;
+    const cardH = 126;
+    const startX = 82;
+    const startY = 198;
+    const gapX = 54;
+    const gapY = 28;
+
+    cards.forEach((card, index) => {
+        const col = index % 2;
+        const row = Math.floor(index / 2);
+        const x = startX + col * (cardW + gapX);
+        const y = startY + row * (cardH + gapY);
+
+        drawHudBox(ctx, x, y, cardW, cardH, 14);
+        ctx.fillStyle = HUD_GOLD;
+        ctx.fillRect(x + 22, y + 22, 4, cardH - 44);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillText(card.title, x + 44, y + 42);
+
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '18px sans-serif';
+        card.lines.forEach((line, lineIndex) => {
+            ctx.fillText(line, x + 44, y + 76 + (lineIndex * 22));
+        });
+    });
+
+    drawHudBox(ctx, 82, 506, 836, 30, 10);
+    ctx.fillStyle = HUD_TEXT;
+    ctx.font = '15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Use as abas para navegar ou abra a busca para localizar qualquer registro.', w / 2, 526);
+    ctx.textAlign = 'left';
+
+    return canvas.toBuffer('image/png');
+}
+
 
 // =====================================
 // IA NARRATIVA E HUD DO MESTRE (ETAPAS 5.4 E 3.4)
@@ -2175,4 +2241,4 @@ async function repintarMapaNovo(channel, cena) {
 }
 
 
-module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerPainelMestre, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponents };
+module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerEnciclopedia, gerarBannerPainelMestre, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponents };
