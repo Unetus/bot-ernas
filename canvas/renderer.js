@@ -2132,27 +2132,45 @@ async function renderBanner(scene) {
 
     if (scene.estado === 'COMBATE') {
         ctx.fillStyle = HUD_GOLD;
-        ctx.font = 'bold 24px serif';
-        ctx.fillText(`${sceneName} | Combate - Rodada ${scene.rodada}`, width / 2, 38);
+        ctx.font = 'bold 30px serif';
+        ctx.fillText(`${sceneName} | Combate - Rodada ${scene.rodada}`, width / 2, 60);
         
-        ctx.fillStyle = HUD_TEXT;
-        ctx.font = '16px sans-serif';
-        ctx.fillText(`Turno de ${active?.name || 'Ninguem'}. Use os controles abaixo para mover ou passar o turno.`, width / 2, 68);
+        const baseText = `Turno de ${active?.name || 'Ninguem'}. Use os controles para mover ou passar o turno.`;
         
         if (scene.tempoTurnoMs && scene.fimTurnoTimestamp) {
             const remainingSecs = Math.max(0, Math.ceil((scene.fimTurnoTimestamp - Date.now()) / 1000));
-            ctx.fillStyle = remainingSecs <= 10 ? '#E76F51' : HUD_MUTED;
-            ctx.font = 'bold 15px sans-serif';
-            ctx.fillText(`Tempo restante: ${remainingSecs}s de ${scene.tempoTurnoMs / 1000}s.`, width / 2, 94);
+            const timeText = `   |   Tempo restante: ${remainingSecs}s`;
+            
+            ctx.font = '14px sans-serif';
+            const baseWidth = ctx.measureText(baseText).width;
+            ctx.font = 'bold 14px sans-serif';
+            const timeWidth = ctx.measureText(timeText).width;
+            
+            const startX = (width / 2) - ((baseWidth + timeWidth) / 2);
+            
+            ctx.textAlign = 'left';
+            ctx.fillStyle = HUD_TEXT;
+            ctx.font = '14px sans-serif';
+            ctx.fillText(baseText, startX, 108);
+            
+            ctx.fillStyle = remainingSecs <= 10 ? '#E76F51' : HUD_GOLD;
+            ctx.font = 'bold 14px sans-serif';
+            ctx.fillText(timeText, startX + baseWidth, 108);
+            
+            ctx.textAlign = 'center'; // Reseta pro padrao caso precise no futuro
+        } else {
+            ctx.fillStyle = HUD_TEXT;
+            ctx.font = '14px sans-serif';
+            ctx.fillText(baseText, width / 2, 108);
         }
     } else {
         ctx.fillStyle = HUD_GOLD;
-        ctx.font = 'bold 26px serif';
-        ctx.fillText(`${sceneName} | Cena ${scene.estado || 'ABERTA'}`, width / 2, 48);
+        ctx.font = 'bold 30px serif';
+        ctx.fillText(`${sceneName} | Cena ${scene.estado || 'ABERTA'}`, width / 2, 60);
         
         ctx.fillStyle = HUD_TEXT;
-        ctx.font = '16px sans-serif';
-        ctx.fillText(`Use os botoes abaixo para entrar/sair. Movimentacao livre enquanto a cena estiver aberta.`, width / 2, 80);
+        ctx.font = '14px sans-serif';
+        ctx.fillText(`Cena em modo livre. Mova-se pelo mapa ou entre/saia da cena.`, width / 2, 108);
     }
     
     return canvas.toBuffer('image/png');
