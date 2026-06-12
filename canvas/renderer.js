@@ -1700,6 +1700,9 @@ async function renderMap(scene) {
     const livingCount = scene.players.filter(p => !p.incapacitado).length;
     const totalCount = scene.players.length;
 
+    const descHeight = scene.descricao ? 28 : 0;
+    drawHudBox(ctx, PAD - 14, 16, width - (PAD * 2) + 28, 70 + descHeight, 8);
+
     ctx.fillStyle = HUD_GOLD;
     ctx.font = 'bold 32px serif';
     ctx.textAlign = 'left';
