@@ -2240,5 +2240,165 @@ async function repintarMapaNovo(channel, cena) {
     }
 }
 
+async function gerarBannerPainelMestreModern(channelId, guild) {
+    const w = 1000;
+    const h = 560;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    await drawHudBase(ctx, w, h, { focusY: 0.4 });
 
-module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerEnciclopedia, gerarBannerPainelMestre, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponents };
+    drawHudHeader(ctx, 'Painel do Mestre', 'Controle do canal atual', 82, 108, 836);
+
+    const channel = guild.channels.cache.get(channelId);
+    const parentName = channel?.parent ? formatarTexto(channel.parent.name) : 'Arkandia Central';
+    const channelName = channel?.name || 'geral';
+    const cena = cenasAtivas.get(channelId);
+
+    let narrando = null;
+    for (const [key, value] of mestresNarrando.entries()) {
+        if (key.startsWith(channelId + '-')) {
+            narrando = value;
+            break;
+        }
+    }
+
+    let missao = null;
+    for (const [, data] of missoesPreparacao.entries()) {
+        if (data.channelId === channelId) {
+            missao = data;
+            break;
+        }
+    }
+
+    const cards = [
+        {
+            title: 'Cena',
+            x: 82,
+            y: 196,
+            lines: cena
+                ? [
+                    `Estado: ${cena.estado}`,
+                    `Grid: ${cena.colunas}x${cena.linhas} celulas`,
+                    cena.estado === 'COMBATE'
+                        ? `Turno: ${cena.players[cena.turnoAtual]?.name || 'Ninguem'}`
+                        : `Tokens: ${cena.players.length}`
+                ]
+                : [
+                    'Nenhuma cena ativa neste canal.',
+                    'Abra um mapa para acompanhar estado.',
+                    'O turno aparece aqui quando houver combate.'
+                ]
+        },
+        {
+            title: 'Voz',
+            x: 526,
+            y: 196,
+            lines: narrando
+                ? [
+                    narrando.nome,
+                    'Webhook ativo para este mestre.',
+                    'As mensagens saem com esta identidade.'
+                ]
+                : [
+                    'Nenhuma identidade ativa.',
+                    'As mensagens saem com o perfil normal.',
+                    'Use o menu abaixo para assumir um NPC.'
+                ]
+        },
+        {
+            title: 'Missao',
+            x: 82,
+            y: 352,
+            lines: missao
+                ? [
+                    missao.nome,
+                    `Convocados: ${missao.jogadores.length}`,
+                    `Prontos: ${missao.jogadores.filter(j => j.pronto).length} / ${missao.jogadores.length}`
+                ]
+                : [
+                    'Nenhuma preparacao ativa neste canal.',
+                    'O status de convocacao aparece aqui.',
+                    'Use o fluxo de missao quando precisar.'
+                ]
+        },
+        {
+            title: 'Canal',
+            x: 526,
+            y: 352,
+            lines: [
+                parentName,
+                `Local: #${channelName}`,
+                'As ferramentas abaixo atuam neste canal.'
+            ]
+        }
+    ];
+
+    cards.forEach(card => {
+        drawHudBox(ctx, card.x, card.y, 392, 128, 14);
+        ctx.fillStyle = HUD_GOLD;
+        ctx.fillRect(card.x + 22, card.y + 24, 4, 80);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 26px sans-serif';
+        ctx.fillText(card.title, card.x + 44, card.y + 42);
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '16px sans-serif';
+        card.lines.forEach((line, index) => {
+            ctx.fillText(trimToWidth(ctx, line, 310), card.x + 44, card.y + 70 + (index * 22));
+        });
+    });
+
+    drawHudBox(ctx, 82, 506, 836, 30, 10);
+    ctx.fillStyle = HUD_TEXT;
+    ctx.font = '15px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Use os menus abaixo para abrir acoes do mestre sem poluir o canal.', w / 2, 526);
+    ctx.textAlign = 'left';
+
+    return canvas.toBuffer('image/png');
+}
+
+function getMestrePainelComponentsModern() {
+    const rowVtt = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId('mestre_menu_vtt')
+            .setPlaceholder('Cena e combate')
+            .addOptions([
+                { label: 'Abrir cena', description: 'Indica o comando para iniciar mapa tatico', value: 'iniciar_cena' },
+                { label: 'Abrir arena', description: 'Indica o comando para iniciar o draft', value: 'iniciar_arena' },
+                { label: 'Iniciar combate', description: 'Trava a ordem de turnos da cena', value: 'combate_iniciar' },
+                { label: 'Passar turno', description: 'Avanca para o proximo token vivo', value: 'combate_proximo' },
+                { label: 'Alterar vida', description: 'Troca entre vivo e incapacitado', value: 'status_vida' },
+                { label: 'Mover token', description: 'Teleporta um token para outra coordenada', value: 'mover_livre' },
+                { label: 'Fechar entrada', description: 'Bloqueia novos participantes na cena', value: 'fechar' },
+                { label: 'Encerrar cena', description: 'Apaga a cena ativa deste canal', value: 'encerrar' }
+            ])
+    );
+
+    const rowVoz = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId('mestre_menu_voz')
+            .setPlaceholder('Voz e consultas')
+            .addOptions([
+                { label: 'Assumir NPC', description: 'Ativa voz por webhook neste canal', value: 'assumir_npc' },
+                { label: 'Voltar ao perfil', description: 'Desativa a voz atual e retorna ao normal', value: 'voltar_mestre' },
+                { label: 'Consultar bestiario', description: 'Busca dados de NPC ou criatura', value: 'consultar_bestiario' },
+                { label: 'Consultar perfil', description: 'Indica o comando de ficha do jogador', value: 'visualizar_perfil' },
+                { label: 'Consultar inventario', description: 'Indica o comando de mochila do jogador', value: 'visualizar_inventario' }
+            ])
+    );
+
+    const rowLoot = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId('mestre_menu_economia')
+            .setPlaceholder('Loot e recompensas')
+            .addOptions([
+                { label: 'Dropar item', description: 'Pesquisa um item e envia o loot no chat', value: 'dropar_item' },
+                { label: 'Creditar libras', description: 'Adiciona libras direto na ficha', value: 'creditar_libras' }
+            ])
+    );
+
+    return [rowVtt, rowVoz, rowLoot];
+}
+
+
+module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerEnciclopedia, gerarBannerPainelMestre, gerarBannerPainelMestreModern, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponents, getMestrePainelComponentsModern };
