@@ -2088,7 +2088,9 @@ function iniciarTimerTurno(channel, cena) {
             clearInterval(interval);
             try {
                 await channel.send(`O tempo de **${cena.players[cena.turnoAtual].name}** se esgotou. Passando o turno automaticamente.`);
-                cena.ultimoEvento = `Tempo esgotado para ${cena.players[cena.turnoAtual].name}.`;
+                
+                const oldActive = cena.players[cena.turnoAtual];
+                
                 do {
                     cena.turnoAtual++;
                     if (cena.turnoAtual >= cena.players.length) {
@@ -2096,6 +2098,17 @@ function iniciarTimerTurno(channel, cena) {
                         cena.rodada++;
                     }
                 } while (cena.players[cena.turnoAtual].incapacitado && cena.players.some(p => !p.incapacitado));
+                
+                const active = cena.players[cena.turnoAtual];
+                const msg = `Tempo esgotado para ${oldActive.name}. Agora: ${active.name}.`;
+                if (!cena.logs) cena.logs = [];
+                cena.logs.push(msg);
+                if (cena.logs.length > 30) cena.logs.shift();
+                
+                if (active) {
+                    cena.turnStartPos = { x: active.x, y: active.y };
+                }
+
                 await repintarMapaNovo(channel, cena);
             } catch(e) { console.error('Erro no auto-skip', e); }
             return;

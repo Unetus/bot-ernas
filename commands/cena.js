@@ -262,15 +262,17 @@ async function execute(interaction) {
         if (cena.estado !== 'COMBATE') return await interaction.editReply('O combate nao esta ativo. Use `/cena combate_iniciar` primeiro.');
 
         const oldActive = cena.players[cena.turnoAtual];
-        if (cena.turnStartPos && (oldActive.x !== cena.turnStartPos.x || oldActive.y !== cena.turnStartPos.y)) {
-            addLog(cena, `${oldActive.name} moveu-se para ${formatCoord(oldActive)} e passou o turno.`);
-        }
+        const moved = cena.turnStartPos && (oldActive.x !== cena.turnStartPos.x || oldActive.y !== cena.turnStartPos.y);
 
         const active = advanceTurn(cena);
         if (!active) return await interaction.editReply('Nao ha tokens vivos para receber turno.');
 
         cena.turnStartPos = { x: active.x, y: active.y };
-        addLog(cena, `Turno avancado pelo mestre. Agora: ${active.name}.`);
+        if (moved) {
+            addLog(cena, `[Mestre] ${oldActive.name} moveu para ${formatCoord(oldActive)} e teve o turno avancado. Agora: ${active.name}.`);
+        } else {
+            addLog(cena, `[Mestre] Turno de ${oldActive.name} avancado. Agora: ${active.name}.`);
+        }
         await repintarMapaNovo(interaction.channel, cena);
         return await interaction.editReply(`Turno passado para **${active.name}**.`);
     }
@@ -446,14 +448,16 @@ async function handleButton(interaction) {
         await interaction.deferUpdate();
         
         const oldActive = cena.players[cena.turnoAtual];
-        if (cena.turnStartPos && (oldActive.x !== cena.turnStartPos.x || oldActive.y !== cena.turnStartPos.y)) {
-            addLog(cena, `${oldActive.name} moveu-se para ${formatCoord(oldActive)} e passou o turno.`);
-        }
+        const moved = cena.turnStartPos && (oldActive.x !== cena.turnStartPos.x || oldActive.y !== cena.turnStartPos.y);
 
         const active = advanceTurn(cena);
         if (active) {
             cena.turnStartPos = { x: active.x, y: active.y };
-            addLog(cena, `${interaction.user.username} passou o turno. Agora: ${active.name}.`);
+            if (moved) {
+                addLog(cena, `${oldActive.name} moveu-se para ${formatCoord(oldActive)} e passou o turno. Agora: ${active.name}.`);
+            } else {
+                addLog(cena, `${oldActive.name} passou o turno. Agora: ${active.name}.`);
+            }
         }
         await repintarMapaNovo(interaction.channel, cena);
         return;
