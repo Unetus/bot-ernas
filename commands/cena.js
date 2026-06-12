@@ -149,6 +149,14 @@ function clearSceneTimers(cena) {
     }
 }
 
+function addLog(cena, mensagem) {
+    if (!cena.logs) cena.logs = [];
+    cena.logs.push(mensagem);
+    if (cena.logs.length > 30) {
+        cena.logs.shift();
+    }
+}
+
 function createScene({ colunas, linhas, fundoUrl, nome, descricao, tempoTurnoMs }) {
     return {
         linhas,
@@ -162,7 +170,8 @@ function createScene({ colunas, linhas, fundoUrl, nome, descricao, tempoTurnoMs 
         players: [],
         msgId: null,
         tempoTurnoMs: tempoTurnoMs || null,
-        ultimoEvento: 'Cena aberta para entrada dos jogadores.'
+        logs: ['Cena aberta para entrada dos jogadores.'],
+        turnStartPos: null
     };
 }
 
@@ -225,7 +234,7 @@ async function execute(interaction) {
     if (sub === 'fechar') {
         if (!isMaster) return await interaction.editReply('Somente mestres podem fechar cenas.');
         cena.estado = 'FECHADA';
-        cena.ultimoEvento = 'Entrada de novos jogadores bloqueada pelo mestre.';
+        addLog(cena, 'Entrada de novos jogadores bloqueada pelo mestre.');
         await atualizarMapaDebounced(interaction.channel, cena);
         return await interaction.editReply('Cena fechada. Novas entradas foram bloqueadas.');
     }
@@ -239,20 +248,29 @@ async function execute(interaction) {
         cena.rodada = 1;
         cena.turnoAtual = cena.players.findIndex(p => !p.incapacitado);
         if (cena.turnoAtual < 0) cena.turnoAtual = 0;
-        cena.ultimoEvento = `Combate iniciado. Primeiro turno: ${cena.players[cena.turnoAtual].name}.`;
+        
+        const active = cena.players[cena.turnoAtual];
+        cena.turnStartPos = { x: active.x, y: active.y };
+        addLog(cena, `Combate iniciado. Primeiro turno: ${active.name}.`);
 
         await repintarMapaNovo(interaction.channel, cena);
-        return await interaction.editReply(`Combate iniciado. Turno de **${cena.players[cena.turnoAtual].name}**.`);
+        return await interaction.editReply(`Combate iniciado. Turno de **${active.name}**.`);
     }
 
     if (sub === 'combate_proximo') {
         if (!isMaster) return await interaction.editReply('Somente mestres podem passar turnos.');
         if (cena.estado !== 'COMBATE') return await interaction.editReply('O combate nao esta ativo. Use `/cena combate_iniciar` primeiro.');
 
+        const oldActive = cena.players[cena.turnoAtual];
+        if (cena.turnStartPos && (oldActive.x !== cena.turnStartPos.x || oldActive.y !== cena.turnStartPos.y)) {
+            addLog(cena, `${oldActive.name} moveu-se para ${formatCoord(oldActive)} e passou o turno.`);
+        }
+
         const active = advanceTurn(cena);
         if (!active) return await interaction.editReply('Nao ha tokens vivos para receber turno.');
 
-        cena.ultimoEvento = `Turno avancado pelo mestre. Agora: ${active.name}.`;
+        cena.turnStartPos = { x: active.x, y: active.y };
+        addLog(cena, `Turno avancado pelo mestre. Agora: ${active.name}.`);
         await repintarMapaNovo(interaction.channel, cena);
         return await interaction.editReply(`Turno passado para **${active.name}**.`);
     }
@@ -269,7 +287,7 @@ async function execute(interaction) {
 
         token.x = pos.x;
         token.y = pos.y;
-        cena.ultimoEvento = `${token.name} foi movido para ${formatCoord(pos)}.`;
+        addLog(cena, `${token.name} foi movido para ${formatCoord(pos)}.`);
         atualizarMapaDebounced(interaction.channel, cena);
         return await interaction.editReply(`Movimentou **${token.name}** para ${formatCoord(pos)}.`);
     }
@@ -282,11 +300,14 @@ async function execute(interaction) {
         if (!token) return await interaction.editReply(`Nenhum token com "${nToken}" foi encontrado.`);
 
         token.incapacitado = !token.incapacitado;
-        cena.ultimoEvento = `${token.name} agora esta ${token.incapacitado ? 'incapacitado' : 'vivo'}.`;
+        addLog(cena, `${token.name} agora esta ${token.incapacitado ? 'incapacitado' : 'vivo'}.`);
 
         if (cena.estado === 'COMBATE' && token.incapacitado && cena.turnoAtual === tokenIndex) {
             const active = advanceTurn(cena);
-            if (active) cena.ultimoEvento += ` Turno transferido para ${active.name}.`;
+            if (active) {
+                cena.turnStartPos = { x: active.x, y: active.y };
+                addLog(cena, `Turno transferido para ${active.name}.`);
+            }
             await repintarMapaNovo(interaction.channel, cena);
         } else {
             atualizarMapaDebounced(interaction.channel, cena);
@@ -323,7 +344,7 @@ async function execute(interaction) {
                 isNpc: false,
                 incapacitado: false
             });
-            cena.ultimoEvento = `${res.data.nome} entrou em ${formatCoord(spawn)}.`;
+            addLog(cena, `${res.data.nome} entrou em ${formatCoord(spawn)}.`);
             atualizarMapaDebounced(interaction.channel, cena);
             return await interaction.editReply(`Voce entrou na cena em ${formatCoord(spawn)}.`);
         } catch(e) {
@@ -349,7 +370,7 @@ async function execute(interaction) {
                 isNpc: true,
                 incapacitado: false
             });
-            cena.ultimoEvento = `${npc.kind} ${npc.name} entrou em ${formatCoord(pos)}.`;
+            addLog(cena, `${npc.kind} ${npc.name} entrou em ${formatCoord(pos)}.`);
             atualizarMapaDebounced(interaction.channel, cena);
             return await interaction.editReply(`${npc.kind} **${npc.name}** colocado em ${formatCoord(pos)}.`);
         } catch(e) {
@@ -371,7 +392,7 @@ async function execute(interaction) {
 
         token.x = pos.x;
         token.y = pos.y;
-        cena.ultimoEvento = `${token.name} moveu para ${formatCoord(pos)}.`;
+        if (cena.estado !== 'COMBATE') addLog(cena, `${token.name} moveu para ${formatCoord(pos)}.`);
         atualizarMapaDebounced(interaction.channel, cena);
         return await interaction.editReply(`Movimentou para ${formatCoord(pos)}.`);
     }
@@ -406,7 +427,7 @@ async function handleButton(interaction) {
 
         token.x = nextPos.x;
         token.y = nextPos.y;
-        cena.ultimoEvento = `${token.name} moveu para ${formatCoord(nextPos)}.`;
+        if (cena.estado !== 'COMBATE') addLog(cena, `${token.name} moveu para ${formatCoord(nextPos)}.`);
 
         await interaction.deferUpdate();
         atualizarMapaDebounced(interaction.channel, cena);
@@ -423,8 +444,17 @@ async function handleButton(interaction) {
         }
 
         await interaction.deferUpdate();
+        
+        const oldActive = cena.players[cena.turnoAtual];
+        if (cena.turnStartPos && (oldActive.x !== cena.turnStartPos.x || oldActive.y !== cena.turnStartPos.y)) {
+            addLog(cena, `${oldActive.name} moveu-se para ${formatCoord(oldActive)} e passou o turno.`);
+        }
+
         const active = advanceTurn(cena);
-        if (active) cena.ultimoEvento = `${interaction.user.username} passou o turno. Agora: ${active.name}.`;
+        if (active) {
+            cena.turnStartPos = { x: active.x, y: active.y };
+            addLog(cena, `${interaction.user.username} passou o turno. Agora: ${active.name}.`);
+        }
         await repintarMapaNovo(interaction.channel, cena);
         return;
     }
@@ -471,7 +501,7 @@ async function handleModal(interaction) {
 
         token.x = pos.x;
         token.y = pos.y;
-        cena.ultimoEvento = `${token.name} moveu para ${formatCoord(pos)}.`;
+        if (cena.estado !== 'COMBATE') addLog(cena, `${token.name} moveu para ${formatCoord(pos)}.`);
 
         await interaction.reply({ content: `Movimento efetuado para ${formatCoord(pos)}.`, ephemeral: true });
         atualizarMapaDebounced(interaction.channel, cena);
