@@ -500,6 +500,9 @@ async function handleButton(interaction) {
             cena.turnStartPos = { x: active.x, y: active.y };
             addLog(cena, `Combate iniciado. Primeiro turno: ${active.name}.`);
             
+            // Forca a criacao de uma nova mensagem no chat (o que consequentemente starta os timers)
+            cena.msgRodada = 0;
+            
             await interaction.deferUpdate();
             await repintarMapaNovo(interaction.channel, cena);
             return;
