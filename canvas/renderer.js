@@ -2159,28 +2159,30 @@ async function renderBanner(scene) {
 }
 
 function getCenaBotoes(cena) {
-    const rowMestre = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('cena_toggle_aberta').setLabel(cena.estado === 'FECHADA' ? 'Abrir Cena' : 'Fechar Cena').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('cena_toggle_combate').setLabel(cena.estado === 'COMBATE' ? 'Encerrar Combate' : 'Iniciar Combate').setStyle(ButtonStyle.Secondary)
-    );
-
-    const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('cena_toggle_entrar').setLabel('Entrar / Sair').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('cena_move_up').setLabel('▲').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('cena_move_down').setLabel('▼').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('cena_move_left').setLabel('◀').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('cena_move_right').setLabel('▶').setStyle(ButtonStyle.Secondary)
+    const row1 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('cena_toggle_entrar').setLabel('◇ Entrar / Sair').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('cena_toggle_aberta').setLabel(cena.estado === 'FECHADA' ? '◇ Abrir Cena' : '◇ Fechar Cena').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('cena_toggle_combate').setLabel(cena.estado === 'COMBATE' ? '◇ Encerrar Combate' : '◇ Iniciar Combate').setStyle(ButtonStyle.Secondary)
     );
 
     const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('cena_move_up').setLabel('▲').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('cena_move_down').setLabel('▼').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('cena_move_left').setLabel('◀').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('cena_move_right').setLabel('▶').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('cena_modal_mover_coord').setLabel('◇ Coordenada').setStyle(ButtonStyle.Secondary)
     );
-    
+
+    const rows = [row1, row2];
+
     if (cena.estado === 'COMBATE') {
-        row2.addComponents(new ButtonBuilder().setCustomId('cena_passar_turno').setLabel('◆ Passar Turno').setStyle(ButtonStyle.Secondary));
+        const row3 = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('cena_passar_turno').setLabel('◆ Passar Turno').setStyle(ButtonStyle.Secondary)
+        );
+        rows.push(row3);
     }
 
-    return [rowMestre, row, row2];
+    return rows;
 }
 
 async function atualizarMapaDebounced(channel, cena) {
@@ -2191,14 +2193,20 @@ async function atualizarMapaDebounced(channel, cena) {
     const timer = setTimeout(async () => {
         renderTimers.delete(cena.msgId);
         try {
+            // Atualiza o banner separado
+            if (cena.bannerMsgId) {
+                try {
+                    const bannerMsg = await channel.messages.fetch(cena.bannerMsgId);
+                    const bannerBuffer = await renderBanner(cena);
+                    const attachmentBanner = new AttachmentBuilder(bannerBuffer, { name: 'banner.png' });
+                    await bannerMsg.edit({ files: [attachmentBanner] });
+                } catch(e) {}
+            }
+            // Atualiza o mapa
             const msg = await channel.messages.fetch(cena.msgId);
-            const bannerBuffer = await renderBanner(cena);
-            const attachmentBanner = new AttachmentBuilder(bannerBuffer, { name: 'banner.png' });
-            
             const buffer = await renderMap(cena);
-            const attachmentMap = new AttachmentBuilder(buffer, { name: 'mapa.png' });
-            
-            await msg.edit({ content: '', files: [attachmentBanner, attachmentMap], components: getCenaBotoes(cena) });
+            const attachment = new AttachmentBuilder(buffer, { name: 'mapa.png' });
+            await msg.edit({ content: '', files: [attachment], components: getCenaBotoes(cena) });
         } catch (e) {
             console.error('Erro debounce', e);
         }
@@ -2233,13 +2241,16 @@ async function repintarMapaNovo(channel, cena) {
         cena.fimTurnoTimestamp = Date.now() + cena.tempoTurnoMs;
     }
     
+    // Envia o banner como mensagem separada PRIMEIRO
     const bannerBuffer = await renderBanner(cena);
     const attachmentBanner = new AttachmentBuilder(bannerBuffer, { name: 'banner.png' });
+    const bannerMsg = await channel.send({ files: [attachmentBanner] });
+    cena.bannerMsgId = bannerMsg.id;
     
+    // Envia o mapa com botões DEPOIS
     const buffer = await renderMap(cena);
     const attachmentMap = new AttachmentBuilder(buffer, { name: 'mapa.png' });
-    
-    const msg = await channel.send({ content: '', files: [attachmentBanner, attachmentMap], components: getCenaBotoes(cena) });
+    const msg = await channel.send({ content: '', files: [attachmentMap], components: getCenaBotoes(cena) });
     
     cena.msgId = msg.id;
     cena.msgRodada = cena.rodada;

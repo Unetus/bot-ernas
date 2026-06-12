@@ -434,32 +434,29 @@ async function handleButton(interaction) {
         }
 
         try {
-            const apiRes = await axios.get(`${ARKANDIA_API}/personagens?discordId=${interaction.user.id}`, { headers: { 'X-API-Key': API_KEY } });
-            const pAtivo = apiRes.data.find(p => p.ativo);
-            if (!pAtivo) return await interaction.reply({ content: 'Voce nao tem um personagem ativo.', ephemeral: true });
-
+            const res = await axios.get(`${ARKANDIA_API}/personagens/discord/${interaction.user.id}`, { headers: { 'X-API-Key': API_KEY } });
             cena.players.push({
                 discordId: interaction.user.id,
-                name: pAtivo.nome,
-                avatarUrl: pAtivo.retrato_url || 'https://i.imgur.com/vHqB3q0.png',
+                name: res.data.nome,
+                avatarUrl: res.data.avatar_url || 'https://i.imgur.com/vHqB3q0.png',
                 x: spawn.x,
                 y: spawn.y,
                 isNpc: false,
                 incapacitado: false
             });
-            addLog(cena, `${pAtivo.nome} entrou em ${formatCoord(spawn)}.`);
+            addLog(cena, `${res.data.nome} entrou em ${formatCoord(spawn)}.`);
             await interaction.deferUpdate();
             atualizarMapaDebounced(interaction.channel, cena);
             return;
         } catch(e) {
-            return await interaction.reply({ content: 'Erro ao buscar sua ficha ativa.', ephemeral: true });
+            return await interaction.reply({ content: 'Erro ao buscar sua ficha ativa. Verifique se voce tem um personagem ativo.', ephemeral: true });
         }
     }
 
     if (interaction.customId === 'cena_toggle_aberta') {
         const cena = cenasAtivas.get(interaction.channelId);
         if (!cena) return await interaction.reply({ content: 'Nenhuma cena ativa.', ephemeral: true });
-        if (interaction.user.id !== cena.mestreId) return await interaction.reply({ content: 'Apenas o mestre pode alterar o acesso a cena.', ephemeral: true });
+        if (!hasMasterAccess(interaction)) return await interaction.reply({ content: 'Apenas mestres podem alterar o acesso a cena.', ephemeral: true });
         
         cena.estado = cena.estado === 'FECHADA' ? 'ABERTA' : 'FECHADA';
         addLog(cena, `O mestre ${cena.estado === 'ABERTA' ? 'abriu' : 'fechou'} a cena.`);
@@ -471,7 +468,7 @@ async function handleButton(interaction) {
     if (interaction.customId === 'cena_toggle_combate') {
         const cena = cenasAtivas.get(interaction.channelId);
         if (!cena) return await interaction.reply({ content: 'Nenhuma cena ativa.', ephemeral: true });
-        if (interaction.user.id !== cena.mestreId) return await interaction.reply({ content: 'Apenas o mestre pode alterar o estado do combate.', ephemeral: true });
+        if (!hasMasterAccess(interaction)) return await interaction.reply({ content: 'Apenas mestres podem alterar o estado do combate.', ephemeral: true });
         
         if (cena.estado === 'COMBATE') {
             if (timersTurno.has(cena.msgId)) {
