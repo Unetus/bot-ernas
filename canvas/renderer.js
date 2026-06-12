@@ -1678,7 +1678,19 @@ async function renderMap(scene) {
 
     try {
         const moldura = await loadImage('./assets/ui/moldura-cena.png');
-        ctx.drawImage(moldura, 0, 0, width, height);
+        const slice = 50; 
+        
+        ctx.drawImage(moldura, 0, 0, slice, slice, 0, 0, slice, slice);
+        ctx.drawImage(moldura, moldura.width - slice, 0, slice, slice, width - slice, 0, slice, slice);
+        ctx.drawImage(moldura, 0, moldura.height - slice, slice, slice, 0, height - slice, slice, slice);
+        ctx.drawImage(moldura, moldura.width - slice, moldura.height - slice, slice, slice, width - slice, height - slice, slice, slice);
+        
+        ctx.drawImage(moldura, slice, 0, moldura.width - slice*2, slice, slice, 0, width - slice*2, slice);
+        ctx.drawImage(moldura, slice, moldura.height - slice, moldura.width - slice*2, slice, slice, height - slice, width - slice*2, slice);
+        ctx.drawImage(moldura, 0, slice, slice, moldura.height - slice*2, 0, slice, slice, height - slice*2);
+        ctx.drawImage(moldura, moldura.width - slice, slice, slice, moldura.height - slice*2, width - slice, slice, slice, height - slice*2);
+
+        ctx.drawImage(moldura, slice, slice, moldura.width - slice*2, moldura.height - slice*2, slice, slice, width - slice*2, height - slice*2);
     } catch(e) {
         ctx.fillStyle = '#101219';
         ctx.fillRect(0, 0, width, height);
@@ -1712,7 +1724,7 @@ async function renderMap(scene) {
     ctx.font = '16px sans-serif';
     const subtitle = scene.estado === 'COMBATE'
         ? `Rodada ${scene.rodada} | Turno de ${active?.name || 'Ninguem'}`
-        : `${scene.estado || 'ABERTA'} | ${totalCount} tokens em cena`;
+        : `${scene.estado || 'ABERTA'} | ${totalCount} jogadores na cena`;
     ctx.fillText(subtitle, PAD, 74);
 
     if (scene.descricao) {
@@ -1721,35 +1733,37 @@ async function renderMap(scene) {
         ctx.fillText(String(scene.descricao).substring(0, 120), PAD, 96);
     }
 
-    const maxCols = 5;
-    const playerBoxW = 96;
-    const playerBoxH = 22;
-    const playersStartX = Math.max(PAD + 380, width - (maxCols * playerBoxW) - PAD);
+    const playersStartX = Math.max(PAD + 380, width - 400);
     const playersStartY = 32;
 
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    scene.players.forEach((p, i) => {
-        const col = i % maxCols;
-        const row = Math.floor(i / maxCols);
-        const px = playersStartX + (col * playerBoxW);
-        const py = playersStartY + (row * playerBoxH);
+    let currentX = playersStartX;
+    let currentY = playersStartY;
 
+    scene.players.forEach((p, i) => {
         const isActive = scene.estado === 'COMBATE' && scene.turnoAtual === i;
-        
-        if (isActive) {
-            ctx.fillStyle = 'rgba(212, 175, 55, 0.2)';
-            ctx.fillRect(px - 4, py - 11, playerBoxW - 8, 22);
-            ctx.fillStyle = HUD_GOLD;
-            ctx.font = 'bold 13px sans-serif';
-        } else {
-            ctx.fillStyle = p.incapacitado ? '#7F8C8D' : p.isNpc ? '#C44A4A' : '#6EA7D6';
-            ctx.font = '13px sans-serif';
+        ctx.font = isActive ? 'bold 13px sans-serif' : '13px sans-serif';
+        const label = `${i + 1}. ${p.name}`;
+        const textW = ctx.measureText(label).width;
+        const boxW = textW + 16;
+
+        if (currentX + boxW > width - PAD) {
+            currentX = playersStartX;
+            currentY += 26;
         }
 
-        const label = p.name.length > 11 ? `${p.name.substring(0, 10)}.` : p.name;
-        ctx.fillText(`${i + 1}. ${label}`, px, py);
+        if (isActive) {
+            ctx.fillStyle = 'rgba(212, 175, 55, 0.2)';
+            ctx.fillRect(currentX, currentY - 12, boxW, 24);
+            ctx.fillStyle = HUD_GOLD;
+        } else {
+            ctx.fillStyle = p.incapacitado ? '#7F8C8D' : p.isNpc ? '#C44A4A' : '#6EA7D6';
+        }
+
+        ctx.fillText(label, currentX + 8, currentY);
+        currentX += boxW + 4;
     });
     ctx.textBaseline = 'alphabetic';
 
@@ -1896,11 +1910,11 @@ async function renderMap(scene) {
     ctx.fillStyle = HUD_GOLD;
     ctx.font = 'bold 18px serif';
     ctx.textAlign = 'left';
-    ctx.fillText('Logs de Combate', sideX + 18, mapY + 26);
+    ctx.fillText('Histórico', sideX + 18, mapY + 26);
 
     ctx.fillStyle = HUD_MUTED;
     ctx.font = '13px sans-serif';
-    ctx.fillText(`${livingCount}/${totalCount} ativos`, sideX + 18, mapY + 48);
+    ctx.fillText(`${livingCount}/${totalCount} jogadores na cena`, sideX + 18, mapY + 48);
 
     if (scene.tempoTurnoMs && scene.estado === 'COMBATE') {
         const remainingSecs = scene.fimTurnoTimestamp
@@ -1911,29 +1925,60 @@ async function renderMap(scene) {
         ctx.fillText(`${remainingSecs}s`, sideX + SIDE_W - 62, mapY + 38);
     }
 
-    const logsStartY = mapY + 76;
-    const logLineHeight = 20;
-    const maxLogs = Math.max(1, Math.floor((mapHeight - 80) / logLineHeight));
-    
     const logs = scene.logs || [];
-    const visibleLogs = logs.slice(-maxLogs);
-
+    let currentLogY = mapY + mapHeight - 16;
+    const logLineHeight = 16;
+    const maxLogWidth = SIDE_W - 36;
+    
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
-    visibleLogs.forEach((log, idx) => {
-        if (idx === visibleLogs.length - 1) {
-            ctx.fillStyle = '#EBE2CD';
-            ctx.font = 'bold 12px sans-serif';
-        } else {
-            ctx.fillStyle = '#A39D8E';
-            ctx.font = '12px sans-serif';
+    for (let idx = logs.length - 1; idx >= 0; idx--) {
+        const log = String(logs[idx]);
+        const words = log.split(' ');
+        let lines = [];
+        let line = '';
+
+        ctx.font = (idx === logs.length - 1) ? 'bold 12px sans-serif' : '12px sans-serif';
+
+        for(let n = 0; n < words.length; n++) {
+            const testLine = line + words[n] + ' ';
+            if (ctx.measureText(testLine).width > maxLogWidth && n > 0) {
+                lines.push(line);
+                line = words[n] + ' ';
+            } else {
+                line = testLine;
+            }
+        }
+        lines.push(line);
+
+        const logBlockHeight = lines.length * logLineHeight + 8;
+        if (currentLogY - logBlockHeight < mapY + 76) {
+            break; 
         }
 
-        let text = String(log);
-        if (text.length > 42) text = `${text.substring(0, 39)}...`;
-        ctx.fillText(text, sideX + 18, logsStartY + (idx * logLineHeight));
-    });
+        currentLogY -= logBlockHeight;
+
+        if (idx === logs.length - 1) {
+            ctx.fillStyle = '#EBE2CD';
+        } else {
+            ctx.fillStyle = '#A39D8E';
+        }
+
+        let py = currentLogY + 4;
+        for (const l of lines) {
+            ctx.fillText(l, sideX + 18, py);
+            py += logLineHeight;
+        }
+
+        if (idx < logs.length - 1) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.beginPath();
+            ctx.moveTo(sideX + 18, currentLogY);
+            ctx.lineTo(sideX + SIDE_W - 18, currentLogY);
+            ctx.stroke();
+        }
+    }
     ctx.textBaseline = 'alphabetic';
 
     return canvas.toBuffer('image/png');
