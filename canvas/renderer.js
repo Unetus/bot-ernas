@@ -120,11 +120,11 @@ async function gerarBannerPerfilLegacy(p) {
         ? `#${p.indice_poder_cor.toString(16).padStart(6, '0')}` 
         : (p.indice_poder_cor || '#3498DB');
 
-    // Fundo base (SeÃ§Ã£o Principal)
+    // Fundo base (Seção Principal)
     ctx.fillStyle = '#1A1C23';
     ctx.fillRect(0, 0, 900, 415);
 
-    // Forma geomÃ©trica no fundo
+    // Forma geométrica no fundo
     ctx.fillStyle = colorHex;
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -141,7 +141,7 @@ async function gerarBannerPerfilLegacy(p) {
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, 900, 300);
 
-    // Separador para a Ã¡rea de skills
+    // Separador para a área de skills
     ctx.fillStyle = '#13141C';
     ctx.fillRect(0, 300, 900, 115);
     
@@ -199,7 +199,7 @@ async function gerarBannerPerfilLegacy(p) {
     ctx.font = '22px sans-serif';
     ctx.fillText(`${raca} â€¢ ${classe}`, 340, 170);
 
-    // Status boxes (Rank & NÃ­vel, Tier & Poder)
+    // Status boxes (Rank & Nível, Tier & Poder)
     const drawConsolidatedStat = (label, mainVal, subVal, x, y, w) => {
         ctx.fillStyle = '#252830';
         ctx.beginPath();
@@ -233,7 +233,7 @@ async function gerarBannerPerfilLegacy(p) {
     const tierNum = p.indice_poder_faixa || 1;
     const tierRomano = romanTiers[tierNum] || String(tierNum);
 
-    drawConsolidatedStat('Rank & NÃ­vel', `${p.rank || '-'}`, `NÃ­vel ${p.nivel || 1}`, 420, 195, 200);
+    drawConsolidatedStat('Rank & Nível', `${p.rank || '-'}`, `Nível ${p.nivel || 1}`, 420, 195, 200);
     drawConsolidatedStat('Tier & Poder', `Tier ${tierRomano}`, `${(p.indice_poder || 0).toLocaleString('pt-BR')} Poder`, 640, 195, 200);
 
     // Deck de Habilidades
@@ -346,7 +346,7 @@ async function gerarBannerPerfilLegacy(p) {
     const equips = p.equipamento || [];
     const elmo = equips.find(e => ['capacete', 'cabeca', 'helmet', 'head', 'elmo'].includes(e.slot?.toLowerCase()));
     const armadura = equips.find(e => ['armadura', 'peito', 'chest', 'armor', 'body', 'veste'].includes(e.slot?.toLowerCase()));
-    const arma = equips.find(e => ['arma_principal', 'arma', 'weapon', 'main_hand', 'espada', 'arco', 'bastao', 'machado', 'lanÃ§a'].includes(e.slot?.toLowerCase()));
+    const arma = equips.find(e => ['arma_principal', 'arma', 'weapon', 'main_hand', 'espada', 'arco', 'bastao', 'machado', 'lança'].includes(e.slot?.toLowerCase()));
     const sapatos = equips.find(e => ['sapatos', 'botas', 'boots', 'shoes', 'feet', 'pes', 'bota'].includes(e.slot?.toLowerCase()));
 
     const drawEmptyEquipSlot = (label, x, y) => {
@@ -524,7 +524,7 @@ async function gerarBannerPerfil(p) {
     const tierRomano = romanTiers[tierNum] || String(tierNum);
     const stats = [
         ['Rank', p.rank || '-'],
-        ['NÃ­vel', p.nivel || 1],
+        ['Nível', p.nivel || 1],
         ['Tier', tierRomano],
         ['Poder', (p.indice_poder || 0).toLocaleString('pt-BR')]
     ];
@@ -605,7 +605,7 @@ async function gerarBannerPerfil(p) {
     const equipSlots = [
         ['Elmo', ['capacete', 'cabeca', 'helmet', 'head', 'elmo']],
         ['Peito', ['armadura', 'peito', 'chest', 'armor', 'body', 'veste']],
-        ['Arma', ['arma_principal', 'arma', 'weapon', 'main_hand', 'espada', 'arco', 'bastao', 'machado', 'lanÃ§a']],
+        ['Arma', ['arma_principal', 'arma', 'weapon', 'main_hand', 'espada', 'arco', 'bastao', 'machado', 'lança']],
         ['Botas', ['sapatos', 'botas', 'boots', 'shoes', 'feet', 'pes', 'bota']]
     ];
 
@@ -754,7 +754,7 @@ async function gerarBannerInventarioLegacy(p, sliceItens, categoria, pag, totalP
     
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 36px sans-serif';
-    ctx.fillText(`InventÃ¡rio de ${formatarTexto(p.nome)}`, 40, 60);
+    ctx.fillText(`Inventário de ${formatarTexto(p.nome)}`, 40, 60);
     
     const libras = p.libras || p.saldo || 0;
     ctx.fillStyle = '#F1C40F';
@@ -870,7 +870,7 @@ async function gerarBannerInventarioLegacy(p, sliceItens, categoria, pag, totalP
     ctx.fillText(`Categoria: ${formatarTexto(categoria === 'todos' ? 'Tudo' : categoria)}`, 40, h - 20);
     
     ctx.textAlign = 'right';
-    ctx.fillText(`PÃ¡gina ${pag + 1} de ${totalPaginas}`, w - 40, h - 20);
+    ctx.fillText(`Página ${pag + 1} de ${totalPaginas}`, w - 40, h - 20);
     
     return canvas.toBuffer('image/png');
 }
@@ -884,7 +884,7 @@ async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas
 
     const categoriaLabel = formatarTexto(categoria === 'todos' ? 'Tudo' : categoria);
     const libras = p.libras || p.saldo || 0;
-    drawHudHeader(ctx, `InventÃ¡rio de ${formatarTexto(p.nome || 'Aventureiro')}`, `${categoriaLabel} â€¢ ${libras.toLocaleString('pt-BR')} Libras`, 82, 100, 836);
+    drawHudHeader(ctx, `Inventário de ${formatarTexto(p.nome || 'Aventureiro')}`, `${categoriaLabel} â€¢ ${libras.toLocaleString('pt-BR')} Libras`, 82, 100, 836);
 
     const raridades = {
         comum: '#8B949E',
@@ -1000,7 +1000,7 @@ async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas
     ctx.fillStyle = HUD_MUTED;
     ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`PÃ¡gina ${pag + 1} de ${totalPaginas}`, w / 2, 535);
+    ctx.fillText(`Página ${pag + 1} de ${totalPaginas}`, w / 2, 535);
     ctx.textAlign = 'left';
 
     return canvas.toBuffer('image/png');
@@ -1021,7 +1021,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, 800, 620);
 
-    // CabeÃ§alho
+    // Cabeçalho
     ctx.fillStyle = '#D4AF37';
     ctx.font = 'bold 32px sans-serif';
     ctx.fillText('RANKING DE ARKANDIA', 50, 60);
@@ -1029,14 +1029,14 @@ async function gerarBannerRankingLegacy(tipo, dados) {
     ctx.fillStyle = '#8B949E';
     ctx.font = 'bold 18px sans-serif';
     const tipoTraduzido = {
-        poder: 'ÃNDICE DE PODER',
-        nivel: 'NÃVEL E EXPERIÃŠNCIA',
-        guildas: 'GUILDAS DE VERMÃ‰CIA',
+        poder: 'ÍNDICE DE PODER',
+        nivel: 'NÍVEL E EXPERIÊNCIA',
+        guildas: 'GUILDAS DE VERMÉCIA',
         arena: 'PONTOS DE ARENA'
     }[tipo.toLowerCase()] || tipo.toUpperCase();
     ctx.fillText(tipoTraduzido, 50, 95);
 
-    // Linha divisÃ³ria
+    // Linha divisória
     ctx.strokeStyle = '#2D313E';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -1087,7 +1087,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
             }
         }
 
-        // PosiÃ§Ã£o
+        // Posição
         ctx.fillStyle = i === 0 ? '#D4AF37' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#8B949E';
         ctx.font = 'bold 18px sans-serif';
         ctx.textAlign = 'center';
@@ -1104,7 +1104,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
             nomeStr = `${nomeStr} [${item.sigla}]`;
         }
         
-        // Detalhes menores (classe/raÃ§a se personagem)
+        // Detalhes menores (classe/raça se personagem)
         let subText = '';
         if (item.classe && item.raca) {
             subText = ` (${formatarTexto(item.raca)} â€¢ ${formatarTexto(item.classe)})`;
@@ -1121,7 +1121,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
         if (tipo === 'poder') {
             valorText = `${(item.poder || item.indice_poder || 0).toLocaleString('pt-BR')} Poder`;
         } else if (tipo === 'nivel') {
-            valorText = `NÃ­vel ${item.nivel || 1}`;
+            valorText = `Nível ${item.nivel || 1}`;
         } else if (tipo === 'guildas') {
             valorText = `${(item.xp_total_guilda || 0).toLocaleString('pt-BR')} XP â€¢ ${(item.banco_libras || item.libras || 0).toLocaleString('pt-BR')} L`;
         } else if (tipo === 'arena') {
@@ -1143,9 +1143,9 @@ async function gerarBannerRanking(tipo, dados) {
     await drawHudBase(ctx, w, h);
 
     const tipoTraduzido = {
-        poder: 'Ãndice de Poder',
-        nivel: 'NÃ­vel e ExperiÃªncia',
-        guildas: 'Guildas de VermÃ©cia',
+        poder: 'Índice de Poder',
+        nivel: 'Nível e Experiência',
+        guildas: 'Guildas de Vermécia',
         arena: 'Pontos de Arena'
     }[String(tipo).toLowerCase()] || formatarTexto(tipo);
 
@@ -1198,7 +1198,7 @@ async function gerarBannerRanking(tipo, dados) {
         if (tipo === 'poder') {
             valorText = `${(item.poder || item.indice_poder || 0).toLocaleString('pt-BR')} Poder`;
         } else if (tipo === 'nivel') {
-            valorText = `NÃ­vel ${item.nivel || 1}`;
+            valorText = `Nível ${item.nivel || 1}`;
         } else if (tipo === 'guildas') {
             valorText = `${(item.xp_total_guilda || 0).toLocaleString('pt-BR')} XP`;
         } else if (tipo === 'arena') {
@@ -1230,7 +1230,7 @@ async function gerarBannerGuilda(guilda) {
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, 800, 450);
 
-    // Desenha escudo de guilda (BrasÃ£o)
+    // Desenha escudo de guilda (Brasão)
     const shieldX = 50;
     const shieldY = 50;
     const shieldW = 120;
@@ -1301,20 +1301,20 @@ async function gerarBannerGuilda(guilda) {
     const sigla = guilda.sigla ? `[${guilda.sigla.toUpperCase()}]` : '';
     ctx.fillText(`${nome} ${sigla}`, 200, 90);
 
-    // Mestre / LÃ­der da Guilda
+    // Mestre / Líder da Guilda
     ctx.fillStyle = '#D4AF37';
     ctx.font = 'bold 18px sans-serif';
     const liderNome = (typeof guilda.lider === 'object' && guilda.lider !== null)
         ? (guilda.lider.nome || guilda.lider.lider_nome || 'Desconhecido')
         : (guilda.lider || guilda.lider_nome || 'Desconhecido');
     const lider = formatarTexto(liderNome);
-    ctx.fillText(`LÃ­der: ${lider}`, 200, 125);
+    ctx.fillText(`Líder: ${lider}`, 200, 125);
 
     ctx.fillStyle = '#8B949E';
     ctx.font = '16px sans-serif';
     ctx.fillText(`Membros: ${guilda.membros_qtd || (guilda.membros && guilda.membros.length) || 0} / 50`, 200, 155);
 
-    // Caixa de InformaÃ§Ãµes
+    // Caixa de Informações
     const drawInfoBox = (label, value, x, y, w, h) => {
         ctx.fillStyle = '#13141C';
         ctx.beginPath();
@@ -1334,14 +1334,14 @@ async function gerarBannerGuilda(guilda) {
         ctx.fillText(`${value}`, x + 15, y + 55);
     };
 
-    drawInfoBox('NÃ­vel da Guilda', `${guilda.nivel || 1}`, 50, 220, 220, 75);
+    drawInfoBox('Nível da Guilda', `${guilda.nivel || 1}`, 50, 220, 220, 75);
     drawInfoBox('Saldo do Banco', `${guilda.libras || guilda.saldo || 0} Libras`, 290, 220, 220, 75);
-    drawInfoBox('ExperiÃªncia', `${guilda.xp || 0} XP`, 530, 220, 220, 75);
+    drawInfoBox('Experiência', `${guilda.xp || 0} XP`, 530, 220, 220, 75);
 
-    // SeÃ§Ã£o de Perks
+    // Seção de Perks
     ctx.fillStyle = '#8B949E';
     ctx.font = 'bold 14px sans-serif';
-    ctx.fillText('BÃ”NUS E PERKS ATIVOS', 50, 335);
+    ctx.fillText('BÔNUS E PERKS ATIVOS', 50, 335);
 
     const perks = guilda.perks || guilda.perks_ativos || [];
     if (perks.length === 0) {
@@ -1361,9 +1361,9 @@ async function gerarBannerGuilda(guilda) {
 
             const perkKey = p.perk_key || '';
             const traducoes = {
-                bencao_treinamento: { nome: 'Treinamento CÃ³smico', efeito: '+10% XP em MissÃµes' },
+                bencao_treinamento: { nome: 'Treinamento Cósmico', efeito: '+10% XP em Missões' },
                 banco_expandido: { nome: 'Cofre Expandido', efeito: 'Banco de Libras ampliado' },
-                escudo_conquista: { nome: 'Escudo de GlÃ³ria', efeito: 'ProteÃ§Ã£o em masmorras' }
+                escudo_conquista: { nome: 'Escudo de Glória', efeito: 'Proteção em masmorras' }
             };
 
             const info = traducoes[perkKey.toLowerCase()] || {
@@ -1392,9 +1392,9 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina, op
     if (categoria !== 'todos') {
         itensFiltrados = itens.filter(i => {
             const cat = (i.categoria || i.item?.categoria || '').toLowerCase();
-            if (categoria === 'armas') return ['arma', 'espada', 'arco', 'bastao', 'lanÃ§a', 'machado', 'principal', 'secundaria', 'weapon'].some(w => cat.includes(w));
-            if (categoria === 'armaduras') return ['armadura', 'peito', 'elmo', 'capacete', 'bota', 'sapato', 'escudo', 'luvas', 'calÃ§a', 'armor', 'shield', 'helmet', 'boots'].some(w => cat.includes(w));
-            if (categoria === 'consumiveis') return ['consumivel', 'poÃ§Ã£o', 'comida', 'potion', 'scroll', 'pergaminho'].some(w => cat.includes(w));
+            if (categoria === 'armas') return ['arma', 'espada', 'arco', 'bastao', 'lança', 'machado', 'principal', 'secundaria', 'weapon'].some(w => cat.includes(w));
+            if (categoria === 'armaduras') return ['armadura', 'peito', 'elmo', 'capacete', 'bota', 'sapato', 'escudo', 'luvas', 'calça', 'armor', 'shield', 'helmet', 'boots'].some(w => cat.includes(w));
+            if (categoria === 'consumiveis') return ['consumivel', 'poção', 'comida', 'potion', 'scroll', 'pergaminho'].some(w => cat.includes(w));
             if (categoria === 'materiais') return ['material', 'minerio', 'couro', 'essencia', 'ore', 'herb', 'planta'].some(w => cat.includes(w));
             return false;
         });
@@ -1415,19 +1415,19 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina, op
     const prefixComponents = options.prefixComponents || [];
     const catLabel = (value, label) => `${categoria === value ? 'â—†' : 'â—‡'} ${label}`;
 
-    // BotÃµes de Categorias
+    // Botões de Categorias
     const rowCats = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_todos`).setLabel(catLabel('todos', 'Tudo')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_armas`).setLabel(catLabel('armas', 'Armas')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_armaduras`).setLabel(catLabel('armaduras', 'Defesas')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_consumiveis`).setLabel(catLabel('consumiveis', 'ConsumÃ­veis')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_consumiveis`).setLabel(catLabel('consumiveis', 'Consumíveis')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_materiais`).setLabel(catLabel('materiais', 'Materiais')).setStyle(ButtonStyle.Secondary)
     );
 
-    // BotÃµes de PaginaÃ§Ã£o
+    // Botões de Paginação
     const rowPag = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('â— Anterior').setStyle(ButtonStyle.Secondary).setDisabled(pag === 0),
-        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('PrÃ³ximo â–·').setStyle(ButtonStyle.Secondary).setDisabled(pag >= totalPaginas - 1)
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo â–·').setStyle(ButtonStyle.Secondary).setDisabled(pag >= totalPaginas - 1)
     );
 
     const components = [...prefixComponents, rowCats];
@@ -1514,12 +1514,12 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
 
     ctx.fillStyle = '#AEB6C2';
     ctx.font = '18px sans-serif';
-    ctx.fillText(`SessÃ£o privada para ${displayName}`, 84, 166);
+    ctx.fillText(`Sessão privada para ${displayName}`, 84, 166);
 
     const contextParts = [];
     if (context.personagemNome) contextParts.push(`Personagem: ${formatarTexto(context.personagemNome)}`);
-    if (Number.isFinite(context.inventarioQtd)) contextParts.push(`InventÃ¡rio: ${context.inventarioQtd} itens`);
-    if (Number.isFinite(context.missoesAbertas)) contextParts.push(`MissÃµes abertas: ${context.missoesAbertas}`);
+    if (Number.isFinite(context.inventarioQtd)) contextParts.push(`Inventário: ${context.inventarioQtd} itens`);
+    if (Number.isFinite(context.missoesAbertas)) contextParts.push(`Missões abertas: ${context.missoesAbertas}`);
 
     if (contextParts.length > 0) {
         ctx.fillStyle = '#D4AF37';
@@ -1536,8 +1536,8 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
 
     const cards = [
         'Perfil',
-        'InventÃ¡rio',
-        'MissÃµes',
+        'Inventário',
+        'Missões',
         'Rankings',
         'Guilda',
         'Cena RP'
@@ -1571,7 +1571,7 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
     ctx.fillStyle = '#AEB6C2';
     ctx.font = '15px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Use os botÃµes abaixo para navegar sem expor seus dados no canal.', w / 2, 505);
+    ctx.fillText('Use os botões abaixo para navegar sem expor seus dados no canal.', w / 2, 505);
     ctx.textAlign = 'left';
 
     return canvas.toBuffer('image/png');
@@ -1645,7 +1645,7 @@ async function gerarBannerEnciclopedia() {
 
 
 // =====================================
-// FUNÃ‡Ã•ES DE MAPA 2D E COORDENADAS
+// FUNÇÕES DE MAPA 2D E COORDENADAS
 // =====================================
 
 function parsePosicao(posStr) {
