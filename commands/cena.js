@@ -1,170 +1,379 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const axios = require('axios');
-const { cenasAtivas, timersTurno } = require('../utils/state');
+const { cenasAtivas, timersTurno, renderTimers } = require('../utils/state');
 const { repintarMapaNovo, atualizarMapaDebounced } = require('../canvas/renderer');
 const { parsePosicao } = require('../utils/helpers');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
 
+const MIN_GRID_SIZE = 3;
+const MAX_COLUMNS = 14;
+const MAX_ROWS = 12;
+const MIN_TURN_SECONDS = 15;
+const MAX_TURN_SECONDS = 600;
+
 const data = new SlashCommandBuilder()
     .setName('cena')
-    .setDescription('Sistema VTT de Mapa, Posicionamento e Turnos')
-    .addSubcommand(sub => sub.setName('iniciar').setDescription('[Mestre] Cria um novo mapa vazio').addIntegerOption(o => o.setName('colunas').setDescription('Largura').setRequired(true)).addIntegerOption(o => o.setName('linhas').setDescription('Altura').setRequired(true)).addAttachmentOption(o => o.setName('fundo').setDescription('Upload de Imagem (Opcional)')))
-    .addSubcommand(sub => sub.setName('entrar').setDescription('Entra na cena (Apenas quando aberta)'))
-    .addSubcommand(sub => sub.setName('mover').setDescription('Move SEU personagem').addStringOption(o => o.setName('posicao').setDescription('Ex: A1, C4').setRequired(true)))
-    .addSubcommand(sub => sub.setName('npc_entrar').setDescription('[Mestre] Adiciona um NPC da API').addStringOption(o => o.setName('nome').setDescription('Nome do NPC').setRequired(true)).addStringOption(o => o.setName('posicao').setDescription('Ex: A1').setRequired(true)))
+    .setDescription('Sistema VTT de mapa, posicionamento e turnos')
+    .addSubcommand(sub => sub
+        .setName('iniciar')
+        .setDescription('[Mestre] Cria uma cena tatica')
+        .addIntegerOption(o => o
+            .setName('colunas')
+            .setDescription('Largura do mapa')
+            .setMinValue(MIN_GRID_SIZE)
+            .setMaxValue(MAX_COLUMNS)
+            .setRequired(true))
+        .addIntegerOption(o => o
+            .setName('linhas')
+            .setDescription('Altura do mapa')
+            .setMinValue(MIN_GRID_SIZE)
+            .setMaxValue(MAX_ROWS)
+            .setRequired(true))
+        .addStringOption(o => o
+            .setName('nome')
+            .setDescription('Nome da cena')
+            .setMaxLength(60)
+            .setRequired(false))
+        .addStringOption(o => o
+            .setName('descricao')
+            .setDescription('Ambientacao curta')
+            .setMaxLength(180)
+            .setRequired(false))
+        .addIntegerOption(o => o
+            .setName('tempo_turno')
+            .setDescription('Tempo por turno em segundos')
+            .setMinValue(MIN_TURN_SECONDS)
+            .setMaxValue(MAX_TURN_SECONDS)
+            .setRequired(false))
+        .addAttachmentOption(o => o
+            .setName('fundo')
+            .setDescription('Imagem de fundo opcional')))
+    .addSubcommand(sub => sub.setName('entrar').setDescription('Entra na cena aberta'))
+    .addSubcommand(sub => sub
+        .setName('mover')
+        .setDescription('Move seu personagem')
+        .addStringOption(o => o.setName('posicao').setDescription('Ex: A1, C4').setRequired(true)))
+    .addSubcommand(sub => sub
+        .setName('npc_entrar')
+        .setDescription('[Mestre] Adiciona um NPC ou criatura')
+        .addStringOption(o => o.setName('nome').setDescription('Nome do NPC ou criatura').setRequired(true))
+        .addStringOption(o => o.setName('posicao').setDescription('Ex: A1').setRequired(true)))
     .addSubcommand(sub => sub.setName('fechar').setDescription('[Mestre] Trava a entrada de novos jogadores'))
-    .addSubcommand(sub => sub.setName('combate_iniciar').setDescription('[Mestre] Trava movimentos livres e inicia Ordem de Turnos'))
-    .addSubcommand(sub => sub.setName('combate_proximo').setDescription('[Mestre] Passa para o próximo turno e joga o mapa pra baixo'))
-    .addSubcommand(sub => sub.setName('mover_livre').setDescription('[Mestre] Move qualquer token').addStringOption(o => o.setName('nome_token').setDescription('Nome de quem vai mover').setRequired(true)).addStringOption(o => o.setName('posicao').setDescription('Nova posição (A1)').setRequired(true)))
-    .addSubcommand(sub => sub.setName('status_vida').setDescription('[Mestre] Alterna token entre Vivo/Caído').addStringOption(o => o.setName('nome_token').setDescription('Nome do token').setRequired(true)))
-    .addSubcommand(sub => sub.setName('encerrar').setDescription('[Mestre] Deleta o mapa atual e apaga tudo'));
+    .addSubcommand(sub => sub.setName('combate_iniciar').setDescription('[Mestre] Inicia a ordem de turnos'))
+    .addSubcommand(sub => sub.setName('combate_proximo').setDescription('[Mestre] Passa para o proximo turno'))
+    .addSubcommand(sub => sub
+        .setName('mover_livre')
+        .setDescription('[Mestre] Move qualquer token')
+        .addStringOption(o => o.setName('nome_token').setDescription('Nome do token').setRequired(true))
+        .addStringOption(o => o.setName('posicao').setDescription('Nova posicao, ex: A1').setRequired(true)))
+    .addSubcommand(sub => sub
+        .setName('status_vida')
+        .setDescription('[Mestre] Alterna token entre vivo e incapacitado')
+        .addStringOption(o => o.setName('nome_token').setDescription('Nome do token').setRequired(true)))
+    .addSubcommand(sub => sub.setName('encerrar').setDescription('[Mestre] Encerra e remove a cena ativa'));
+
+function hasMasterAccess(interaction) {
+    return interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages);
+}
+
+function formatCoord(pos) {
+    return `${String.fromCharCode(65 + pos.x)}${pos.y + 1}`;
+}
+
+function isInsideMap(cena, pos) {
+    return pos && pos.x >= 0 && pos.y >= 0 && pos.x < cena.colunas && pos.y < cena.linhas;
+}
+
+function validatePosition(cena, pos) {
+    if (!pos) return 'Coordenada invalida. Use o formato A1.';
+    if (!isInsideMap(cena, pos)) {
+        return `Coordenada fora do mapa. Limite atual: A1 ate ${formatCoord({ x: cena.colunas - 1, y: cena.linhas - 1 })}.`;
+    }
+    return null;
+}
+
+function getTokenAt(cena, pos, ignoreToken = null) {
+    return cena.players.find(p => p !== ignoreToken && !p.incapacitado && p.x === pos.x && p.y === pos.y);
+}
+
+function validateDestination(cena, pos, token = null) {
+    const positionError = validatePosition(cena, pos);
+    if (positionError) return positionError;
+    const occupant = getTokenAt(cena, pos, token);
+    if (occupant) return `A celula ${formatCoord(pos)} ja esta ocupada por ${occupant.name}.`;
+    return null;
+}
+
+function findFreeCell(cena) {
+    for (let y = 0; y < cena.linhas; y++) {
+        for (let x = 0; x < cena.colunas; x++) {
+            const pos = { x, y };
+            if (!getTokenAt(cena, pos)) return pos;
+        }
+    }
+    return null;
+}
+
+function normalizeTurnIndex(cena) {
+    if (cena.turnoAtual >= cena.players.length) cena.turnoAtual = 0;
+    if (cena.turnoAtual < 0) cena.turnoAtual = 0;
+}
+
+function advanceTurn(cena) {
+    const vivos = cena.players.filter(p => !p.incapacitado);
+    if (vivos.length === 0) return null;
+
+    normalizeTurnIndex(cena);
+    do {
+        cena.turnoAtual++;
+        if (cena.turnoAtual >= cena.players.length) {
+            cena.turnoAtual = 0;
+            cena.rodada++;
+        }
+    } while (cena.players[cena.turnoAtual].incapacitado);
+
+    return cena.players[cena.turnoAtual];
+}
+
+function clearSceneTimers(cena) {
+    if (!cena?.msgId) return;
+    if (timersTurno.has(cena.msgId)) {
+        clearInterval(timersTurno.get(cena.msgId));
+        timersTurno.delete(cena.msgId);
+    }
+    if (renderTimers.has(cena.msgId)) {
+        clearTimeout(renderTimers.get(cena.msgId));
+        renderTimers.delete(cena.msgId);
+    }
+}
+
+function createScene({ colunas, linhas, fundoUrl, nome, descricao, tempoTurnoMs }) {
+    return {
+        linhas,
+        colunas,
+        fundoUrl,
+        nome: nome || 'Cena Tatica',
+        descricao: descricao || null,
+        estado: 'ABERTA',
+        rodada: 1,
+        turnoAtual: 0,
+        players: [],
+        msgId: null,
+        tempoTurnoMs: tempoTurnoMs || null,
+        ultimoEvento: 'Cena aberta para entrada dos jogadores.'
+    };
+}
+
+async function resolveNpcOrCreature(nomeInput) {
+    try {
+        const res = await axios.get(`${ARKANDIA_API}/npcs/${encodeURIComponent(nomeInput)}`, { headers: { 'X-API-Key': API_KEY } });
+        return {
+            name: res.data.nome,
+            avatarUrl: res.data.retrato_url || 'https://i.imgur.com/vHqB3q0.png',
+            kind: 'NPC'
+        };
+    } catch (eNpc) {
+        if (eNpc.response?.status !== 404) throw eNpc;
+        const resBestia = await axios.get(`${ARKANDIA_API}/bestiario/${encodeURIComponent(nomeInput)}`, { headers: { 'X-API-Key': API_KEY } });
+        return {
+            name: resBestia.data.nome,
+            avatarUrl: resBestia.data.ilustracao_url || 'https://i.imgur.com/vHqB3q0.png',
+            kind: 'Criatura'
+        };
+    }
+}
 
 async function execute(interaction) {
-    const isMaster = interaction.memberPermissions.has(PermissionFlagsBits.ManageMessages);
+    const isMaster = hasMasterAccess(interaction);
     const sub = interaction.options.getSubcommand();
     const cid = interaction.channelId;
 
     await interaction.deferReply();
 
     if (sub === 'iniciar') {
-        if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
+        if (!isMaster) return await interaction.editReply('Somente mestres podem iniciar cenas.');
+        if (cenasAtivas.has(cid)) {
+            return await interaction.editReply('Ja existe uma cena ativa neste canal. Encerre a cena atual antes de abrir outra.');
+        }
+
         const colunas = interaction.options.getInteger('colunas');
         const linhas = interaction.options.getInteger('linhas');
         const fundo = interaction.options.getAttachment('fundo');
-        
-        cenasAtivas.set(cid, { 
-            linhas, colunas, fundoUrl: fundo ? fundo.url : null,
-            estado: 'ABERTA', rodada: 1, turnoAtual: 0, players: [], msgId: null
+        const nome = interaction.options.getString('nome')?.trim();
+        const descricao = interaction.options.getString('descricao')?.trim();
+        const tempoTurno = interaction.options.getInteger('tempo_turno');
+
+        const cena = createScene({
+            colunas,
+            linhas,
+            fundoUrl: fundo ? fundo.url : null,
+            nome,
+            descricao,
+            tempoTurnoMs: tempoTurno ? tempoTurno * 1000 : null
         });
-        await repintarMapaNovo(interaction.channel, cenasAtivas.get(cid));
-        return await interaction.editReply('✓ Cena ABERTA. Jogadores já podem entrar.');
+
+        cenasAtivas.set(cid, cena);
+        await repintarMapaNovo(interaction.channel, cena);
+        return await interaction.editReply(`Cena aberta: **${cena.nome}**. Jogadores podem usar \`/cena entrar\`.`);
     }
 
     const cena = cenasAtivas.get(cid);
-    if (!cena) return await interaction.editReply('✗ Nenhuma cena ativa.');
+    if (!cena) return await interaction.editReply('Nenhuma cena ativa neste canal.');
 
     if (sub === 'fechar') {
-        if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
+        if (!isMaster) return await interaction.editReply('Somente mestres podem fechar cenas.');
         cena.estado = 'FECHADA';
-        return await interaction.editReply('✓ Cena FECHADA. Ninguém mais entra.');
+        cena.ultimoEvento = 'Entrada de novos jogadores bloqueada pelo mestre.';
+        await atualizarMapaDebounced(interaction.channel, cena);
+        return await interaction.editReply('Cena fechada. Novas entradas foram bloqueadas.');
     }
 
     if (sub === 'combate_iniciar') {
-        if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
-        if (cena.players.length === 0) return await interaction.editReply('✗ Não há ninguém na cena.');
+        if (!isMaster) return await interaction.editReply('Somente mestres podem iniciar combate.');
+        if (cena.players.length === 0) return await interaction.editReply('Nao ha tokens na cena.');
+        if (!cena.players.some(p => !p.incapacitado)) return await interaction.editReply('Nao ha tokens vivos para iniciar combate.');
+
         cena.estado = 'COMBATE';
         cena.rodada = 1;
-        cena.turnoAtual = 0;
+        cena.turnoAtual = cena.players.findIndex(p => !p.incapacitado);
+        if (cena.turnoAtual < 0) cena.turnoAtual = 0;
+        cena.ultimoEvento = `Combate iniciado. Primeiro turno: ${cena.players[cena.turnoAtual].name}.`;
+
         await repintarMapaNovo(interaction.channel, cena);
-        return await interaction.editReply('✓ Combate INICIADO! Ordem de turnos trancada.');
+        return await interaction.editReply(`Combate iniciado. Turno de **${cena.players[cena.turnoAtual].name}**.`);
     }
 
     if (sub === 'combate_proximo') {
-        if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
-        if (cena.estado !== 'COMBATE') return await interaction.editReply('✗ O Combate não está ativo. Use `/cena combate_iniciar` primeiro.');
+        if (!isMaster) return await interaction.editReply('Somente mestres podem passar turnos.');
+        if (cena.estado !== 'COMBATE') return await interaction.editReply('O combate nao esta ativo. Use `/cena combate_iniciar` primeiro.');
 
-        do {
-            cena.turnoAtual++;
-            if (cena.turnoAtual >= cena.players.length) {
-                cena.turnoAtual = 0;
-                cena.rodada++;
-            }
-        } while (cena.players[cena.turnoAtual].incapacitado && cena.players.some(p => !p.incapacitado));
+        const active = advanceTurn(cena);
+        if (!active) return await interaction.editReply('Nao ha tokens vivos para receber turno.');
 
+        cena.ultimoEvento = `Turno avancado pelo mestre. Agora: ${active.name}.`;
         await repintarMapaNovo(interaction.channel, cena);
-        return await interaction.editReply(`✓ Passou para o turno de **${cena.players[cena.turnoAtual].name}**.`);
+        return await interaction.editReply(`Turno passado para **${active.name}**.`);
     }
 
     if (sub === 'mover_livre') {
-        if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
+        if (!isMaster) return await interaction.editReply('Somente mestres podem mover qualquer token.');
         const nToken = interaction.options.getString('nome_token').toLowerCase();
         const pos = parsePosicao(interaction.options.getString('posicao'));
-        if (!pos) return await interaction.editReply('✗ Coordenada inválida.');
-        
         const token = cena.players.find(p => p.name.toLowerCase().includes(nToken));
-        if (!token) return await interaction.editReply(`✗ Ninguém com "${nToken}" no nome foi encontrado.`);
+        if (!token) return await interaction.editReply(`Nenhum token com "${nToken}" foi encontrado.`);
 
-        token.x = Math.max(0, Math.min(cena.colunas - 1, pos.x));
-        token.y = Math.max(0, Math.min(cena.linhas - 1, pos.y));
+        const error = validateDestination(cena, pos, token);
+        if (error) return await interaction.editReply(error);
+
+        token.x = pos.x;
+        token.y = pos.y;
+        cena.ultimoEvento = `${token.name} foi movido para ${formatCoord(pos)}.`;
         atualizarMapaDebounced(interaction.channel, cena);
-        return await interaction.editReply(`✓ Movimentou ${token.name}.`);
+        return await interaction.editReply(`Movimentou **${token.name}** para ${formatCoord(pos)}.`);
     }
 
     if (sub === 'status_vida') {
-        if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
+        if (!isMaster) return await interaction.editReply('Somente mestres podem alterar status.');
         const nToken = interaction.options.getString('nome_token').toLowerCase();
-        const token = cena.players.find(p => p.name.toLowerCase().includes(nToken));
-        if (!token) return await interaction.editReply(`✗ Ninguém com "${nToken}" no nome foi encontrado.`);
+        const tokenIndex = cena.players.findIndex(p => p.name.toLowerCase().includes(nToken));
+        const token = cena.players[tokenIndex];
+        if (!token) return await interaction.editReply(`Nenhum token com "${nToken}" foi encontrado.`);
 
         token.incapacitado = !token.incapacitado;
-        atualizarMapaDebounced(interaction.channel, cena);
-        return await interaction.editReply(`✓ Status de ${token.name} mudado para: ${token.incapacitado ? 'Incapacitado 💀' : 'Vivo ❤️'}.`);
+        cena.ultimoEvento = `${token.name} agora esta ${token.incapacitado ? 'incapacitado' : 'vivo'}.`;
+
+        if (cena.estado === 'COMBATE' && token.incapacitado && cena.turnoAtual === tokenIndex) {
+            const active = advanceTurn(cena);
+            if (active) cena.ultimoEvento += ` Turno transferido para ${active.name}.`;
+            await repintarMapaNovo(interaction.channel, cena);
+        } else {
+            atualizarMapaDebounced(interaction.channel, cena);
+        }
+
+        return await interaction.editReply(`Status de **${token.name}**: ${token.incapacitado ? 'Incapacitado' : 'Vivo'}.`);
     }
 
     if (sub === 'encerrar') {
-        if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
+        if (!isMaster) return await interaction.editReply('Somente mestres podem encerrar cenas.');
+        clearSceneTimers(cena);
         if (cena.msgId) {
-            if (timersTurno.has(cena.msgId)) {
-                clearTimeout(timersTurno.get(cena.msgId));
-                timersTurno.delete(cena.msgId);
-            }
-            try { await (await interaction.channel.messages.fetch(cena.msgId)).delete(); } catch(e){}
+            try { await (await interaction.channel.messages.fetch(cena.msgId)).delete(); } catch(e) {}
         }
         cenasAtivas.delete(cid);
-        return await interaction.editReply('✓ Cena apagada.');
+        return await interaction.editReply(`Cena **${cena.nome || 'Tatica'}** encerrada.`);
     }
 
     if (sub === 'entrar') {
-        if (cena.estado !== 'ABERTA') return await interaction.editReply('✗ Esta cena já foi fechada pelo mestre.');
-        if (cena.players.find(x => x.discordId === interaction.user.id)) return await interaction.editReply('✗ Você já está nela!');
-        
+        if (cena.estado !== 'ABERTA') return await interaction.editReply('Esta cena ja foi fechada pelo mestre.');
+        if (cena.players.find(x => x.discordId === interaction.user.id)) return await interaction.editReply('Voce ja esta nesta cena.');
+
+        const spawn = findFreeCell(cena);
+        if (!spawn) return await interaction.editReply('Nao ha celulas livres para entrar na cena.');
+
         try {
             const res = await axios.get(`${ARKANDIA_API}/personagens/discord/${interaction.user.id}`, { headers: { 'X-API-Key': API_KEY } });
-            cena.players.push({ discordId: interaction.user.id, name: res.data.nome, avatarUrl: res.data.avatar_url || 'https://i.imgur.com/vHqB3q0.png', x: 0, y: 0, isNpc: false, incapacitado: false });
+            cena.players.push({
+                discordId: interaction.user.id,
+                name: res.data.nome,
+                avatarUrl: res.data.avatar_url || 'https://i.imgur.com/vHqB3q0.png',
+                x: spawn.x,
+                y: spawn.y,
+                isNpc: false,
+                incapacitado: false
+            });
+            cena.ultimoEvento = `${res.data.nome} entrou em ${formatCoord(spawn)}.`;
             atualizarMapaDebounced(interaction.channel, cena);
-            return await interaction.editReply(`✓ Você entrou na cena.`);
-        } catch(e) { return await interaction.editReply(`✗ Erro ao buscar ficha.`); }
+            return await interaction.editReply(`Voce entrou na cena em ${formatCoord(spawn)}.`);
+        } catch(e) {
+            return await interaction.editReply('Erro ao buscar sua ficha ativa.');
+        }
     }
 
     if (sub === 'npc_entrar') {
-        if (!isMaster) return await interaction.editReply('✗ Somente Mestres.');
+        if (!isMaster) return await interaction.editReply('Somente mestres podem adicionar NPCs.');
         const pos = parsePosicao(interaction.options.getString('posicao'));
-        if (!pos) return await interaction.editReply('✗ Coordenada inválida.');
+        const error = validateDestination(cena, pos);
+        if (error) return await interaction.editReply(error);
+
         const nomeInput = interaction.options.getString('nome');
         try {
-            try {
-                const res = await axios.get(`${ARKANDIA_API}/npcs/${encodeURIComponent(nomeInput)}`, { headers: { 'X-API-Key': API_KEY } });
-                cena.players.push({ discordId: 'npc_'+Date.now(), name: res.data.nome, avatarUrl: res.data.retrato_url || 'https://i.imgur.com/vHqB3q0.png', x: pos.x, y: pos.y, isNpc: true, incapacitado: false });
-                atualizarMapaDebounced(interaction.channel, cena);
-                return await interaction.editReply(`✓ NPC colocado.`);
-            } catch (eNpc) {
-                if (eNpc.response?.status === 404) {
-                    const resBestia = await axios.get(`${ARKANDIA_API}/bestiario/${encodeURIComponent(nomeInput)}`, { headers: { 'X-API-Key': API_KEY } });
-                    cena.players.push({ discordId: 'npc_'+Date.now(), name: resBestia.data.nome, avatarUrl: resBestia.data.ilustracao_url || 'https://i.imgur.com/vHqB3q0.png', x: pos.x, y: pos.y, isNpc: true, incapacitado: false });
-                    atualizarMapaDebounced(interaction.channel, cena);
-                    return await interaction.editReply(`✓ Criatura do Bestiário colocada.`);
-                } else {
-                    throw eNpc;
-                }
-            }
-        } catch(e) { return await interaction.editReply(`✗ Nem NPC nem criatura do Bestiário foram encontrados com o nome "${nomeInput}".`); }
+            const npc = await resolveNpcOrCreature(nomeInput);
+            cena.players.push({
+                discordId: `npc_${Date.now()}`,
+                name: npc.name,
+                avatarUrl: npc.avatarUrl,
+                x: pos.x,
+                y: pos.y,
+                isNpc: true,
+                incapacitado: false
+            });
+            cena.ultimoEvento = `${npc.kind} ${npc.name} entrou em ${formatCoord(pos)}.`;
+            atualizarMapaDebounced(interaction.channel, cena);
+            return await interaction.editReply(`${npc.kind} **${npc.name}** colocado em ${formatCoord(pos)}.`);
+        } catch(e) {
+            return await interaction.editReply(`Nenhum NPC ou criatura encontrado com o nome "${nomeInput}".`);
+        }
     }
 
     if (sub === 'mover') {
         const pos = parsePosicao(interaction.options.getString('posicao'));
-        if (!pos) return await interaction.editReply('✗ Coordenada inválida.');
         const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
-        if (pIndex === -1) return await interaction.editReply('✗ Você não está no mapa!');
-        
-        if (cena.players[pIndex].incapacitado) return await interaction.editReply('✗ Você está incapacitado.');
-        if (cena.estado === 'COMBATE' && cena.turnoAtual !== pIndex) return await interaction.editReply(`✗ Não é o seu turno!`);
+        if (pIndex === -1) return await interaction.editReply('Voce nao esta no mapa.');
 
-        cena.players[pIndex].x = pos.x;
-        cena.players[pIndex].y = pos.y;
+        const token = cena.players[pIndex];
+        if (token.incapacitado) return await interaction.editReply('Voce esta incapacitado.');
+        if (cena.estado === 'COMBATE' && cena.turnoAtual !== pIndex) return await interaction.editReply('Nao e o seu turno.');
+
+        const error = validateDestination(cena, pos, token);
+        if (error) return await interaction.editReply(error);
+
+        token.x = pos.x;
+        token.y = pos.y;
+        cena.ultimoEvento = `${token.name} moveu para ${formatCoord(pos)}.`;
         atualizarMapaDebounced(interaction.channel, cena);
-        return await interaction.editReply(`✓ Movimentou.`);
+        return await interaction.editReply(`Movimentou para ${formatCoord(pos)}.`);
     }
 }
 
@@ -173,23 +382,31 @@ async function handleButton(interaction) {
 
     if (interaction.customId.startsWith('cena_move_')) {
         const cena = cenasAtivas.get(interaction.channelId);
-        if (!cena) return await interaction.reply({ content: '✗ Nenhuma cena ativa.', ephemeral: true });
+        if (!cena) return await interaction.reply({ content: 'Nenhuma cena ativa.', ephemeral: true });
 
         const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
-        if (pIndex === -1) return await interaction.reply({ content: '✗ Você não está no tabuleiro.', ephemeral: true });
+        if (pIndex === -1) return await interaction.reply({ content: 'Voce nao esta no tabuleiro.', ephemeral: true });
 
         const token = cena.players[pIndex];
-        if (token.incapacitado) return await interaction.reply({ content: '✗ Você está incapacitado e não pode se mover.', ephemeral: true });
+        if (token.incapacitado) return await interaction.reply({ content: 'Voce esta incapacitado e nao pode se mover.', ephemeral: true });
 
         if (cena.estado === 'COMBATE' && cena.turnoAtual !== pIndex) {
-            return await interaction.reply({ content: `✗ Não é o seu turno! Agora é o turno de **${cena.players[cena.turnoAtual].name}**.`, ephemeral: true });
+            return await interaction.reply({ content: `Nao e o seu turno. Agora e o turno de **${cena.players[cena.turnoAtual].name}**.`, ephemeral: true });
         }
 
         const dir = interaction.customId.replace('cena_move_', '');
-        if (dir === 'up') token.y = Math.max(0, token.y - 1);
-        if (dir === 'down') token.y = Math.min(cena.linhas - 1, token.y + 1);
-        if (dir === 'left') token.x = Math.max(0, token.x - 1);
-        if (dir === 'right') token.x = Math.min(cena.colunas - 1, token.x + 1);
+        const nextPos = { x: token.x, y: token.y };
+        if (dir === 'up') nextPos.y--;
+        if (dir === 'down') nextPos.y++;
+        if (dir === 'left') nextPos.x--;
+        if (dir === 'right') nextPos.x++;
+
+        const error = validateDestination(cena, nextPos, token);
+        if (error) return await interaction.reply({ content: error, ephemeral: true });
+
+        token.x = nextPos.x;
+        token.y = nextPos.y;
+        cena.ultimoEvento = `${token.name} moveu para ${formatCoord(nextPos)}.`;
 
         await interaction.deferUpdate();
         atualizarMapaDebounced(interaction.channel, cena);
@@ -198,45 +415,38 @@ async function handleButton(interaction) {
 
     if (interaction.customId === 'cena_passar_turno') {
         const cena = cenasAtivas.get(interaction.channelId);
-        if (!cena || cena.estado !== 'COMBATE') return await interaction.reply({ content: '✗ Não há combate ativo.', ephemeral: true });
+        if (!cena || cena.estado !== 'COMBATE') return await interaction.reply({ content: 'Nao ha combate ativo.', ephemeral: true });
 
         const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
         if (pIndex === -1 || cena.turnoAtual !== pIndex) {
-            return await interaction.reply({ content: `✗ Não é o seu turno!`, ephemeral: true });
+            return await interaction.reply({ content: 'Nao e o seu turno.', ephemeral: true });
         }
 
         await interaction.deferUpdate();
-        
-        do {
-            cena.turnoAtual++;
-            if (cena.turnoAtual >= cena.players.length) {
-                cena.turnoAtual = 0;
-                cena.rodada++;
-            }
-        } while (cena.players[cena.turnoAtual].incapacitado && cena.players.some(p => !p.incapacitado));
-        
+        const active = advanceTurn(cena);
+        if (active) cena.ultimoEvento = `${interaction.user.username} passou o turno. Agora: ${active.name}.`;
         await repintarMapaNovo(interaction.channel, cena);
         return;
     }
 
     if (interaction.customId === 'cena_modal_mover_coord') {
         const cena = cenasAtivas.get(interaction.channelId);
-        if (!cena) return await interaction.reply({ content: '✗ Nenhuma cena ativa.', ephemeral: true });
+        if (!cena) return await interaction.reply({ content: 'Nenhuma cena ativa.', ephemeral: true });
 
         const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
-        if (pIndex === -1) return await interaction.reply({ content: '✗ Você não está no tabuleiro.', ephemeral: true });
+        if (pIndex === -1) return await interaction.reply({ content: 'Voce nao esta no tabuleiro.', ephemeral: true });
 
-        if (cena.players[pIndex].incapacitado) return await interaction.reply({ content: '✗ Você está incapacitado e não pode se mover.', ephemeral: true });
+        if (cena.players[pIndex].incapacitado) return await interaction.reply({ content: 'Voce esta incapacitado e nao pode se mover.', ephemeral: true });
 
         if (cena.estado === 'COMBATE' && cena.turnoAtual !== pIndex) {
-            return await interaction.reply({ content: `✗ Não é o seu turno!`, ephemeral: true });
+            return await interaction.reply({ content: 'Nao e o seu turno.', ephemeral: true });
         }
 
         const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
-        const modal = new ModalBuilder().setCustomId('cena_modal_mover_coord_submit').setTitle('Mover para Coordenada');
-        const coordInput = new TextInputBuilder().setCustomId('coord_input').setLabel('Coordenada (ex: A1)').setStyle(TextInputStyle.Short).setRequired(true);
+        const modal = new ModalBuilder().setCustomId('cena_modal_mover_coord_submit').setTitle('Mover para coordenada');
+        const coordInput = new TextInputBuilder().setCustomId('coord_input').setLabel('Coordenada, ex: A1').setStyle(TextInputStyle.Short).setRequired(true);
         modal.addComponents(new ActionRowBuilder().addComponents(coordInput));
-        
+
         await interaction.showModal(modal);
         return;
     }
@@ -246,22 +456,24 @@ async function handleModal(interaction) {
     if (interaction.customId === 'cena_modal_mover_coord_submit') {
         const coordStr = interaction.fields.getTextInputValue('coord_input');
         const pos = parsePosicao(coordStr);
-        
-        if (!pos) return await interaction.reply({ content: '✗ Formato inválido. Use letra e número (Ex: A1, C4).', ephemeral: true });
-        
         const cena = cenasAtivas.get(interaction.channelId);
-        if (!cena) return await interaction.reply({ content: '✗ Nenhuma cena ativa.', ephemeral: true });
+        if (!cena) return await interaction.reply({ content: 'Nenhuma cena ativa.', ephemeral: true });
 
         const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
-        if (pIndex === -1) return await interaction.reply({ content: '✗ Você não está no tabuleiro.', ephemeral: true });
+        if (pIndex === -1) return await interaction.reply({ content: 'Voce nao esta no tabuleiro.', ephemeral: true });
 
-        if (cena.players[pIndex].incapacitado) return await interaction.reply({ content: '✗ Você está incapacitado.', ephemeral: true });
-        if (cena.estado === 'COMBATE' && cena.turnoAtual !== pIndex) return await interaction.reply({ content: `✗ Não é o seu turno!`, ephemeral: true });
+        const token = cena.players[pIndex];
+        if (token.incapacitado) return await interaction.reply({ content: 'Voce esta incapacitado.', ephemeral: true });
+        if (cena.estado === 'COMBATE' && cena.turnoAtual !== pIndex) return await interaction.reply({ content: 'Nao e o seu turno.', ephemeral: true });
 
-        cena.players[pIndex].x = Math.max(0, Math.min(cena.colunas - 1, pos.x));
-        cena.players[pIndex].y = Math.max(0, Math.min(cena.linhas - 1, pos.y));
-        
-        await interaction.reply({ content: '✓ Movimento efetuado!', ephemeral: true });
+        const error = validateDestination(cena, pos, token);
+        if (error) return await interaction.reply({ content: error, ephemeral: true });
+
+        token.x = pos.x;
+        token.y = pos.y;
+        cena.ultimoEvento = `${token.name} moveu para ${formatCoord(pos)}.`;
+
+        await interaction.reply({ content: `Movimento efetuado para ${formatCoord(pos)}.`, ephemeral: true });
         atualizarMapaDebounced(interaction.channel, cena);
         return;
     }

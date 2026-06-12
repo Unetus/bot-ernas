@@ -1,4 +1,4 @@
-const { createCanvas, loadImage: _originalLoadImage } = require('@napi-rs/canvas');
+﻿const { createCanvas, loadImage: _originalLoadImage } = require('@napi-rs/canvas');
 const { formatarTexto } = require('../utils/helpers');
 const axios = require('axios');
 const https = require('https');
@@ -120,11 +120,11 @@ async function gerarBannerPerfilLegacy(p) {
         ? `#${p.indice_poder_cor.toString(16).padStart(6, '0')}` 
         : (p.indice_poder_cor || '#3498DB');
 
-    // Fundo base (Seção Principal)
+    // Fundo base (SeÃ§Ã£o Principal)
     ctx.fillStyle = '#1A1C23';
     ctx.fillRect(0, 0, 900, 415);
 
-    // Forma geométrica no fundo
+    // Forma geomÃ©trica no fundo
     ctx.fillStyle = colorHex;
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -141,7 +141,7 @@ async function gerarBannerPerfilLegacy(p) {
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, 900, 300);
 
-    // Separador para a área de skills
+    // Separador para a Ã¡rea de skills
     ctx.fillStyle = '#13141C';
     ctx.fillRect(0, 300, 900, 115);
     
@@ -197,9 +197,9 @@ async function gerarBannerPerfilLegacy(p) {
 
     ctx.fillStyle = '#A0AAB5';
     ctx.font = '22px sans-serif';
-    ctx.fillText(`${raca} • ${classe}`, 340, 170);
+    ctx.fillText(`${raca} â€¢ ${classe}`, 340, 170);
 
-    // Status boxes (Rank & Nível, Tier & Poder)
+    // Status boxes (Rank & NÃ­vel, Tier & Poder)
     const drawConsolidatedStat = (label, mainVal, subVal, x, y, w) => {
         ctx.fillStyle = '#252830';
         ctx.beginPath();
@@ -233,7 +233,7 @@ async function gerarBannerPerfilLegacy(p) {
     const tierNum = p.indice_poder_faixa || 1;
     const tierRomano = romanTiers[tierNum] || String(tierNum);
 
-    drawConsolidatedStat('Rank & Nível', `${p.rank || '-'}`, `Nível ${p.nivel || 1}`, 420, 195, 200);
+    drawConsolidatedStat('Rank & NÃ­vel', `${p.rank || '-'}`, `NÃ­vel ${p.nivel || 1}`, 420, 195, 200);
     drawConsolidatedStat('Tier & Poder', `Tier ${tierRomano}`, `${(p.indice_poder || 0).toLocaleString('pt-BR')} Poder`, 640, 195, 200);
 
     // Deck de Habilidades
@@ -346,7 +346,7 @@ async function gerarBannerPerfilLegacy(p) {
     const equips = p.equipamento || [];
     const elmo = equips.find(e => ['capacete', 'cabeca', 'helmet', 'head', 'elmo'].includes(e.slot?.toLowerCase()));
     const armadura = equips.find(e => ['armadura', 'peito', 'chest', 'armor', 'body', 'veste'].includes(e.slot?.toLowerCase()));
-    const arma = equips.find(e => ['arma_principal', 'arma', 'weapon', 'main_hand', 'espada', 'arco', 'bastao', 'machado', 'lança'].includes(e.slot?.toLowerCase()));
+    const arma = equips.find(e => ['arma_principal', 'arma', 'weapon', 'main_hand', 'espada', 'arco', 'bastao', 'machado', 'lanÃ§a'].includes(e.slot?.toLowerCase()));
     const sapatos = equips.find(e => ['sapatos', 'botas', 'boots', 'shoes', 'feet', 'pes', 'bota'].includes(e.slot?.toLowerCase()));
 
     const drawEmptyEquipSlot = (label, x, y) => {
@@ -462,7 +462,7 @@ async function gerarBannerPerfilLegacy(p) {
             ctx.fillStyle = b.color;
             ctx.font = 'bold 11px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('★', bx + 22, by + 17);
+            ctx.fillText('â˜…', bx + 22, by + 17);
 
             ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 14px sans-serif';
@@ -485,7 +485,7 @@ async function gerarBannerPerfil(p) {
     const titulo = p.titulo ? formatarTexto(p.titulo) : '';
     const raca = formatarTexto(p.raca || '');
     const classe = formatarTexto(p.classe || '');
-    const identidade = [raca, classe].filter(Boolean).join(' • ');
+    const identidade = [raca, classe].filter(Boolean).join(' â€¢ ');
 
     drawHudHeader(ctx, trimToWidth(ctx, nome, 520), titulo || identidade || 'Ficha do personagem', 330, 96, 690);
 
@@ -524,7 +524,7 @@ async function gerarBannerPerfil(p) {
     const tierRomano = romanTiers[tierNum] || String(tierNum);
     const stats = [
         ['Rank', p.rank || '-'],
-        ['Nível', p.nivel || 1],
+        ['NÃ­vel', p.nivel || 1],
         ['Tier', tierRomano],
         ['Poder', (p.indice_poder || 0).toLocaleString('pt-BR')]
     ];
@@ -605,7 +605,7 @@ async function gerarBannerPerfil(p) {
     const equipSlots = [
         ['Elmo', ['capacete', 'cabeca', 'helmet', 'head', 'elmo']],
         ['Peito', ['armadura', 'peito', 'chest', 'armor', 'body', 'veste']],
-        ['Arma', ['arma_principal', 'arma', 'weapon', 'main_hand', 'espada', 'arco', 'bastao', 'machado', 'lança']],
+        ['Arma', ['arma_principal', 'arma', 'weapon', 'main_hand', 'espada', 'arco', 'bastao', 'machado', 'lanÃ§a']],
         ['Botas', ['sapatos', 'botas', 'boots', 'shoes', 'feet', 'pes', 'bota']]
     ];
 
@@ -705,7 +705,7 @@ async function gerarBannerLoot(item, qtd) {
 
     ctx.fillStyle = '#A0AAB5';
     ctx.font = '18px sans-serif';
-    ctx.fillText(`${formatarTexto(item.categoria || '')}${item.grau ? ' • Grau ' + item.grau : ''}`, 200, 162);
+    ctx.fillText(`${formatarTexto(item.categoria || '')}${item.grau ? ' â€¢ Grau ' + item.grau : ''}`, 200, 162);
 
     // Quantidade (badge no canto superior direito)
     if (qtd > 1) {
@@ -754,7 +754,7 @@ async function gerarBannerInventarioLegacy(p, sliceItens, categoria, pag, totalP
     
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 36px sans-serif';
-    ctx.fillText(`Inventário de ${formatarTexto(p.nome)}`, 40, 60);
+    ctx.fillText(`InventÃ¡rio de ${formatarTexto(p.nome)}`, 40, 60);
     
     const libras = p.libras || p.saldo || 0;
     ctx.fillStyle = '#F1C40F';
@@ -870,7 +870,7 @@ async function gerarBannerInventarioLegacy(p, sliceItens, categoria, pag, totalP
     ctx.fillText(`Categoria: ${formatarTexto(categoria === 'todos' ? 'Tudo' : categoria)}`, 40, h - 20);
     
     ctx.textAlign = 'right';
-    ctx.fillText(`Página ${pag + 1} de ${totalPaginas}`, w - 40, h - 20);
+    ctx.fillText(`PÃ¡gina ${pag + 1} de ${totalPaginas}`, w - 40, h - 20);
     
     return canvas.toBuffer('image/png');
 }
@@ -884,7 +884,7 @@ async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas
 
     const categoriaLabel = formatarTexto(categoria === 'todos' ? 'Tudo' : categoria);
     const libras = p.libras || p.saldo || 0;
-    drawHudHeader(ctx, `Inventário de ${formatarTexto(p.nome || 'Aventureiro')}`, `${categoriaLabel} • ${libras.toLocaleString('pt-BR')} Libras`, 82, 100, 836);
+    drawHudHeader(ctx, `InventÃ¡rio de ${formatarTexto(p.nome || 'Aventureiro')}`, `${categoriaLabel} â€¢ ${libras.toLocaleString('pt-BR')} Libras`, 82, 100, 836);
 
     const raridades = {
         comum: '#8B949E',
@@ -1000,7 +1000,7 @@ async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas
     ctx.fillStyle = HUD_MUTED;
     ctx.font = '14px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(`Página ${pag + 1} de ${totalPaginas}`, w / 2, 535);
+    ctx.fillText(`PÃ¡gina ${pag + 1} de ${totalPaginas}`, w / 2, 535);
     ctx.textAlign = 'left';
 
     return canvas.toBuffer('image/png');
@@ -1021,7 +1021,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, 800, 620);
 
-    // Cabeçalho
+    // CabeÃ§alho
     ctx.fillStyle = '#D4AF37';
     ctx.font = 'bold 32px sans-serif';
     ctx.fillText('RANKING DE ARKANDIA', 50, 60);
@@ -1029,14 +1029,14 @@ async function gerarBannerRankingLegacy(tipo, dados) {
     ctx.fillStyle = '#8B949E';
     ctx.font = 'bold 18px sans-serif';
     const tipoTraduzido = {
-        poder: 'ÍNDICE DE PODER',
-        nivel: 'NÍVEL E EXPERIÊNCIA',
-        guildas: 'GUILDAS DE VERMÉCIA',
+        poder: 'ÃNDICE DE PODER',
+        nivel: 'NÃVEL E EXPERIÃŠNCIA',
+        guildas: 'GUILDAS DE VERMÃ‰CIA',
         arena: 'PONTOS DE ARENA'
     }[tipo.toLowerCase()] || tipo.toUpperCase();
     ctx.fillText(tipoTraduzido, 50, 95);
 
-    // Linha divisória
+    // Linha divisÃ³ria
     ctx.strokeStyle = '#2D313E';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -1087,7 +1087,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
             }
         }
 
-        // Posição
+        // PosiÃ§Ã£o
         ctx.fillStyle = i === 0 ? '#D4AF37' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#8B949E';
         ctx.font = 'bold 18px sans-serif';
         ctx.textAlign = 'center';
@@ -1104,10 +1104,10 @@ async function gerarBannerRankingLegacy(tipo, dados) {
             nomeStr = `${nomeStr} [${item.sigla}]`;
         }
         
-        // Detalhes menores (classe/raça se personagem)
+        // Detalhes menores (classe/raÃ§a se personagem)
         let subText = '';
         if (item.classe && item.raca) {
-            subText = ` (${formatarTexto(item.raca)} • ${formatarTexto(item.classe)})`;
+            subText = ` (${formatarTexto(item.raca)} â€¢ ${formatarTexto(item.classe)})`;
         }
 
         ctx.fillText(nomeStr + subText, 130, y + rowHeight / 2 + 5);
@@ -1121,9 +1121,9 @@ async function gerarBannerRankingLegacy(tipo, dados) {
         if (tipo === 'poder') {
             valorText = `${(item.poder || item.indice_poder || 0).toLocaleString('pt-BR')} Poder`;
         } else if (tipo === 'nivel') {
-            valorText = `Nível ${item.nivel || 1}`;
+            valorText = `NÃ­vel ${item.nivel || 1}`;
         } else if (tipo === 'guildas') {
-            valorText = `${(item.xp_total_guilda || 0).toLocaleString('pt-BR')} XP • ${(item.banco_libras || item.libras || 0).toLocaleString('pt-BR')} L`;
+            valorText = `${(item.xp_total_guilda || 0).toLocaleString('pt-BR')} XP â€¢ ${(item.banco_libras || item.libras || 0).toLocaleString('pt-BR')} L`;
         } else if (tipo === 'arena') {
             valorText = `${item.rating || item.pontos_arena || item.arena_pontos || 0} pts`;
         }
@@ -1143,9 +1143,9 @@ async function gerarBannerRanking(tipo, dados) {
     await drawHudBase(ctx, w, h);
 
     const tipoTraduzido = {
-        poder: 'Índice de Poder',
-        nivel: 'Nível e Experiência',
-        guildas: 'Guildas de Vermécia',
+        poder: 'Ãndice de Poder',
+        nivel: 'NÃ­vel e ExperiÃªncia',
+        guildas: 'Guildas de VermÃ©cia',
         arena: 'Pontos de Arena'
     }[String(tipo).toLowerCase()] || formatarTexto(tipo);
 
@@ -1189,7 +1189,7 @@ async function gerarBannerRanking(tipo, dados) {
 
         let subText = '';
         if (item.classe && item.raca) {
-            subText = ` • ${formatarTexto(item.raca)} / ${formatarTexto(item.classe)}`;
+            subText = ` â€¢ ${formatarTexto(item.raca)} / ${formatarTexto(item.classe)}`;
         }
 
         ctx.fillText(trimToWidth(ctx, nomeStr + subText, 410), 146, y + 22);
@@ -1198,7 +1198,7 @@ async function gerarBannerRanking(tipo, dados) {
         if (tipo === 'poder') {
             valorText = `${(item.poder || item.indice_poder || 0).toLocaleString('pt-BR')} Poder`;
         } else if (tipo === 'nivel') {
-            valorText = `Nível ${item.nivel || 1}`;
+            valorText = `NÃ­vel ${item.nivel || 1}`;
         } else if (tipo === 'guildas') {
             valorText = `${(item.xp_total_guilda || 0).toLocaleString('pt-BR')} XP`;
         } else if (tipo === 'arena') {
@@ -1230,7 +1230,7 @@ async function gerarBannerGuilda(guilda) {
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, 800, 450);
 
-    // Desenha escudo de guilda (Brasão)
+    // Desenha escudo de guilda (BrasÃ£o)
     const shieldX = 50;
     const shieldY = 50;
     const shieldW = 120;
@@ -1301,20 +1301,20 @@ async function gerarBannerGuilda(guilda) {
     const sigla = guilda.sigla ? `[${guilda.sigla.toUpperCase()}]` : '';
     ctx.fillText(`${nome} ${sigla}`, 200, 90);
 
-    // Mestre / Líder da Guilda
+    // Mestre / LÃ­der da Guilda
     ctx.fillStyle = '#D4AF37';
     ctx.font = 'bold 18px sans-serif';
     const liderNome = (typeof guilda.lider === 'object' && guilda.lider !== null)
         ? (guilda.lider.nome || guilda.lider.lider_nome || 'Desconhecido')
         : (guilda.lider || guilda.lider_nome || 'Desconhecido');
     const lider = formatarTexto(liderNome);
-    ctx.fillText(`Líder: ${lider}`, 200, 125);
+    ctx.fillText(`LÃ­der: ${lider}`, 200, 125);
 
     ctx.fillStyle = '#8B949E';
     ctx.font = '16px sans-serif';
     ctx.fillText(`Membros: ${guilda.membros_qtd || (guilda.membros && guilda.membros.length) || 0} / 50`, 200, 155);
 
-    // Caixa de Informações
+    // Caixa de InformaÃ§Ãµes
     const drawInfoBox = (label, value, x, y, w, h) => {
         ctx.fillStyle = '#13141C';
         ctx.beginPath();
@@ -1334,20 +1334,20 @@ async function gerarBannerGuilda(guilda) {
         ctx.fillText(`${value}`, x + 15, y + 55);
     };
 
-    drawInfoBox('Nível da Guilda', `${guilda.nivel || 1}`, 50, 220, 220, 75);
+    drawInfoBox('NÃ­vel da Guilda', `${guilda.nivel || 1}`, 50, 220, 220, 75);
     drawInfoBox('Saldo do Banco', `${guilda.libras || guilda.saldo || 0} Libras`, 290, 220, 220, 75);
-    drawInfoBox('Experiência', `${guilda.xp || 0} XP`, 530, 220, 220, 75);
+    drawInfoBox('ExperiÃªncia', `${guilda.xp || 0} XP`, 530, 220, 220, 75);
 
-    // Seção de Perks
+    // SeÃ§Ã£o de Perks
     ctx.fillStyle = '#8B949E';
     ctx.font = 'bold 14px sans-serif';
-    ctx.fillText('BÔNUS E PERKS ATIVOS', 50, 335);
+    ctx.fillText('BÃ”NUS E PERKS ATIVOS', 50, 335);
 
     const perks = guilda.perks || guilda.perks_ativos || [];
     if (perks.length === 0) {
         ctx.fillStyle = '#4F5660';
         ctx.font = 'italic 15px sans-serif';
-        ctx.fillText('Nenhum bônus ativo no momento.', 50, 370);
+        ctx.fillText('Nenhum bÃ´nus ativo no momento.', 50, 370);
     } else {
         perks.slice(0, 3).forEach((p, idx) => {
             const px = 50 + idx * 240;
@@ -1361,13 +1361,13 @@ async function gerarBannerGuilda(guilda) {
 
             const perkKey = p.perk_key || '';
             const traducoes = {
-                bencao_treinamento: { nome: 'Treinamento Cósmico', efeito: '+10% XP em Missões' },
+                bencao_treinamento: { nome: 'Treinamento CÃ³smico', efeito: '+10% XP em MissÃµes' },
                 banco_expandido: { nome: 'Cofre Expandido', efeito: 'Banco de Libras ampliado' },
-                escudo_conquista: { nome: 'Escudo de Glória', efeito: 'Proteção em masmorras' }
+                escudo_conquista: { nome: 'Escudo de GlÃ³ria', efeito: 'ProteÃ§Ã£o em masmorras' }
             };
 
             const info = traducoes[perkKey.toLowerCase()] || {
-                nome: p.nome || formatarTexto(perkKey.replace(/_/g, ' ')) || 'Bônus Ativo',
+                nome: p.nome || formatarTexto(perkKey.replace(/_/g, ' ')) || 'BÃ´nus Ativo',
                 efeito: p.efeito || 'Efeito ativo na guilda'
             };
 
@@ -1392,9 +1392,9 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina, op
     if (categoria !== 'todos') {
         itensFiltrados = itens.filter(i => {
             const cat = (i.categoria || i.item?.categoria || '').toLowerCase();
-            if (categoria === 'armas') return ['arma', 'espada', 'arco', 'bastao', 'lança', 'machado', 'principal', 'secundaria', 'weapon'].some(w => cat.includes(w));
-            if (categoria === 'armaduras') return ['armadura', 'peito', 'elmo', 'capacete', 'bota', 'sapato', 'escudo', 'luvas', 'calça', 'armor', 'shield', 'helmet', 'boots'].some(w => cat.includes(w));
-            if (categoria === 'consumiveis') return ['consumivel', 'poção', 'comida', 'potion', 'scroll', 'pergaminho'].some(w => cat.includes(w));
+            if (categoria === 'armas') return ['arma', 'espada', 'arco', 'bastao', 'lanÃ§a', 'machado', 'principal', 'secundaria', 'weapon'].some(w => cat.includes(w));
+            if (categoria === 'armaduras') return ['armadura', 'peito', 'elmo', 'capacete', 'bota', 'sapato', 'escudo', 'luvas', 'calÃ§a', 'armor', 'shield', 'helmet', 'boots'].some(w => cat.includes(w));
+            if (categoria === 'consumiveis') return ['consumivel', 'poÃ§Ã£o', 'comida', 'potion', 'scroll', 'pergaminho'].some(w => cat.includes(w));
             if (categoria === 'materiais') return ['material', 'minerio', 'couro', 'essencia', 'ore', 'herb', 'planta'].some(w => cat.includes(w));
             return false;
         });
@@ -1413,21 +1413,21 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina, op
 
     const customIdPrefix = options.customIdPrefix || 'inventario';
     const prefixComponents = options.prefixComponents || [];
-    const catLabel = (value, label) => `${categoria === value ? '◆' : '◇'} ${label}`;
+    const catLabel = (value, label) => `${categoria === value ? 'â—†' : 'â—‡'} ${label}`;
 
-    // Botões de Categorias
+    // BotÃµes de Categorias
     const rowCats = new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_todos`).setLabel(catLabel('todos', 'Tudo')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_armas`).setLabel(catLabel('armas', 'Armas')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_armaduras`).setLabel(catLabel('armaduras', 'Defesas')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_consumiveis`).setLabel(catLabel('consumiveis', 'Consumíveis')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_consumiveis`).setLabel(catLabel('consumiveis', 'ConsumÃ­veis')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId(`${customIdPrefix}_cat_${p.id}_materiais`).setLabel(catLabel('materiais', 'Materiais')).setStyle(ButtonStyle.Secondary)
     );
 
-    // Botões de Paginação
+    // BotÃµes de PaginaÃ§Ã£o
     const rowPag = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('◁ Anterior').setStyle(ButtonStyle.Secondary).setDisabled(pag === 0),
-        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('Próximo ▷').setStyle(ButtonStyle.Secondary).setDisabled(pag >= totalPaginas - 1)
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag - 1}`).setLabel('â— Anterior').setStyle(ButtonStyle.Secondary).setDisabled(pag === 0),
+        new ButtonBuilder().setCustomId(`${customIdPrefix}_pag_${p.id}_${categoria}_${pag + 1}`).setLabel('PrÃ³ximo â–·').setStyle(ButtonStyle.Secondary).setDisabled(pag >= totalPaginas - 1)
     );
 
     const components = [...prefixComponents, rowCats];
@@ -1514,17 +1514,17 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
 
     ctx.fillStyle = '#AEB6C2';
     ctx.font = '18px sans-serif';
-    ctx.fillText(`Sessão privada para ${displayName}`, 84, 166);
+    ctx.fillText(`SessÃ£o privada para ${displayName}`, 84, 166);
 
     const contextParts = [];
     if (context.personagemNome) contextParts.push(`Personagem: ${formatarTexto(context.personagemNome)}`);
-    if (Number.isFinite(context.inventarioQtd)) contextParts.push(`Inventário: ${context.inventarioQtd} itens`);
-    if (Number.isFinite(context.missoesAbertas)) contextParts.push(`Missões abertas: ${context.missoesAbertas}`);
+    if (Number.isFinite(context.inventarioQtd)) contextParts.push(`InventÃ¡rio: ${context.inventarioQtd} itens`);
+    if (Number.isFinite(context.missoesAbertas)) contextParts.push(`MissÃµes abertas: ${context.missoesAbertas}`);
 
     if (contextParts.length > 0) {
         ctx.fillStyle = '#D4AF37';
         ctx.font = 'bold 13px sans-serif';
-        ctx.fillText(contextParts.join('  •  '), 84, 188);
+        ctx.fillText(contextParts.join('  â€¢  '), 84, 188);
     }
 
     ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
@@ -1536,8 +1536,8 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
 
     const cards = [
         'Perfil',
-        'Inventário',
-        'Missões',
+        'InventÃ¡rio',
+        'MissÃµes',
         'Rankings',
         'Guilda',
         'Cena RP'
@@ -1571,7 +1571,7 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
     ctx.fillStyle = '#AEB6C2';
     ctx.font = '15px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Use os botões abaixo para navegar sem expor seus dados no canal.', w / 2, 505);
+    ctx.fillText('Use os botÃµes abaixo para navegar sem expor seus dados no canal.', w / 2, 505);
     ctx.textAlign = 'left';
 
     return canvas.toBuffer('image/png');
@@ -1645,7 +1645,7 @@ async function gerarBannerEnciclopedia() {
 
 
 // =====================================
-// FUNÇÕES DE MAPA 2D E COORDENADAS
+// FUNÃ‡Ã•ES DE MAPA 2D E COORDENADAS
 // =====================================
 
 function parsePosicao(posStr) {
@@ -1657,67 +1657,138 @@ function parsePosicao(posStr) {
 }
 
 async function renderMap(scene) {
-    const CELL_SIZE = 100;
-    const MARGIN = 40;
-    
+    const CELL_SIZE = scene.colunas > 12 || scene.linhas > 10 ? 64 : 72;
+    const COORD = 40;
+    const PAD = 28;
+    const HEADER_H = 104;
+    const FOOTER_H = 26;
+    const SIDE_W = 280;
+    const GAP = 24;
+
     const mapWidth = scene.colunas * CELL_SIZE;
     const mapHeight = scene.linhas * CELL_SIZE;
-    const width = Math.max(mapWidth + MARGIN, 400); 
-    const height = Math.max(mapHeight + MARGIN, 400);
+    const mapX = PAD + COORD;
+    const mapY = HEADER_H + COORD;
+    const sideX = mapX + mapWidth + GAP;
+    const width = Math.max(sideX + SIDE_W + PAD, 760);
+    const height = Math.max(mapY + mapHeight + FOOTER_H + PAD, 560);
 
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    // Fundo inteiro
-    ctx.fillStyle = '#1E1F22'; 
+    ctx.fillStyle = '#101219';
     ctx.fillRect(0, 0, width, height);
 
-    // Fundo do Grid
+    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+    bgGrad.addColorStop(0, '#171922');
+    bgGrad.addColorStop(0.55, '#0F1118');
+    bgGrad.addColorStop(1, '#1B1712');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.32)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(14, 14, width - 28, height - 28);
+
+    const sceneName = formatarTexto(scene.nome || 'Cena Tatica');
+    const active = scene.estado === 'COMBATE' ? scene.players[scene.turnoAtual] : null;
+    const livingCount = scene.players.filter(p => !p.incapacitado).length;
+    const totalCount = scene.players.length;
+
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 32px serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(sceneName, PAD, 48);
+
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = '16px sans-serif';
+    const subtitle = scene.estado === 'COMBATE'
+        ? `Rodada ${scene.rodada} | Turno de ${active?.name || 'Ninguem'}`
+        : `${scene.estado || 'ABERTA'} | ${totalCount} tokens em cena`;
+    ctx.fillText(subtitle, PAD, 74);
+
+    if (scene.descricao) {
+        ctx.fillStyle = '#D7D0BE';
+        ctx.font = '14px sans-serif';
+        ctx.fillText(String(scene.descricao).substring(0, 120), PAD, 96);
+    }
+
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.28)';
+    ctx.beginPath();
+    ctx.moveTo(PAD, HEADER_H - 4);
+    ctx.lineTo(width - PAD, HEADER_H - 4);
+    ctx.stroke();
+
+    drawHudBox(ctx, mapX - 10, mapY - 10, mapWidth + 20, mapHeight + 20, 8);
+
     if (scene.fundoUrl) {
         try {
             const bg = await loadImage(scene.fundoUrl);
-            ctx.drawImage(bg, MARGIN, MARGIN, mapWidth, mapHeight);
+            ctx.drawImage(bg, mapX, mapY, mapWidth, mapHeight);
         } catch (e) {
-            ctx.fillStyle = '#2B2D31';
-            ctx.fillRect(MARGIN, MARGIN, mapWidth, mapHeight);
+            ctx.fillStyle = '#20242D';
+            ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
         }
     } else {
-        ctx.fillStyle = '#2B2D31';
-        ctx.fillRect(MARGIN, MARGIN, mapWidth, mapHeight);
+        const gridGrad = ctx.createLinearGradient(mapX, mapY, mapX + mapWidth, mapY + mapHeight);
+        gridGrad.addColorStop(0, '#252A31');
+        gridGrad.addColorStop(1, '#181B22');
+        ctx.fillStyle = gridGrad;
+        ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
     }
 
-    // Coordenadas Letras e Números
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 16px sans-serif';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+    ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
+
+    ctx.fillStyle = HUD_TEXT;
+    ctx.font = 'bold 15px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
     for (let x = 0; x < scene.colunas; x++) {
-        const letra = String.fromCharCode(65 + x);
-        ctx.fillText(letra, MARGIN + (x * CELL_SIZE) + (CELL_SIZE / 2), MARGIN / 2);
+        ctx.fillText(String.fromCharCode(65 + x), mapX + (x * CELL_SIZE) + (CELL_SIZE / 2), mapY - 22);
     }
     for (let y = 0; y < scene.linhas; y++) {
-        ctx.fillText((y + 1).toString(), MARGIN / 2, MARGIN + (y * CELL_SIZE) + (CELL_SIZE / 2));
+        ctx.fillText((y + 1).toString(), mapX - 22, mapY + (y * CELL_SIZE) + (CELL_SIZE / 2));
     }
 
-    // Grid Lines
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(244, 231, 200, 0.18)';
+    ctx.lineWidth = 1;
     for (let x = 0; x <= scene.colunas; x++) {
-        const px = MARGIN + (x * CELL_SIZE);
-        ctx.beginPath(); ctx.moveTo(px, MARGIN); ctx.lineTo(px, MARGIN + mapHeight); ctx.stroke();
+        const px = mapX + (x * CELL_SIZE);
+        ctx.beginPath();
+        ctx.moveTo(px, mapY);
+        ctx.lineTo(px, mapY + mapHeight);
+        ctx.stroke();
     }
     for (let y = 0; y <= scene.linhas; y++) {
-        const py = MARGIN + (y * CELL_SIZE);
-        ctx.beginPath(); ctx.moveTo(MARGIN, py); ctx.lineTo(MARGIN + mapWidth, py); ctx.stroke();
+        const py = mapY + (y * CELL_SIZE);
+        ctx.beginPath();
+        ctx.moveTo(mapX, py);
+        ctx.lineTo(mapX + mapWidth, py);
+        ctx.stroke();
     }
 
-    // Tokens
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.55)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(mapX, mapY, mapWidth, mapHeight);
+
     for (let i = 0; i < scene.players.length; i++) {
         const p = scene.players[i];
-        const cx = MARGIN + (p.x * CELL_SIZE) + (CELL_SIZE / 2);
-        const cy = MARGIN + (p.y * CELL_SIZE) + (CELL_SIZE / 2);
-        const radius = (CELL_SIZE / 2) - 10;
+        const cx = mapX + (p.x * CELL_SIZE) + (CELL_SIZE / 2);
+        const cy = mapY + (p.y * CELL_SIZE) + (CELL_SIZE / 2);
+        const radius = Math.max(18, (CELL_SIZE / 2) - 10);
+        const isActive = scene.estado === 'COMBATE' && scene.turnoAtual === i;
+
+        if (isActive && !p.incapacitado) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius + 8, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(212, 175, 55, 0.20)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.75)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
 
         let avatarLoaded = false;
         try {
@@ -1726,7 +1797,6 @@ async function renderMap(scene) {
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-                ctx.closePath();
                 ctx.clip();
                 ctx.drawImage(avatar, cx - radius, cy - radius, radius * 2, radius * 2);
                 ctx.restore();
@@ -1739,53 +1809,103 @@ async function renderMap(scene) {
         if (!avatarLoaded) {
             ctx.beginPath();
             ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-            ctx.fillStyle = p.isNpc ? '#8B0000' : '#2B4C7E';
+            ctx.fillStyle = p.isNpc ? '#6E1E28' : '#234B6D';
             ctx.fill();
 
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 24px sans-serif';
+            ctx.font = `bold ${Math.floor(radius * 0.78)}px sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            const inicial = p.name ? p.name.charAt(0).toUpperCase() : '?';
-            ctx.fillText(inicial, cx, cy);
-            ctx.textBaseline = 'alphabetic'; // Reset para o nome principal
+            ctx.fillText(p.name ? p.name.charAt(0).toUpperCase() : '?', cx, cy);
         }
 
-        // Borda do Token
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        
-        if (p.incapacitado) {
-            ctx.strokeStyle = '#7F8C8D'; 
-        } else if (scene.estado === 'COMBATE' && scene.turnoAtual === i) {
-            ctx.strokeStyle = '#B8860B'; 
-        } else {
-            ctx.strokeStyle = p.isNpc ? '#8B0000' : '#2B4C7E'; 
-        }
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = p.incapacitado ? '#7F8C8D' : isActive ? HUD_GOLD : p.isNpc ? '#B33A3A' : '#4C8DC4';
+        ctx.lineWidth = isActive ? 5 : 3;
         ctx.stroke();
 
-        // Desenhando X vermelho se incapacitado
         if (p.incapacitado) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.42)';
             ctx.beginPath();
-            ctx.moveTo(cx - radius + 5, cy - radius + 5);
-            ctx.lineTo(cx + radius - 5, cy + radius - 5);
-            ctx.moveTo(cx + radius - 5, cy - radius + 5);
-            ctx.lineTo(cx - radius + 5, cy + radius - 5);
-            ctx.lineWidth = 6;
-            ctx.strokeStyle = 'rgba(139, 0, 0, 0.8)'; 
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(cx - radius + 7, cy - radius + 7);
+            ctx.lineTo(cx + radius - 7, cy + radius - 7);
+            ctx.moveTo(cx + radius - 7, cy - radius + 7);
+            ctx.lineTo(cx - radius + 7, cy + radius - 7);
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = 'rgba(196, 30, 58, 0.88)';
             ctx.stroke();
         }
 
-        // Texto com Nome
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 16px sans-serif';
+        const label = p.name.length > 12 ? `${p.name.substring(0, 11)}.` : p.name;
+        ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = 'center';
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        ctx.shadowBlur = 4;
-        ctx.fillText(p.name, cx, cy + radius + 15);
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = 'rgba(0,0,0,0.85)';
+        ctx.shadowBlur = 5;
+        ctx.fillText(label, cx, Math.min(cy + radius + 16, mapY + mapHeight - 4));
         ctx.shadowBlur = 0;
     }
+
+    drawHudBox(ctx, sideX, mapY - 10, SIDE_W, mapHeight + 20, 8);
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 18px serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Iniciativa', sideX + 18, mapY + 26);
+
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = '13px sans-serif';
+    ctx.fillText(`${livingCount}/${totalCount} ativos`, sideX + 18, mapY + 48);
+
+    if (scene.tempoTurnoMs && scene.estado === 'COMBATE') {
+        const remainingSecs = scene.fimTurnoTimestamp
+            ? Math.max(0, Math.ceil((scene.fimTurnoTimestamp - Date.now()) / 1000))
+            : Math.ceil(scene.tempoTurnoMs / 1000);
+        ctx.fillStyle = remainingSecs <= 10 ? '#E76F51' : HUD_TEXT;
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText(`${remainingSecs}s`, sideX + SIDE_W - 62, mapY + 38);
+    }
+
+    const listTop = mapY + 76;
+    const maxRows = Math.max(3, Math.floor((mapHeight - 135) / 38));
+    const visiblePlayers = scene.players.slice(0, maxRows);
+    visiblePlayers.forEach((p, i) => {
+        const rowY = listTop + (i * 38);
+        const isActive = scene.estado === 'COMBATE' && scene.turnoAtual === i;
+        ctx.fillStyle = isActive ? 'rgba(212, 175, 55, 0.16)' : 'rgba(255,255,255,0.035)';
+        ctx.fillRect(sideX + 14, rowY - 18, SIDE_W - 28, 30);
+        ctx.fillStyle = p.incapacitado ? '#7F8C8D' : p.isNpc ? '#C44A4A' : '#6EA7D6';
+        ctx.fillRect(sideX + 14, rowY - 18, 4, 30);
+        ctx.fillStyle = isActive ? HUD_GOLD : HUD_TEXT;
+        ctx.font = 'bold 13px sans-serif';
+        const name = p.name.length > 22 ? `${p.name.substring(0, 21)}.` : p.name;
+        ctx.fillText(`${i + 1}. ${name}`, sideX + 28, rowY + 1);
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '11px sans-serif';
+        ctx.fillText(`${String.fromCharCode(65 + p.x)}${p.y + 1}${p.incapacitado ? ' | Incapacitado' : ''}`, sideX + 28, rowY + 15);
+    });
+
+    if (scene.players.length > visiblePlayers.length) {
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '12px sans-serif';
+        ctx.fillText(`+${scene.players.length - visiblePlayers.length} tokens`, sideX + 18, listTop + (visiblePlayers.length * 38) + 6);
+    }
+
+    const eventY = mapY + mapHeight - 48;
+    ctx.fillStyle = 'rgba(212, 175, 55, 0.18)';
+    ctx.fillRect(sideX + 14, eventY - 22, SIDE_W - 28, 48);
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = '11px sans-serif';
+    ctx.fillText('Ultimo evento', sideX + 24, eventY - 4);
+    ctx.fillStyle = HUD_TEXT;
+    ctx.font = '12px sans-serif';
+    const eventText = String(scene.ultimoEvento || 'Aguardando movimentacao.').substring(0, 42);
+    ctx.fillText(eventText, sideX + 24, eventY + 15);
 
     return canvas.toBuffer('image/png');
 }
@@ -1804,7 +1924,7 @@ async function renderDraft(draft) {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 36px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('❖ Arena - Picks & Bans', canvasWidth / 2, 50);
+    ctx.fillText('â– Arena - Picks & Bans', canvasWidth / 2, 50);
 
     const cols = 3;
     const mapW = 300;
@@ -1866,16 +1986,17 @@ async function renderDraft(draft) {
 }
 
 function getCabecalhoCena(cena) {
+    const nome = cena.nome || 'Cena Tatica';
     if (cena.estado === 'COMBATE') {
         const ativo = cena.players[cena.turnoAtual];
-        let cabecalho = `⚔ **COMBATE INICIADO! (Rodada ${cena.rodada})**\nÉ o turno de: **${ativo.name}**. Mova sua peça ou realize sua ação!`;
+        let cabecalho = `**${nome} | Combate - Rodada ${cena.rodada}**\nTurno de **${ativo?.name || 'Ninguem'}**. Use os controles abaixo para mover ou passar o turno.`;
         if (cena.tempoTurnoMs && cena.fimTurnoTimestamp) {
             const remainingSecs = Math.max(0, Math.ceil((cena.fimTurnoTimestamp - Date.now()) / 1000));
-            cabecalho += `\n⧖ Tempo Restante: **${remainingSecs}s** (Total: ${cena.tempoTurnoMs / 1000}s)`;
+            cabecalho += `\nTempo restante: **${remainingSecs}s** de ${cena.tempoTurnoMs / 1000}s.`;
         }
         return cabecalho;
     }
-    return `❖ **MAPA TÁTICO INICIADO!**\nUse \`/cena entrar\` para participar. Modos: livre.`;
+    return `**${nome} | Cena ${cena.estado || 'ABERTA'}**\nUse \`/cena entrar\` para participar. Movimentacao livre enquanto a cena estiver aberta.`;
 }
 
 function iniciarTimerTurno(channel, cena) {
@@ -1892,7 +2013,8 @@ function iniciarTimerTurno(channel, cena) {
         if (remaining <= 0) {
             clearInterval(interval);
             try {
-                await channel.send(`⧖ O tempo de **${cena.players[cena.turnoAtual].name}** se esgotou! Passando o turno automaticamente.`);
+                await channel.send(`O tempo de **${cena.players[cena.turnoAtual].name}** se esgotou. Passando o turno automaticamente.`);
+                cena.ultimoEvento = `Tempo esgotado para ${cena.players[cena.turnoAtual].name}.`;
                 do {
                     cena.turnoAtual++;
                     if (cena.turnoAtual >= cena.players.length) {
@@ -1922,10 +2044,12 @@ function getCenaBotoes(cena) {
         new ButtonBuilder().setCustomId('cena_move_down').setLabel('▼').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('cena_move_left').setLabel('◀').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('cena_move_right').setLabel('▶').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('cena_modal_mover_coord').setLabel('⌖ Mover (Coord.)').setStyle(ButtonStyle.Primary)
+        new ButtonBuilder().setCustomId('cena_modal_mover_coord').setLabel('◇ Coordenada').setStyle(ButtonStyle.Secondary)
     );
+    if (cena.estado !== 'COMBATE') return [row];
+
     const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('cena_passar_turno').setLabel('» Passar Turno').setStyle(ButtonStyle.Danger)
+        new ButtonBuilder().setCustomId('cena_passar_turno').setLabel('◆ Passar Turno').setStyle(ButtonStyle.Secondary)
     );
     return [row, row2];
 }
@@ -1956,6 +2080,10 @@ async function repintarMapaNovo(channel, cena) {
         if (timersTurno.has(cena.msgId)) {
             clearInterval(timersTurno.get(cena.msgId));
             timersTurno.delete(cena.msgId);
+        }
+        if (renderTimers.has(cena.msgId)) {
+            clearTimeout(renderTimers.get(cena.msgId));
+            renderTimers.delete(cena.msgId);
         }
         try {
             const velha = await channel.messages.fetch(cena.msgId);

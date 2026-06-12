@@ -129,7 +129,7 @@ Controla o tabuleiro tatico.
 
 Subcomandos principais:
 
-- `iniciar`: cria a cena.
+- `iniciar`: cria a cena. Aceita `colunas`, `linhas`, `nome`, `descricao`, `tempo_turno` e `fundo`.
 - `entrar`: adiciona o personagem do jogador.
 - `mover`: move o token do jogador.
 - `npc_entrar`: adiciona NPC ou criatura.
@@ -139,6 +139,16 @@ Subcomandos principais:
 - `mover_livre`: move qualquer token.
 - `status_vida`: alterna status vivo/incapacitado.
 - `encerrar`: remove a cena ativa.
+
+Regras atuais do VTT:
+
+- Tamanho minimo do mapa: `3x3`.
+- Tamanho maximo do mapa: `14x12`.
+- Tokens nao podem ocupar celulas ja ocupadas por outro token vivo.
+- Coordenadas fora do mapa sao rejeitadas.
+- Ao entrar, o jogador e colocado automaticamente na primeira celula livre.
+- Se `tempo_turno` for definido, o combate usa contador e auto-skip.
+- A HUD do mapa mostra nome da cena, estado, rodada, iniciativa, timer e ultimo evento.
 
 ### `/arena`
 
