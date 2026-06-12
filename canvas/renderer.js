@@ -1712,33 +1712,52 @@ async function renderMap(scene) {
     const livingCount = scene.players.filter(p => !p.incapacitado).length;
     const totalCount = scene.players.length;
 
-    const descHeight = scene.descricao ? 28 : 0;
-    drawHudBox(ctx, PAD - 14, 16, width - (PAD * 2) + 28, 70 + descHeight, 8);
+    const playersStartX = Math.max(PAD + 400, width - 420);
+    const playersStartY = 32;
+    const centerX = PAD + ((playersStartX - PAD) / 2);
 
-    ctx.fillStyle = HUD_GOLD;
-    ctx.font = 'bold 32px serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(sceneName, PAD, 48);
+    try {
+        const banner = await loadImage('./assets/ui/banner-cena.png');
+        ctx.drawImage(banner, 0, 0, width, HEADER_H + 20);
+    } catch(e) {}
 
-    ctx.fillStyle = HUD_MUTED;
-    ctx.font = '16px sans-serif';
-    const subtitle = scene.estado === 'COMBATE'
-        ? `Rodada ${scene.rodada} | Turno de ${active?.name || 'Ninguem'}`
-        : `${scene.estado || 'ABERTA'} | ${totalCount} jogadores na cena`;
-    ctx.fillText(subtitle, PAD, 74);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    if (scene.estado === 'COMBATE') {
+        ctx.fillStyle = HUD_GOLD;
+        ctx.font = 'bold 24px serif';
+        ctx.fillText(`${sceneName} | Combate - Rodada ${scene.rodada}`, centerX, 36);
+        
+        ctx.fillStyle = HUD_TEXT;
+        ctx.font = '15px sans-serif';
+        ctx.fillText(`Turno de ${active?.name || 'Ninguem'}. Controles abaixo.`, centerX, 64);
+        
+        if (scene.tempoTurnoMs && scene.fimTurnoTimestamp) {
+            const remainingSecs = Math.max(0, Math.ceil((scene.fimTurnoTimestamp - Date.now()) / 1000));
+            ctx.fillStyle = remainingSecs <= 10 ? '#E76F51' : '#A39D8E';
+            ctx.font = 'bold 15px sans-serif';
+            ctx.fillText(`Tempo restante: ${remainingSecs}s de ${scene.tempoTurnoMs / 1000}s.`, centerX, 88);
+        }
+    } else {
+        ctx.fillStyle = HUD_GOLD;
+        ctx.font = 'bold 26px serif';
+        ctx.fillText(`${sceneName} | Cena ${scene.estado || 'ABERTA'}`, centerX, 44);
+        
+        ctx.fillStyle = HUD_TEXT;
+        ctx.font = '16px sans-serif';
+        ctx.fillText(`Use os botoes abaixo para entrar/sair. Movimentacao livre.`, centerX, 76);
+    }
 
     if (scene.descricao) {
         ctx.fillStyle = '#D7D0BE';
-        ctx.font = '14px sans-serif';
-        ctx.fillText(String(scene.descricao).substring(0, 120), PAD, 96);
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(String(scene.descricao).substring(0, 120), PAD, HEADER_H - 10);
     }
-
-    const playersStartX = Math.max(PAD + 380, width - 400);
-    const playersStartY = 32;
 
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-
     let currentX = playersStartX;
     let currentY = playersStartY;
 
@@ -2060,17 +2079,7 @@ async function renderDraft(draft) {
 }
 
 function getCabecalhoCena(cena) {
-    const nome = cena.nome || 'Cena Tatica';
-    if (cena.estado === 'COMBATE') {
-        const ativo = cena.players[cena.turnoAtual];
-        let cabecalho = `**${nome} | Combate - Rodada ${cena.rodada}**\nTurno de **${ativo?.name || 'Ninguem'}**. Use os controles abaixo para mover ou passar o turno.`;
-        if (cena.tempoTurnoMs && cena.fimTurnoTimestamp) {
-            const remainingSecs = Math.max(0, Math.ceil((cena.fimTurnoTimestamp - Date.now()) / 1000));
-            cabecalho += `\nTempo restante: **${remainingSecs}s** de ${cena.tempoTurnoMs / 1000}s.`;
-        }
-        return cabecalho;
-    }
-    return `**${nome} | Cena ${cena.estado || 'ABERTA'}**\nUse \`/cena entrar\` para participar. Movimentacao livre enquanto a cena estiver aberta.`;
+    return '';
 }
 
 function iniciarTimerTurno(channel, cena) {
@@ -2087,8 +2096,6 @@ function iniciarTimerTurno(channel, cena) {
         if (remaining <= 0) {
             clearInterval(interval);
             try {
-                await channel.send(`O tempo de **${cena.players[cena.turnoAtual].name}** se esgotou. Passando o turno automaticamente.`);
-                
                 const oldActive = cena.players[cena.turnoAtual];
                 
                 do {
@@ -2115,10 +2122,7 @@ function iniciarTimerTurno(channel, cena) {
         }
         
         try {
-            const msg = await channel.messages.fetch(cena.msgId).catch(() => null);
-            if (msg) {
-                await msg.edit({ content: getCabecalhoCena(cena) });
-            }
+            await atualizarMapaDebounced(channel, cena);
         } catch(e) {}
     }, 5000);
     
@@ -2126,19 +2130,28 @@ function iniciarTimerTurno(channel, cena) {
 }
 
 function getCenaBotoes(cena) {
+    const rowMestre = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('cena_toggle_aberta').setLabel(cena.estado === 'FECHADA' ? 'Abrir Cena' : 'Fechar Cena').setStyle(cena.estado === 'FECHADA' ? ButtonStyle.Success : ButtonStyle.Danger),
+        new ButtonBuilder().setCustomId('cena_toggle_combate').setLabel(cena.estado === 'COMBATE' ? 'Encerrar Combate' : 'Iniciar Combate').setStyle(cena.estado === 'COMBATE' ? ButtonStyle.Danger : ButtonStyle.Primary)
+    );
+
     const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('cena_toggle_entrar').setLabel('Entrar / Sair').setStyle(ButtonStyle.Success),
         new ButtonBuilder().setCustomId('cena_move_up').setLabel('▲').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('cena_move_down').setLabel('▼').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('cena_move_left').setLabel('◀').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('cena_move_right').setLabel('▶').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('cena_modal_mover_coord').setLabel('◇ Coordenada').setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId('cena_move_right').setLabel('▶').setStyle(ButtonStyle.Secondary)
     );
-    if (cena.estado !== 'COMBATE') return [row];
 
     const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('cena_passar_turno').setLabel('◆ Passar Turno').setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId('cena_modal_mover_coord').setLabel('◇ Coordenada').setStyle(ButtonStyle.Secondary)
     );
-    return [row, row2];
+    
+    if (cena.estado === 'COMBATE') {
+        row2.addComponents(new ButtonBuilder().setCustomId('cena_passar_turno').setLabel('◆ Passar Turno').setStyle(ButtonStyle.Primary));
+    }
+
+    return [rowMestre, row, row2];
 }
 
 async function atualizarMapaDebounced(channel, cena) {
@@ -2164,6 +2177,15 @@ async function atualizarMapaDebounced(channel, cena) {
 // Cria uma Nova Mensagem do Mapa no Chat (Utilizado no Next Turn)
 async function repintarMapaNovo(channel, cena) {
     if (cena.msgId) {
+        if (cena.msgRodada === cena.rodada) {
+            return atualizarMapaDebounced(channel, cena);
+        }
+
+        try {
+            const velha = await channel.messages.fetch(cena.msgId);
+            await velha.edit({ components: [] });
+        } catch(e) {}
+        
         if (timersTurno.has(cena.msgId)) {
             clearInterval(timersTurno.get(cena.msgId));
             timersTurno.delete(cena.msgId);
@@ -2172,18 +2194,18 @@ async function repintarMapaNovo(channel, cena) {
             clearTimeout(renderTimers.get(cena.msgId));
             renderTimers.delete(cena.msgId);
         }
-        try {
-            const velha = await channel.messages.fetch(cena.msgId);
-            await velha.delete();
-        } catch(e) {}
     }
-    if (cena.estado === 'COMBATE' && cena.tempoTurnoMs) {
+    
+    if (cena.estado === 'COMBATE' && cena.tempoTurnoMs && (!cena.fimTurnoTimestamp || cena.msgRodada !== cena.rodada)) {
         cena.fimTurnoTimestamp = Date.now() + cena.tempoTurnoMs;
     }
     const buffer = await renderMap(cena);
     const attachment = new AttachmentBuilder(buffer, { name: 'mapa.png' });
-    const msg = await channel.send({ content: getCabecalhoCena(cena), files: [attachment], components: getCenaBotoes(cena) });
+    const msg = await channel.send({ content: '', files: [attachment], components: getCenaBotoes(cena) });
+    
     cena.msgId = msg.id;
+    cena.msgRodada = cena.rodada;
+    
     if (cena.estado === 'COMBATE' && cena.tempoTurnoMs) {
         iniciarTimerTurno(channel, cena);
     }

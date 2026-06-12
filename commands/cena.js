@@ -403,6 +403,110 @@ async function execute(interaction) {
 async function handleButton(interaction) {
     if (!interaction.customId.startsWith('cena_')) return;
 
+    if (interaction.customId === 'cena_toggle_entrar') {
+        const cena = cenasAtivas.get(interaction.channelId);
+        if (!cena) return await interaction.reply({ content: 'Nenhuma cena ativa.', ephemeral: true });
+
+        const pIndex = cena.players.findIndex(p => p.discordId === interaction.user.id);
+        
+        if (pIndex !== -1) {
+            if (cena.estado === 'COMBATE' && cena.turnoAtual === pIndex) {
+                return await interaction.reply({ content: 'Voce nao pode sair da cena durante o seu turno no combate. Passe o turno primeiro.', ephemeral: true });
+            }
+            const name = cena.players[pIndex].name;
+            cena.players.splice(pIndex, 1);
+            if (cena.estado === 'COMBATE' && cena.turnoAtual > pIndex) cena.turnoAtual--;
+            addLog(cena, `${name} saiu da cena.`);
+            await interaction.deferUpdate();
+            atualizarMapaDebounced(interaction.channel, cena);
+            return;
+        }
+
+        if (cena.estado === 'FECHADA' || cena.estado === 'COMBATE') return await interaction.reply({ content: 'A cena nao esta recebendo novos jogadores no momento.', ephemeral: true });
+        
+        let spawn = { x: 0, y: 0 };
+        while (cena.players.some(p => p.x === spawn.x && p.y === spawn.y)) {
+            spawn.x++;
+            if (spawn.x >= cena.colunas) { spawn.x = 0; spawn.y++; }
+            if (spawn.y >= cena.linhas) return await interaction.reply({ content: 'Tabuleiro cheio.', ephemeral: true });
+        }
+
+        try {
+            const apiRes = await axios.get(`${ARKANDIA_API}/personagens?discordId=${interaction.user.id}`, { headers: { 'X-API-Key': API_KEY } });
+            const pAtivo = apiRes.data.find(p => p.ativo);
+            if (!pAtivo) return await interaction.reply({ content: 'Voce nao tem um personagem ativo.', ephemeral: true });
+
+            cena.players.push({
+                discordId: interaction.user.id,
+                name: pAtivo.nome,
+                avatarUrl: pAtivo.retrato_url || 'https://i.imgur.com/vHqB3q0.png',
+                x: spawn.x,
+                y: spawn.y,
+                isNpc: false,
+                incapacitado: false
+            });
+            addLog(cena, `${pAtivo.nome} entrou em ${formatCoord(spawn)}.`);
+            await interaction.deferUpdate();
+            atualizarMapaDebounced(interaction.channel, cena);
+            return;
+        } catch(e) {
+            return await interaction.reply({ content: 'Erro ao buscar sua ficha ativa.', ephemeral: true });
+        }
+    }
+
+    if (interaction.customId === 'cena_toggle_aberta') {
+        const cena = cenasAtivas.get(interaction.channelId);
+        if (!cena) return await interaction.reply({ content: 'Nenhuma cena ativa.', ephemeral: true });
+        if (interaction.user.id !== cena.mestreId) return await interaction.reply({ content: 'Apenas o mestre pode alterar o acesso a cena.', ephemeral: true });
+        
+        cena.estado = cena.estado === 'FECHADA' ? 'ABERTA' : 'FECHADA';
+        addLog(cena, `O mestre ${cena.estado === 'ABERTA' ? 'abriu' : 'fechou'} a cena.`);
+        await interaction.deferUpdate();
+        atualizarMapaDebounced(interaction.channel, cena);
+        return;
+    }
+
+    if (interaction.customId === 'cena_toggle_combate') {
+        const cena = cenasAtivas.get(interaction.channelId);
+        if (!cena) return await interaction.reply({ content: 'Nenhuma cena ativa.', ephemeral: true });
+        if (interaction.user.id !== cena.mestreId) return await interaction.reply({ content: 'Apenas o mestre pode alterar o estado do combate.', ephemeral: true });
+        
+        if (cena.estado === 'COMBATE') {
+            if (timersTurno.has(cena.msgId)) {
+                clearInterval(timersTurno.get(cena.msgId));
+                timersTurno.delete(cena.msgId);
+            }
+            if (renderTimers.has(cena.msgId)) {
+                clearTimeout(renderTimers.get(cena.msgId));
+                renderTimers.delete(cena.msgId);
+            }
+            cenasAtivas.delete(interaction.channelId);
+            await interaction.deferUpdate();
+            await interaction.channel.send(`**A cena ${cena.nome} foi encerrada pelo mestre.**`);
+            try {
+                const velha = await interaction.channel.messages.fetch(cena.msgId);
+                await velha.edit({ components: [] });
+            } catch(e) {}
+            return;
+        } else {
+            if (cena.players.length === 0) return await interaction.reply({ content: 'Nao ha jogadores para iniciar o combate.', ephemeral: true });
+            
+            cena.estado = 'COMBATE';
+            cena.rodada = 1;
+            cena.turnoAtual = 0;
+            
+            cena.players.sort(() => Math.random() - 0.5);
+            
+            const active = cena.players[0];
+            cena.turnStartPos = { x: active.x, y: active.y };
+            addLog(cena, `Combate iniciado. Primeiro turno: ${active.name}.`);
+            
+            await interaction.deferUpdate();
+            await repintarMapaNovo(interaction.channel, cena);
+            return;
+        }
+    }
+
     if (interaction.customId.startsWith('cena_move_')) {
         const cena = cenasAtivas.get(interaction.channelId);
         if (!cena) return await interaction.reply({ content: 'Nenhuma cena ativa.', ephemeral: true });
