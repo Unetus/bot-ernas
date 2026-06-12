@@ -44,6 +44,14 @@ Este guia define o padrao visual para comandos que retornam HUDs em Canvas no Di
 - Se a HUD tiver listagens internas, pagina, filtro, detalhe e retorno devem continuar na mesma mensagem.
 - Modais de busca devem reescrever a HUD de origem com `update`, sem abrir respostas paralelas.
 
+## Roteamento e Seguranca
+
+- Cada botao, select ou modal deve ter um prefixo de `customId` claro e pertencente ao comando dono.
+- O handler deve retornar imediatamente quando o `customId` nao pertence ao comando.
+- Depois que uma interacao for reconhecida por um handler, o roteador central deve parar de repassar a mesma interacao para outros comandos.
+- Campos numericos vindos de modal ou `customId` devem validar minimo, maximo e formato antes de chamar a API.
+- Acoes de mestre devem checar permissao tanto no comando inicial quanto em componentes e modais.
+
 ## Enciclopedia
 
 - A `/enciclopedia` concentra itens, habilidades, bestiario e canones em um unico fluxo.

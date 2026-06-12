@@ -28,6 +28,7 @@ const stores = {
 
 // Cache genérico para rankings e personagens (TTL curto)
 const genericCache = new Map(); // key -> { data, expiry }
+const GENERIC_CACHE_MAX_ENTRIES = 500;
 
 /**
  * Indexa um array de objetos em Maps por id, slug e nome (lowercase).
@@ -135,6 +136,7 @@ async function refresh() {
         if (npcs.status === 'fulfilled') indexar(stores.npcs, npcs.value);
         if (itens.status === 'fulfilled') indexar(stores.itens, itens.value);
         if (skills.status === 'fulfilled') indexar(stores.skills, skills.value);
+        cleanupGenericCache();
         console.log(`[catalogCache] Refresh concluído (${new Date().toISOString()})`);
     } catch (err) {
         console.error('[catalogCache] Erro no refresh:', err.message);
@@ -146,6 +148,20 @@ async function refresh() {
  */
 function startAutoRefresh() {
     setInterval(refresh, TTL.catalogo);
+}
+
+function cleanupGenericCache(now = Date.now()) {
+    for (const [key, entry] of genericCache) {
+        if (now > entry.expiry) genericCache.delete(key);
+    }
+
+    if (genericCache.size <= GENERIC_CACHE_MAX_ENTRIES) return;
+
+    const entriesByExpiry = [...genericCache.entries()].sort((a, b) => a[1].expiry - b[1].expiry);
+    const excess = genericCache.size - GENERIC_CACHE_MAX_ENTRIES;
+    for (let i = 0; i < excess; i++) {
+        genericCache.delete(entriesByExpiry[i][0]);
+    }
 }
 
 // ===========================
@@ -277,7 +293,9 @@ function getGeneric(key) {
  * Armazena no cache genérico com TTL.
  */
 function setGeneric(key, data, ttlMs) {
+    cleanupGenericCache();
     genericCache.set(key, { data, expiry: Date.now() + ttlMs });
+    if (genericCache.size > GENERIC_CACHE_MAX_ENTRIES) cleanupGenericCache();
 }
 
 /**

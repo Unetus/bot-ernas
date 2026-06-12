@@ -1,6 +1,6 @@
 const path = require('path');
 require('dotenv').config();
-const { Client, GatewayIntentBits, REST, Routes, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, Collection, PermissionFlagsBits } = require('discord.js');
 const fs = require('fs');
 
 const { mestresNarrando } = require('./utils/state');
@@ -33,6 +33,54 @@ for (const file of commandFiles) {
 const commands = client.commands.map(cmd => cmd.data.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+
+function isAcked(interaction) {
+    return interaction.replied || interaction.deferred;
+}
+
+async function replyWithInteractionError(interaction) {
+    const payload = { content: 'Houve um erro ao processar essa interacao.', ephemeral: true };
+    try {
+        if (isAcked(interaction)) {
+            await interaction.followUp(payload);
+        } else {
+            await interaction.reply(payload);
+        }
+    } catch (err) {
+        console.error('Falha ao responder erro de interacao:', err);
+    }
+}
+
+async function runInteractionHandler(command, handlerName, interaction) {
+    const wasAcked = isAcked(interaction);
+    try {
+        const result = await command[handlerName](interaction);
+        return result !== undefined || (!wasAcked && isAcked(interaction));
+    } catch (error) {
+        console.error(`Erro em ${command.data?.name || 'comando desconhecido'}.${handlerName}:`, error);
+        await replyWithInteractionError(interaction);
+        return true;
+    }
+}
+
+const genericButtonRoutes = [
+    { commandName: 'catalogo', matches: customId => customId.startsWith('catalogo_') },
+    { commandName: 'bestiario', matches: customId => customId.startsWith('bestiario_') },
+    { commandName: 'guilda', matches: customId => customId.startsWith('guild_') },
+    { commandName: 'arena', matches: customId => customId.startsWith('arena_ban_') || customId.startsWith('preview_') },
+    { commandName: 'inventario', matches: customId => customId.startsWith('inv_cat_') || customId.startsWith('inv_pag_') },
+    { commandName: 'mestre', matches: customId => customId.startsWith('pegar_loot_') },
+    { commandName: 'missao', matches: customId => customId.startsWith('missao_') },
+    {
+        commandName: 'cena',
+        matches: customId => customId === 'move_up'
+            || customId === 'move_down'
+            || customId === 'move_left'
+            || customId === 'move_right'
+            || customId === 'modal_mover_coord'
+            || customId === 'passar_turno'
+    }
+];
 client.once('ready', async () => { 
     console.log(`✓ Bot logado como ${client.user.tag}!`);
     try {
@@ -68,49 +116,33 @@ client.on('interactionCreate', async interaction => {
     if (interaction.isButton()) {
         for (const [name, command] of client.commands) {
             if (command.handleButton && interaction.customId.startsWith(name + '_')) {
-                return command.handleButton(interaction);
+                await runInteractionHandler(command, 'handleButton', interaction);
+                return;
             }
         }
-        
-        // Custom generic dynamic logic for commands that use prefix
-        if (interaction.customId.startsWith('catalogo_')) {
-            const catalogoCmd = client.commands.get('catalogo');
-            if (catalogoCmd) return catalogoCmd.handleButton(interaction);
-        }
-        if (interaction.customId.startsWith('bestiario_')) {
-            const bestiarioCmd = client.commands.get('bestiario');
-            if (bestiarioCmd) return bestiarioCmd.handleButton(interaction);
-        }
-        if (interaction.customId.startsWith('guild_')) {
-            const guildaCmd = client.commands.get('guilda');
-            if (guildaCmd) return guildaCmd.handleButton(interaction);
-        }
-        if (interaction.customId.startsWith('arena_ban_') || interaction.customId.startsWith('preview_')) {
-            const arenaCmd = client.commands.get('arena');
-            if (arenaCmd) return arenaCmd.handleButton(interaction);
-        }
-        if (interaction.customId.startsWith('inv_cat_') || interaction.customId.startsWith('inv_pag_')) {
-            const invCmd = client.commands.get('inventario');
-            if (invCmd) return invCmd.handleButton(interaction);
-        }
-        if (interaction.customId.startsWith('pegar_loot_')) {
-            const mestreCmd = client.commands.get('mestre');
-            if (mestreCmd) return mestreCmd.handleButton(interaction);
-        }
-        if (interaction.customId.startsWith('missao_')) {
-            const missaoCmd = client.commands.get('missao');
-            if (missaoCmd) return missaoCmd.handleButton(interaction);
-        }
-        if (interaction.customId === 'move_up' || interaction.customId === 'move_down' || interaction.customId === 'move_left' || interaction.customId === 'move_right' || interaction.customId === 'modal_mover_coord' || interaction.customId === 'passar_turno') {
-            const cenaCmd = client.commands.get('cena');
-            if (cenaCmd) return cenaCmd.handleButton(interaction);
+
+        for (const route of genericButtonRoutes) {
+            if (!route.matches(interaction.customId)) continue;
+            const command = client.commands.get(route.commandName);
+            if (command?.handleButton) {
+                await runInteractionHandler(command, 'handleButton', interaction);
+                return;
+            }
         }
     }
 
     if (interaction.isStringSelectMenu()) {
         for (const [name, command] of client.commands) {
             if (command.handleSelect) {
-                await command.handleSelect(interaction);
+                const handled = await runInteractionHandler(command, 'handleSelect', interaction);
+                if (handled) return;
+            }
+        }
+
+        for (const [name, command] of client.commands) {
+            if (command.handleButton && interaction.customId.startsWith(name + '_')) {
+                const handled = await runInteractionHandler(command, 'handleButton', interaction);
+                if (handled) return;
             }
         }
     }
@@ -118,7 +150,8 @@ client.on('interactionCreate', async interaction => {
     if (interaction.isModalSubmit()) {
         for (const [name, command] of client.commands) {
             if (command.handleModal) {
-                await command.handleModal(interaction);
+                const handled = await runInteractionHandler(command, 'handleModal', interaction);
+                if (handled) return;
             }
         }
     }
@@ -131,6 +164,20 @@ client.on('messageCreate', async message => {
     const key = `${message.channel.id}-${message.author.id}`;
     if (mestresNarrando.has(key)) {
         if (message.content.startsWith('/')) return;
+        if (!message.content.trim()) return;
+
+        const member = message.member || await message.guild.members.fetch(message.author.id).catch(() => null);
+        if (!member?.permissions?.has(PermissionFlagsBits.ManageMessages)) {
+            mestresNarrando.delete(key);
+            return;
+        }
+
+        const botMember = message.guild.members.me;
+        const botPermissions = message.channel.permissionsFor(botMember);
+        if (!botPermissions?.has(PermissionFlagsBits.ManageMessages) || !botPermissions?.has(PermissionFlagsBits.ManageWebhooks)) {
+            console.warn(`[mestre voz] Permissoes insuficientes no canal ${message.channel.id}.`);
+            return;
+        }
 
         const npcData = mestresNarrando.get(key);
 

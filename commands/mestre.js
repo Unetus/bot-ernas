@@ -29,6 +29,14 @@ const { parsePosicao, embedErro, embedSucesso } = require('../utils/helpers');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
+const MAX_LOOT_QUANTITY = 999;
+const MAX_LIBRAS_CREDIT = 10000000;
+
+function parsePositiveInt(value, max) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0 || parsed > max) return null;
+    return parsed;
+}
 
 const data = new SlashCommandBuilder()
     .setName('mestre')
@@ -39,7 +47,12 @@ const data = new SlashCommandBuilder()
             .setName('dropar')
             .setDescription('Cria loot no canal')
             .addStringOption(o => o.setName('item').setDescription('Nome do item').setRequired(true))
-            .addIntegerOption(o => o.setName('quantidade').setDescription('Quantidade').setRequired(false))
+            .addIntegerOption(o => o
+                .setName('quantidade')
+                .setDescription('Quantidade')
+                .setMinValue(1)
+                .setMaxValue(MAX_LOOT_QUANTITY)
+                .setRequired(false))
     )
     .addSubcommand(sub => sub.setName('painel').setDescription('Abre a central do mestre'));
 
@@ -77,6 +90,9 @@ async function execute(interaction) {
     if (sub === 'dropar') {
         const itemNome = interaction.options.getString('item');
         const qtd = interaction.options.getInteger('quantidade') || 1;
+        if (!parsePositiveInt(qtd, MAX_LOOT_QUANTITY)) {
+            return await interaction.editReply({ embeds: [embedErro(`A quantidade precisa estar entre 1 e ${MAX_LOOT_QUANTITY}.`)] });
+        }
         try {
             const res = await axios.get(`${ARKANDIA_API}/itens/${encodeURIComponent(itemNome)}`, { headers: { 'X-API-Key': API_KEY } });
             const item = res.data;
@@ -371,7 +387,10 @@ async function handleModal(interaction) {
 
     if (interaction.customId === 'modal_mestre_economia_drop') {
         const itemNome = interaction.fields.getTextInputValue('item_input').trim();
-        const qtd = parseInt(interaction.fields.getTextInputValue('qtd_input') || '1', 10) || 1;
+        const qtd = parsePositiveInt(interaction.fields.getTextInputValue('qtd_input') || '1', MAX_LOOT_QUANTITY);
+        if (!qtd) {
+            return await interaction.reply({ embeds: [embedErro(`A quantidade precisa estar entre 1 e ${MAX_LOOT_QUANTITY}.`)], ephemeral: true });
+        }
         await interaction.deferReply({ ephemeral: true });
         try {
             const res = await axios.get(`${ARKANDIA_API}/itens/${encodeURIComponent(itemNome)}`, { headers: { 'X-API-Key': API_KEY } });
@@ -395,8 +414,11 @@ async function handleModal(interaction) {
 
     if (interaction.customId === 'modal_mestre_economia_libras') {
         const charName = interaction.fields.getTextInputValue('char_input').trim();
-        const valor = parseInt(interaction.fields.getTextInputValue('valor_input'), 10) || 0;
+        const valor = parsePositiveInt(interaction.fields.getTextInputValue('valor_input'), MAX_LIBRAS_CREDIT);
         const motivo = interaction.fields.getTextInputValue('motivo_input').trim();
+        if (!valor) {
+            return await interaction.reply({ embeds: [embedErro(`Informe um valor de libras entre 1 e ${MAX_LIBRAS_CREDIT.toLocaleString('pt-BR')}.`)], ephemeral: true });
+        }
         await interaction.deferReply({ ephemeral: true });
         try {
             const resChar = await axios.get(`${ARKANDIA_API}/personagens/${encodeURIComponent(charName)}`, { headers: { 'X-API-Key': API_KEY } });
@@ -446,7 +468,11 @@ async function handleButton(interaction) {
     await interaction.deferReply({ ephemeral: true });
     const parts = interaction.customId.split('_');
     const itemId = parts[2];
-    const qtd = parseInt(parts[3] || '1', 10);
+    const qtd = parsePositiveInt(parts[3] || '1', MAX_LOOT_QUANTITY);
+    if (!qtd) {
+        lootsEmProcessamento.delete(msgId);
+        return await interaction.editReply({ embeds: [embedErro('A quantidade deste loot e invalida. Peça para o mestre gerar o drop novamente.')] });
+    }
 
     try {
         let personagem;
