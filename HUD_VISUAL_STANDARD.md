@@ -26,6 +26,7 @@ Este guia define o padrao visual para comandos que retornam HUDs em Canvas no Di
   - Ativo: `◆ Nome`
   - Inativo: `◇ Nome`
   - Navegacao: `◁ Anterior` e `Proximo ▷`
+- Paineis com botoes de abas devem atualizar o componente original quando uma aba for clicada, mantendo o item selecionado com `◆`.
 - Evitar emojis nos botoes de HUD. Preferir simbolos discretos e neutros.
 
 ## Comandos Ja Padronizados

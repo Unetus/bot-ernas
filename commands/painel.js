@@ -11,6 +11,24 @@ const data = new SlashCommandBuilder()
     .setName('painel')
     .setDescription('Abre a sua central de jogador (HUD)');
 
+function getPainelComponents(activeMenu = null) {
+    const label = (menu, text) => `${activeMenu === menu ? '◆' : '◇'} ${text}`;
+
+    const row1 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('painel_menu_perfil').setLabel(label('perfil', 'Perfil')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('painel_menu_inventario').setLabel(label('inventario', 'Inventário')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('painel_menu_missoes').setLabel(label('missoes', 'Missões')).setStyle(ButtonStyle.Secondary)
+    );
+
+    const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('painel_menu_ranking').setLabel(label('ranking', 'Rankings')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('painel_menu_guilda').setLabel(label('guilda', 'Guilda')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('painel_menu_rp').setLabel(label('rp', 'Cena RP')).setStyle(ButtonStyle.Secondary)
+    );
+
+    return [row1, row2];
+}
+
 async function execute(interaction) {
     const buffer = await gerarBannerPainelJogador(interaction.user);
     const attachment = new AttachmentBuilder(buffer, { name: 'painel-jogador.png' });
@@ -20,23 +38,13 @@ async function execute(interaction) {
         .setImage('attachment://painel-jogador.png')
         .setFooter({ text: 'Painel privado. Use os botões abaixo para navegar.' });
 
-    const row1 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('painel_menu_perfil').setLabel('◇ Perfil').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('painel_menu_inventario').setLabel('▣ Inventário').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('painel_menu_missoes').setLabel('※ Missões').setStyle(ButtonStyle.Secondary)
-    );
-    
-    const row2 = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId('painel_menu_ranking').setLabel('△ Rankings').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('painel_menu_guilda').setLabel('♜ Guilda').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('painel_menu_rp').setLabel('✦ Cena RP').setStyle(ButtonStyle.Secondary)
-    );
+    const components = getPainelComponents();
 
     try {
-        await interaction.reply({ embeds: [embed], files: [attachment], components: [row1, row2], ephemeral: true });
+        await interaction.reply({ embeds: [embed], files: [attachment], components, ephemeral: true });
     } catch (e) {
         if (interaction.deferred) {
-            await interaction.editReply({ embeds: [embed], files: [attachment], components: [row1, row2] });
+            await interaction.editReply({ embeds: [embed], files: [attachment], components });
         }
     }
 }
@@ -45,42 +53,42 @@ async function handleButton(interaction) {
     if (!interaction.customId.startsWith('painel_menu_')) return;
 
     const menu = interaction.customId.replace('painel_menu_', '');
+    await interaction.deferUpdate();
+    await interaction.editReply({ components: getPainelComponents(menu) });
     
     if (menu === 'guilda') {
-        return await interaction.reply({ content: '✦ Para buscar os dados de uma guilda, digite no chat: `/guilda nome:`', ephemeral: true });
+        return await interaction.followUp({ content: 'Para buscar os dados de uma guilda, digite no chat: `/guilda nome:`', ephemeral: true });
     }
     
     if (menu === 'rp') {
-        return await interaction.reply({ content: '✦ Para iniciar uma cena de RP marcando os jogadores, digite no chat: `/rp iniciar`', ephemeral: true });
+        return await interaction.followUp({ content: 'Para iniciar uma cena de RP marcando os jogadores, digite no chat: `/rp iniciar`', ephemeral: true });
     }
     
     if (menu === 'missoes') {
-        await interaction.deferReply({ ephemeral: true });
         try {
             const res = await axios.get(`${ARKANDIA_API}/missoes`, { headers: { 'X-API-Key': API_KEY } });
             const missoes = res.data.filter(m => m.status === 'aberta');
             
-            if (missoes.length === 0) return await interaction.editReply({ content: '✦ Não há missões abertas no momento.' });
+            if (missoes.length === 0) return await interaction.followUp({ content: 'Não há missões abertas no momento.', ephemeral: true });
             
             const embed = new EmbedBuilder()
-                .setColor(0x9B59B6)
-                .setTitle('✦ Quadro de Missões de Arkandia ✦')
+                .setColor(0xD4AF37)
+                .setTitle('Quadro de Missões de Arkandia')
                 .setDescription(missoes.map(m => `**[${m.ranque || 'D'}]** ${m.nome}\n*${m.descricao || 'Sem descrição'}*`).join('\n\n'));
-            return await interaction.editReply({ embeds: [embed] });
+            return await interaction.followUp({ embeds: [embed], ephemeral: true });
         } catch (e) {
-            return await interaction.editReply({ embeds: [embedErro('Erro ao buscar as missões.')] });
+            return await interaction.followUp({ embeds: [embedErro('Erro ao buscar as missões.')], ephemeral: true });
         }
     }
     
     if (menu === 'ranking') {
-        await interaction.deferReply({ ephemeral: true });
         try {
             const res = await axios.get(`${ARKANDIA_API}/rankings/poder`, { headers: { 'X-API-Key': API_KEY } });
             const buffer = await gerarBannerRanking('poder', res.data);
             const attachment = new AttachmentBuilder(buffer, { name: 'ranking.png' });
             
             const embed = new EmbedBuilder()
-                .setColor(0xF1C40F)
+                .setColor(0xD4AF37)
                 .setImage('attachment://ranking.png');
                 
             const row = new ActionRowBuilder().addComponents(
@@ -88,46 +96,51 @@ async function handleButton(interaction) {
                 new ButtonBuilder().setCustomId('ranking_switch_riqueza').setLabel('◇ Riqueza').setStyle(ButtonStyle.Secondary)
             );
             
-            return await interaction.editReply({ embeds: [embed], files: [attachment], components: [row] });
+            return await interaction.followUp({ embeds: [embed], files: [attachment], components: [row], ephemeral: true });
         } catch (e) {
-            return await interaction.editReply({ embeds: [embedErro('Erro ao buscar o ranking.')] });
+            return await interaction.followUp({ embeds: [embedErro('Erro ao buscar o ranking.')], ephemeral: true });
         }
     }
     
     if (menu === 'perfil') {
-        await interaction.deferReply({ ephemeral: true });
         try {
             const res = await axios.get(`${ARKANDIA_API}/personagens/discord/${interaction.user.id}`, { headers: { 'X-API-Key': API_KEY } });
             const p = res.data;
-            if (!p) return await interaction.editReply({ embeds: [embedErro('Personagem não encontrado.')] });
+            if (!p) return await interaction.followUp({ embeds: [embedErro('Personagem não encontrado.')], ephemeral: true });
             
             const buffer = await gerarBannerPerfil(p);
             const attachment = new AttachmentBuilder(buffer, { name: 'perfil.png' });
             
             const embed = new EmbedBuilder()
-                .setColor(p.indice_poder_cor || 0x3498DB)
+                .setColor(0xD4AF37)
                 .setImage('attachment://perfil.png');
                 
-            return await interaction.editReply({ embeds: [embed], files: [attachment] });
+            return await interaction.followUp({ embeds: [embed], files: [attachment], ephemeral: true });
         } catch (e) {
-            return await interaction.editReply({ embeds: [embedErro('Erro ao buscar seu perfil.')] });
+            return await interaction.followUp({ embeds: [embedErro('Erro ao buscar seu perfil.')], ephemeral: true });
         }
     }
     
     if (menu === 'inventario') {
-        await interaction.deferReply({ ephemeral: true });
         try {
             const res = await axios.get(`${ARKANDIA_API}/personagens/discord/${interaction.user.id}`, { headers: { 'X-API-Key': API_KEY } });
             const p = res.data;
-            if (!p) return await interaction.editReply({ embeds: [embedErro('Personagem não encontrado.')] });
+            if (!p) return await interaction.followUp({ embeds: [embedErro('Personagem não encontrado.')], ephemeral: true });
             
             const itens = p.inventario || p.itens || [];
             const cacheKey = `inventario_${interaction.user.id}_${p.id}`;
             skillsCache.set(cacheKey, { personagem: p, itens });
-            
-            return await renderInventarioPage(interaction, p, itens, 'todos', 0);
+
+            const inventoryTarget = {
+                ...interaction,
+                deferred: false,
+                replied: false,
+                update: payload => interaction.followUp({ ...payload, ephemeral: true })
+            };
+
+            return await renderInventarioPage(inventoryTarget, p, itens, 'todos', 0);
         } catch (e) {
-            return await interaction.editReply({ embeds: [embedErro('Erro ao buscar seu inventário.')] });
+            return await interaction.followUp({ embeds: [embedErro('Erro ao buscar seu inventário.')], ephemeral: true });
         }
     }
 }
