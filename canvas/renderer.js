@@ -1676,15 +1676,20 @@ async function renderMap(scene) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = '#101219';
-    ctx.fillRect(0, 0, width, height);
+    try {
+        const moldura = await loadImage('./assets/ui/moldura-cena.png');
+        ctx.drawImage(moldura, 0, 0, width, height);
+    } catch(e) {
+        ctx.fillStyle = '#101219';
+        ctx.fillRect(0, 0, width, height);
 
-    const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-    bgGrad.addColorStop(0, '#171922');
-    bgGrad.addColorStop(0.55, '#0F1118');
-    bgGrad.addColorStop(1, '#1B1712');
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, width, height);
+        const bgGrad = ctx.createLinearGradient(0, 0, width, height);
+        bgGrad.addColorStop(0, '#171922');
+        bgGrad.addColorStop(0.55, '#0F1118');
+        bgGrad.addColorStop(1, '#1B1712');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, width, height);
+    }
 
     ctx.strokeStyle = 'rgba(212, 175, 55, 0.32)';
     ctx.lineWidth = 2;
@@ -1721,10 +1726,15 @@ async function renderMap(scene) {
 
     drawHudBox(ctx, mapX - 10, mapY - 10, mapWidth + 20, mapHeight + 20, 8);
 
-    try {
-        const bg = await loadImage(scene.fundoUrl || './assets/ui/fundo-cena-padrao.png');
-        ctx.drawImage(bg, mapX, mapY, mapWidth, mapHeight);
-    } catch (e) {
+    if (scene.fundoUrl) {
+        try {
+            const bg = await loadImage(scene.fundoUrl);
+            ctx.drawImage(bg, mapX, mapY, mapWidth, mapHeight);
+        } catch (e) {
+            ctx.fillStyle = '#20242D';
+            ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
+        }
+    } else {
         const gridGrad = ctx.createLinearGradient(mapX, mapY, mapX + mapWidth, mapY + mapHeight);
         gridGrad.addColorStop(0, '#252A31');
         gridGrad.addColorStop(1, '#181B22');
