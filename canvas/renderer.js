@@ -1721,15 +1721,10 @@ async function renderMap(scene) {
 
     drawHudBox(ctx, mapX - 10, mapY - 10, mapWidth + 20, mapHeight + 20, 8);
 
-    if (scene.fundoUrl) {
-        try {
-            const bg = await loadImage(scene.fundoUrl);
-            ctx.drawImage(bg, mapX, mapY, mapWidth, mapHeight);
-        } catch (e) {
-            ctx.fillStyle = '#20242D';
-            ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
-        }
-    } else {
+    try {
+        const bg = await loadImage(scene.fundoUrl || './assets/ui/fundo-cena-padrao.png');
+        ctx.drawImage(bg, mapX, mapY, mapWidth, mapHeight);
+    } catch (e) {
         const gridGrad = ctx.createLinearGradient(mapX, mapY, mapX + mapWidth, mapY + mapHeight);
         gridGrad.addColorStop(0, '#252A31');
         gridGrad.addColorStop(1, '#181B22');
