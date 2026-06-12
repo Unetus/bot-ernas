@@ -1623,13 +1623,13 @@ async function gerarBannerEnciclopedia() {
         ctx.fillRect(x + 22, y + 22, 4, cardH - 44);
 
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 28px sans-serif';
-        ctx.fillText(card.title, x + 44, y + 42);
+        ctx.font = 'bold 25px sans-serif';
+        ctx.fillText(card.title, x + 50, y + 38);
 
         ctx.fillStyle = HUD_MUTED;
-        ctx.font = '18px sans-serif';
+        ctx.font = '16px sans-serif';
         card.lines.forEach((line, lineIndex) => {
-            ctx.fillText(line, x + 44, y + 76 + (lineIndex * 22));
+            ctx.fillText(line, x + 50, y + 62 + (lineIndex * 20));
         });
     });
 

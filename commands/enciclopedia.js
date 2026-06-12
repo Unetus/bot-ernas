@@ -23,17 +23,6 @@ const CATEGORY_META = {
     mobs: { label: 'Bestiario', title: 'Bestiario', color: 0xD4AF37 },
     npcs: { label: 'Canones', title: 'Canones', color: 0xD4AF37 }
 };
-const HOME_TEXT = [
-    '## \u27A2 Enciclop\u00E9dia',
-    '',
-    '> Pesquise pelo acervo de conte\u00FAdos no universo de **Ernas**.',
-    '',
-    '- Itens: Equipamentos, consum\u00EDveis, materiais, etc.',
-    '- Habilidades: Todas as habilidades registradas em Ernas.',
-    '- Besti\u00E1rio: Criaturas registradas em Ernas.',
-    '- Can\u00F4nes: Figuras conhecidas em Ernas.'
-].join('\n');
-
 const data = new SlashCommandBuilder()
     .setName('enciclopedia')
     .setDescription('Consulta o acervo oficial de itens, habilidades, bestiario e canones de Ernas');
@@ -309,7 +298,7 @@ async function buildHomePayload(options = {}) {
         .setImage('attachment://enciclopedia.png');
 
     return {
-        content: HOME_TEXT,
+        content: null,
         embeds: [embed],
         files: [attachment],
         components: buildControls(null, { panelMode, homeActive: true })
