@@ -20,25 +20,25 @@ async function execute(interaction) {
         }
 
         const embed = new EmbedBuilder()
-            .setColor(0x4A2B7E)
-            .setTitle('❖ QUADRO DE MISSÕES DE ARKANDIA')
-            .setDescription('Aventureiros, estas são as missões abertas atualmente na guilda. Preparem suas armas!')
+            .setColor(0xD4AF37)
+            .setTitle('Quadro de Missões de Arkandia')
+            .setDescription('Missões abertas atualmente na guilda.')
             .setThumbnail('https://i.imgur.com/vHqB3q0.png');
 
         const rows = [];
         let row = new ActionRowBuilder();
 
         missoes.slice(0, 5).forEach((m, idx) => {
-            const statusPerigo = m.morte_permanente ? '💀 PERIGO EXTREMO (Morte Permanente)' : '🛡 Seguro (Sem Morte Permanente)';
+            const statusPerigo = m.morte_permanente ? 'Perigo extremo (Morte Permanente)' : 'Seguro (Sem Morte Permanente)';
             embed.addFields({
-                name: `📍 ${idx + 1}. ${m.nome}`,
+                name: `${idx + 1}. ${m.nome}`,
                 value: `> **Nível Mínimo:** ${m.nivel_minimo || 1} | **Rank:** ${m.rank_minimo || 'Iniciante'}\n> **Risco:** ${statusPerigo}\n> **Status:** ${m.status || 'Aberta'} | **Vagas:** ${m.vagas_restantes || m.limite_jogadores || 5}\n> **Sessão:** ${m.data_sessão || 'A agendar'}`
             });
 
             row.addComponents(
                 new ButtonBuilder()
                     .setCustomId(`missoes_inscritos_${m.id}`)
-                    .setLabel(`Inscritos: ${m.nome.substring(0, 15)}`)
+                    .setLabel(`◇ Inscritos: ${m.nome.substring(0, 15)}`)
                     .setStyle(ButtonStyle.Secondary)
             );
 
@@ -81,8 +81,8 @@ async function handleButton(interaction) {
         }).join('\n');
 
         const embed = new EmbedBuilder()
-            .setColor(0x4A2B7E)
-            .setTitle('👥 Aventureiros Convocados')
+            .setColor(0xD4AF37)
+            .setTitle('Aventureiros Convocados')
             .setDescription(`Estes são os heróis confirmados para esta expedição:\n\n${listaInscritos}`);
 
         return await interaction.editReply({ embeds: [embed] });

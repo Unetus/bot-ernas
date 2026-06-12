@@ -35,6 +35,9 @@ Este guia define o padrao visual para comandos que retornam HUDs em Canvas no Di
 - HUDs abertas a partir do `/painel` devem substituir a mensagem original do painel com `editReply` ou `update`.
 - Evitar `followUp` para trocar entre HUDs visuais, pois isso empilha mensagens e polui a tela.
 - Interacoes internas da HUD, como filtros de inventario, abas de ranking e detalhes de skills, tambem devem substituir a mesma mensagem.
+- O `/painel` deve manter um botao `Início` para voltar ao estado inicial da HUD.
+- Use estados de carregamento na propria mensagem antes de chamadas de API potencialmente lentas.
+- Use cache curto por usuario/tipo de tela para reduzir chamadas repetidas quando o jogador alterna abas rapidamente.
 - Use `followUp` apenas para avisos pontuais, erros sem relacao com a HUD atual ou acoes que precisam aparecer fora do painel.
 
 ## Comandos Ja Padronizados
@@ -43,6 +46,9 @@ Este guia define o padrao visual para comandos que retornam HUDs em Canvas no Di
 - `/perfil`
 - `/inventario`
 - `/ranking`
+- `/catalogo`
+- `/bestiario`
+- `/missoes` (ajuste visual; detalhes continuam efemeros para nao alterar uma mensagem publica compartilhada)
 
 ## Checklist Para Novas HUDs
 

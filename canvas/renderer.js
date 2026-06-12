@@ -1439,7 +1439,7 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina, op
     }
 }
 
-async function gerarBannerPainelJogador(user = {}) {
+async function gerarBannerPainelJogador(user = {}, context = {}) {
     const w = 1000;
     const h = 560;
     const canvas = createCanvas(w, h);
@@ -1513,11 +1513,22 @@ async function gerarBannerPainelJogador(user = {}) {
     ctx.font = '18px sans-serif';
     ctx.fillText(`Sessão privada para ${displayName}`, 84, 166);
 
+    const contextParts = [];
+    if (context.personagemNome) contextParts.push(`Personagem: ${formatarTexto(context.personagemNome)}`);
+    if (Number.isFinite(context.inventarioQtd)) contextParts.push(`Inventário: ${context.inventarioQtd} itens`);
+    if (Number.isFinite(context.missoesAbertas)) contextParts.push(`Missões abertas: ${context.missoesAbertas}`);
+
+    if (contextParts.length > 0) {
+        ctx.fillStyle = '#D4AF37';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(contextParts.join('  •  '), 84, 188);
+    }
+
     ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(82, 194);
-    ctx.lineTo(918, 194);
+    ctx.moveTo(82, 204);
+    ctx.lineTo(918, 204);
     ctx.stroke();
 
     const cards = [
@@ -1530,7 +1541,7 @@ async function gerarBannerPainelJogador(user = {}) {
     ];
 
     const startX = 82;
-    const startY = 232;
+    const startY = 236;
     const cardW = 260;
     const cardH = 92;
     const gapX = 28;

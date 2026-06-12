@@ -12,11 +12,11 @@ const RARIDADE_CORES = {
 };
 
 const RARIDADE_EMOJIS = {
-    comum: '⚪',
-    raro: '🔵',
-    epico: '🟣',
-    lendario: '🟠',
-    mitico: '🔴'
+    comum: '◇',
+    raro: '◇',
+    epico: '◇',
+    lendario: '◆',
+    mitico: '◆'
 };
 
 const ITEMS_PER_PAGE = 5;
@@ -31,12 +31,12 @@ const ITEMS_PER_PAGE = 5;
 function buildHomeDashboard() {
     const embed = new EmbedBuilder()
         .setColor(0xD4AF37) // Dourado Imperial Premium
-        .setTitle('📖 Central de Catálogos de Arkandia')
+        .setTitle('Central de Catálogos de Arkandia')
         .setDescription(
             `Seja bem-vindo à biblioteca imperial de Arkandia! Aqui você pode consultar todos os registros oficiais do RPG em tempo real.\n\n` +
-            `🎒 **Catálogo de Itens:** Equipamentos, consumíveis, defesas, armas e muito mais.\n` +
-            `⚔️ **Catálogo de Habilidades:** Grimórios completos, skills de classe e maestrias.\n` +
-            `🦇 **Bestiário Oficial:** Lendas, fraquezas, tiers e drops das criaturas do mundo.\n\n` +
+            `**Catálogo de Itens:** Equipamentos, consumíveis, defesas, armas e muito mais.\n` +
+            `**Catálogo de Habilidades:** Grimórios completos, skills de classe e maestrias.\n` +
+            `**Bestiário Oficial:** Lendas, fraquezas, tiers e drops das criaturas do mundo.\n\n` +
             `*Clique em um dos botões abaixo para começar a navegar!*`
         )
         .setThumbnail('https://i.imgur.com/2U5fPoy.png');
@@ -44,16 +44,16 @@ function buildHomeDashboard() {
     const rowButtons = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId('catalogo_btn_itens')
-            .setLabel('🎒 Itens')
-            .setStyle(ButtonStyle.Primary),
+            .setLabel('◇ Itens')
+            .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
             .setCustomId('catalogo_btn_skills')
-            .setLabel('⚔️ Habilidades')
-            .setStyle(ButtonStyle.Primary),
+            .setLabel('◇ Habilidades')
+            .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
             .setCustomId('catalogo_btn_mobs')
-            .setLabel('🦇 Bestiário')
-            .setStyle(ButtonStyle.Primary)
+            .setLabel('◇ Bestiário')
+            .setStyle(ButtonStyle.Secondary)
     );
 
     return { embeds: [embed], components: [rowButtons] };
@@ -73,24 +73,23 @@ function buildItensPage(itens, page, totalPages, searchKey = '') {
 
     const embed = new EmbedBuilder()
         .setColor(0x3498DB)
-        .setTitle('🎒 Catálogo de Itens')
+        .setTitle('Catálogo de Itens')
         .setDescription(desc || '*Nenhum item encontrado.*')
         .setFooter({ text: `Página ${page + 1}/${totalPages} • ${itens.length} itens` });
 
     const rowButtons = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`catalogo_itens_prev_${page}_${searchKey}`)
-            .setEmoji('◀')
+            .setLabel('◁')
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page === 0),
         new ButtonBuilder()
             .setCustomId('catalogo_btn_home')
-            .setEmoji('🏠')
-            .setLabel('Menu Principal')
-            .setStyle(ButtonStyle.Success),
+            .setLabel('◇ Início')
+            .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
             .setCustomId(`catalogo_itens_next_${page}_${searchKey}`)
-            .setEmoji('▶')
+            .setLabel('▷')
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page >= totalPages - 1)
     );
@@ -126,24 +125,23 @@ function buildSkillsPage(skills, page, totalPages, searchKey = '') {
 
     const embed = new EmbedBuilder()
         .setColor(0x9B59B6)
-        .setTitle('📜 Catálogo de Habilidades')
+        .setTitle('Catálogo de Habilidades')
         .setDescription(desc || '*Nenhuma habilidade encontrada.*')
         .setFooter({ text: `Página ${page + 1}/${totalPages} • ${skills.length} habilidades` });
 
     const rowButtons = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`catalogo_skills_prev_${page}_${searchKey}`)
-            .setEmoji('◀')
+            .setLabel('◁')
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page === 0),
         new ButtonBuilder()
             .setCustomId('catalogo_btn_home')
-            .setEmoji('🏠')
-            .setLabel('Menu Principal')
-            .setStyle(ButtonStyle.Success),
+            .setLabel('◇ Início')
+            .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
             .setCustomId(`catalogo_skills_next_${page}_${searchKey}`)
-            .setEmoji('▶')
+            .setLabel('▷')
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page >= totalPages - 1)
     );
@@ -179,24 +177,23 @@ function buildBestiarioPage(bestiario, page, totalPages, searchKey = '') {
 
     const embed = new EmbedBuilder()
         .setColor(0xE74C3C)
-        .setTitle('🦇 Bestiário de Arkandia')
+        .setTitle('Bestiário de Arkandia')
         .setDescription(desc || '*Nenhuma criatura encontrada.*')
         .setFooter({ text: `Página ${page + 1}/${totalPages} • ${bestiario.length} monstros` });
 
     const rowButtons = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
             .setCustomId(`catalogo_mobs_prev_${page}_${searchKey}`)
-            .setEmoji('◀')
+            .setLabel('◁')
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page === 0),
         new ButtonBuilder()
             .setCustomId('catalogo_btn_home')
-            .setEmoji('🏠')
-            .setLabel('Menu Principal')
-            .setStyle(ButtonStyle.Success),
+            .setLabel('◇ Início')
+            .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
             .setCustomId(`catalogo_mobs_next_${page}_${searchKey}`)
-            .setEmoji('▶')
+            .setLabel('▷')
             .setStyle(ButtonStyle.Secondary)
             .setDisabled(page >= totalPages - 1)
     );
@@ -225,7 +222,7 @@ function buildBestiarioPage(bestiario, page, totalPages, searchKey = '') {
 function buildItemDetail(item, includeHomeButton = false) {
     const embed = new EmbedBuilder()
         .setColor(RARIDADE_CORES[item.raridade] || 0x6B7280)
-        .setTitle(`${RARIDADE_EMOJIS[item.raridade] || '⚪'} ${formatarTexto(item.nome)}`)
+        .setTitle(formatarTexto(item.nome))
         .setDescription(item.descricao || '*Sem descrição.*')
         .addFields(
             { name: 'Categoria', value: formatarTexto(item.categoria), inline: true },
@@ -243,9 +240,8 @@ function buildItemDetail(item, includeHomeButton = false) {
             new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId('catalogo_btn_home')
-                    .setEmoji('🏠')
-                    .setLabel('Menu Principal')
-                    .setStyle(ButtonStyle.Success)
+                    .setLabel('◇ Início')
+                    .setStyle(ButtonStyle.Secondary)
             )
         ];
     }
@@ -255,7 +251,7 @@ function buildItemDetail(item, includeHomeButton = false) {
 function buildSkillDetail(skill, includeHomeButton = false) {
     const embed = new EmbedBuilder()
         .setColor(0x9B59B6)
-        .setTitle(`⚔️ ${formatarTexto(skill.nome)}`)
+        .setTitle(formatarTexto(skill.nome))
         .setDescription(skill.descricao || '*Sem descrição.*')
         .addFields(
             { name: 'Tipo', value: formatarTexto(skill.tipo), inline: true },
@@ -265,7 +261,7 @@ function buildSkillDetail(skill, includeHomeButton = false) {
     if (skill.classe) embed.addFields({ name: 'Classe', value: formatarTexto(skill.classe), inline: true });
     if (skill.nivel_min) embed.addFields({ name: 'Nível Mínimo', value: String(skill.nivel_min), inline: true });
     if (skill.grau) embed.addFields({ name: 'Grau Máximo', value: String(skill.grau), inline: true });
-    if (skill.custo_runas) embed.addFields({ name: 'Custo de Runas', value: `🔮 ${skill.custo_runas}`, inline: true });
+    if (skill.custo_runas) embed.addFields({ name: 'Custo de Runas', value: String(skill.custo_runas), inline: true });
 
     const payload = { embeds: [embed] };
     if (includeHomeButton) {
@@ -273,9 +269,8 @@ function buildSkillDetail(skill, includeHomeButton = false) {
             new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId('catalogo_btn_home')
-                    .setEmoji('🏠')
-                    .setLabel('Menu Principal')
-                    .setStyle(ButtonStyle.Success)
+                    .setLabel('◇ Início')
+                    .setStyle(ButtonStyle.Secondary)
             )
         ];
     }
@@ -285,7 +280,7 @@ function buildSkillDetail(skill, includeHomeButton = false) {
 function buildBestiarioDetail(mob, includeHomeButton = false) {
     const embed = new EmbedBuilder()
         .setColor(0xE74C3C)
-        .setTitle(`🦇 ${formatarTexto(mob.nome)}`)
+        .setTitle(formatarTexto(mob.nome))
         .setDescription(mob.descricao || mob.lore || '*Sem informações detalhadas.*')
         .addFields({ name: 'Tipo', value: formatarTexto(mob.tipo || 'Desconhecido'), inline: true });
 
@@ -301,9 +296,8 @@ function buildBestiarioDetail(mob, includeHomeButton = false) {
             new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
                     .setCustomId('catalogo_btn_home')
-                    .setEmoji('🏠')
-                    .setLabel('Menu Principal')
-                    .setStyle(ButtonStyle.Success)
+                    .setLabel('◇ Início')
+                    .setStyle(ButtonStyle.Secondary)
             )
         ];
     }
@@ -447,19 +441,19 @@ async function handleSelect(interaction) {
     if (interaction.customId === 'select_catalogo_item') {
         const item = catalogCache.findItem(selectedId);
         if (!item) return await interaction.reply({ embeds: [embedErro('Item não encontrado.')], ephemeral: true });
-        return await interaction.reply({ ...buildItemDetail(item, false), ephemeral: true });
+        return await interaction.update(buildItemDetail(item, true));
     }
 
     if (interaction.customId === 'select_catalogo_skill') {
         const skill = catalogCache.findSkill(selectedId);
         if (!skill) return await interaction.reply({ embeds: [embedErro('Habilidade não encontrada.')], ephemeral: true });
-        return await interaction.reply({ ...buildSkillDetail(skill, false), ephemeral: true });
+        return await interaction.update(buildSkillDetail(skill, true));
     }
 
     if (interaction.customId === 'select_catalogo_mob') {
         const mob = catalogCache.findBestiario(selectedId);
         if (!mob) return await interaction.reply({ embeds: [embedErro('Criatura não encontrada no bestiário.')], ephemeral: true });
-        return await interaction.reply({ ...buildBestiarioDetail(mob, false), ephemeral: true });
+        return await interaction.update(buildBestiarioDetail(mob, true));
     }
 }
 
