@@ -2533,4 +2533,225 @@ function getMestrePainelComponentsModern() {
 }
 
 
-module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerEnciclopedia, gerarBannerPainelMestreModern, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponentsModern };
+// ===========================
+// Banners de Início de RP
+// ===========================
+
+function wrapText(ctx, text, maxWidth) {
+    const words = String(text || '').split(/\s+/);
+    const lines = [];
+    let current = '';
+    for (const word of words) {
+        if (!word) continue;
+        const test = current ? `${current} ${word}` : word;
+        if (ctx.measureText(test).width <= maxWidth) {
+            current = test;
+        } else {
+            if (current) lines.push(current);
+            current = word;
+        }
+    }
+    if (current) lines.push(current);
+    return lines;
+}
+
+async function gerarBannerRpTitulo({ titulo, subtitulo, criador, mestre = false }) {
+    const w = 1000;
+    const h = 240;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+
+    await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.25 });
+
+    // Moldura externa dourada
+    ctx.strokeStyle = HUD_GOLD;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(24, 24, w - 48, h - 48);
+
+    // Linhas decorativas superior/inferior
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(60, 42);
+    ctx.lineTo(w - 60, 42);
+    ctx.moveTo(60, h - 42);
+    ctx.lineTo(w - 60, h - 42);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Título
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 52px serif';
+    const titleText = trimToWidth(ctx, titulo, w - 120);
+    ctx.fillText(titleText, w / 2, h / 2 - (subtitulo ? 18 : 6));
+
+    // Subtítulo
+    if (subtitulo) {
+        ctx.fillStyle = HUD_TEXT;
+        ctx.font = '22px sans-serif';
+        const subText = trimToWidth(ctx, subtitulo, w - 160);
+        ctx.fillText(subText, w / 2, h / 2 + 42);
+    }
+
+    // Crédito + selo mestre
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = '14px sans-serif';
+    const badge = mestre ? ' • Mestre' : '';
+    ctx.fillText(`Criado por ${criador.tag || 'Desconhecido'}${badge}`, w - 52, h - 36);
+
+    return canvas.toBuffer('image/png');
+}
+
+async function gerarBannerRpParticipantes(participantes) {
+    const w = 1000;
+    const padding = 40;
+    const headerH = 56;
+    const avatarSize = 88;
+    const gap = 28;
+    const maxVisible = 9;
+    const h = headerH + avatarSize + 70 + padding;
+
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.6 });
+
+    // Caixa de fundo
+    drawHudBox(ctx, 24, 24, w - 48, h - 48, 16);
+
+    // Título da seção
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 26px serif';
+    ctx.fillText('Participantes', padding, padding + 4);
+
+    const visible = participantes.slice(0, maxVisible);
+    const extra = Math.max(0, participantes.length - maxVisible);
+    const total = visible.length + (extra > 0 ? 1 : 0);
+    const totalWidth = total * avatarSize + (total - 1) * gap;
+    let startX = (w - totalWidth) / 2;
+    const y = headerH + padding;
+
+    for (let i = 0; i < visible.length; i++) {
+        const p = visible[i];
+        const cx = startX + avatarSize / 2;
+        const cy = y + avatarSize / 2;
+
+        // Sombra da moldura
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 4;
+        ctx.beginPath();
+        ctx.arc(cx, cy, avatarSize / 2 + 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fill();
+        ctx.restore();
+
+        // Moldura dourada
+        ctx.beginPath();
+        ctx.arc(cx, cy, avatarSize / 2 + 3, 0, Math.PI * 2);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = HUD_GOLD;
+        ctx.stroke();
+
+        // Avatar circular
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, avatarSize / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        try {
+            const img = await loadImage(p.avatarUrl || 'https://i.imgur.com/vHqB3q0.png');
+            ctx.drawImage(img, startX, y, avatarSize, avatarSize);
+        } catch (e) {
+            ctx.fillStyle = '#2A2D38';
+            ctx.fillRect(startX, y, avatarSize, avatarSize);
+        }
+        ctx.restore();
+
+        // Nome
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = HUD_TEXT;
+        ctx.font = 'bold 15px sans-serif';
+        const name = trimToWidth(ctx, p.displayName || 'Aventureiro', avatarSize + gap - 6);
+        ctx.fillText(name, cx, y + avatarSize + 12);
+
+        startX += avatarSize + gap;
+    }
+
+    // Indicador +N
+    if (extra > 0) {
+        const cx = startX + avatarSize / 2;
+        const cy = y + avatarSize / 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, avatarSize / 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(18, 20, 27, 0.85)';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = HUD_GOLD;
+        ctx.stroke();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = HUD_GOLD;
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillText(`+${extra}`, cx, cy);
+    }
+
+    return canvas.toBuffer('image/png');
+}
+
+async function gerarBannerRpAmbientacao(ambientacao, subtitulo = null) {
+    const w = 1000;
+    const padding = 50;
+    const maxTextWidth = w - padding * 2;
+    const lineHeight = 30;
+    const maxLines = 12;
+
+    const measureCanvas = createCanvas(w, 1);
+    const mctx = measureCanvas.getContext('2d');
+    mctx.font = '20px sans-serif';
+    const lines = wrapText(mctx, ambientacao, maxTextWidth).slice(0, maxLines);
+
+    const headerExtra = subtitulo ? 40 : 0;
+    const h = 150 + lines.length * lineHeight + headerExtra;
+
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.5 });
+    drawHudBox(ctx, 24, 24, w - 48, h - 48, 16);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 28px serif';
+    ctx.fillText(subtitulo ? 'Contexto da Cena' : 'Ambientação', padding, 52);
+
+    if (subtitulo) {
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = 'italic 17px sans-serif';
+        const subLines = wrapText(ctx, subtitulo, maxTextWidth).slice(0, 2);
+        let sy = 90;
+        for (const line of subLines) {
+            ctx.fillText(line, padding, sy);
+            sy += 22;
+        }
+    }
+
+    ctx.fillStyle = HUD_TEXT;
+    ctx.font = '20px sans-serif';
+    let y = 95 + headerExtra;
+    for (const line of lines) {
+        ctx.fillText(line, padding, y);
+        y += lineHeight;
+    }
+
+    return canvas.toBuffer('image/png');
+}
+
+module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerEnciclopedia, gerarBannerPainelMestreModern, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponentsModern, gerarBannerRpTitulo, gerarBannerRpParticipantes, gerarBannerRpAmbientacao };
