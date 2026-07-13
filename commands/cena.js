@@ -172,7 +172,9 @@ function createScene({ colunas, linhas, fundoUrl, nome, descricao, tempoTurnoMs,
         mestreId: mestreId || null,
         tempoTurnoMs: tempoTurnoMs || null,
         logs: ['Cena aberta para entrada dos jogadores.'],
-        turnStartPos: null
+        turnStartPos: null,
+        criadaEm: Date.now(),
+        ultimaAtividade: Date.now()
     };
 }
 

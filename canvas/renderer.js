@@ -1,28 +1,120 @@
 const { createCanvas, loadImage: _originalLoadImage } = require('@napi-rs/canvas');
 const { formatarTexto } = require('../utils/helpers');
 const axios = require('axios');
-const https = require('https');
 const fs = require('fs');
+const path = require('path');
 const { cenasAtivas, missoesPreparacao, renderTimers, arenasDraft, timersTurno, mestresNarrando } = require('../utils/state');
 const { AttachmentBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 
+const TRUSTED_IMAGE_HOSTS = new Set([
+    'www.ernas.com.br',
+    'ernas.com.br',
+    'cdn.discordapp.com',
+    'media.discordapp.net'
+]);
+const TRUSTED_IMAGE_HOST_SUFFIXES = ['.supabase.co', '.imgur.com'];
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const IMAGE_DOWNLOAD_TIMEOUT = 8000;
+
+let fallbackImageBuffer = null;
+
+async function getFallbackImage() {
+    if (fallbackImageBuffer) return _originalLoadImage(fallbackImageBuffer);
+    const canvas = createCanvas(1, 1);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 1, 1);
+    fallbackImageBuffer = canvas.toBuffer('image/png');
+    return _originalLoadImage(fallbackImageBuffer);
+}
+
+function isTrustedImageHostname(hostname) {
+    if (TRUSTED_IMAGE_HOSTS.has(hostname)) return true;
+    const lower = hostname.toLowerCase();
+    return TRUSTED_IMAGE_HOST_SUFFIXES.some(suffix => lower.endsWith(suffix));
+}
+
+function isHttpUrl(source) {
+    try {
+        const url = new URL(source);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
+function isPrivateLiteralIp(host) {
+    if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return false;
+    const [a, b] = host.split('.').map(Number);
+    if (a === 127 || a === 10 || a === 0) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 169 && b === 254) return true;
+    return false;
+}
+
+function isSafeLocalPath(source) {
+    if (typeof source !== 'string') return false;
+    if (source.includes('\0')) return false;
+    const resolved = path.resolve(source);
+    const cwd = path.resolve(process.cwd());
+    const assets = path.resolve('/var/www/assets');
+    const inProject = resolved.startsWith(cwd + path.sep) || resolved === cwd;
+    const inAssets = resolved.startsWith(assets + path.sep) || resolved === assets;
+    return inProject || inAssets;
+}
+
 async function loadImage(source) {
-    if (typeof source === 'string' && source.includes('ernas.com.br/')) {
-        if (source.includes('ernas.com.br/assets/')) {
-            const localPath = source.replace(/https?:\/\/(www\.)?ernas\.com\.br\/assets\//, '/var/www/assets/');
-            if (fs.existsSync(localPath)) {
+    if (Buffer.isBuffer(source)) {
+        return _originalLoadImage(source);
+    }
+    if (typeof source !== 'string') {
+        return getFallbackImage();
+    }
+
+    // Caminhos locais usados pela aplicação
+    if (source.startsWith('./') || source.startsWith('../') || path.isAbsolute(source)) {
+        if (isSafeLocalPath(source) && fs.existsSync(source)) {
+            return _originalLoadImage(source);
+        }
+        return getFallbackImage();
+    }
+
+    if (!isHttpUrl(source)) {
+        return getFallbackImage();
+    }
+
+    const url = new URL(source);
+    if (isPrivateLiteralIp(url.hostname) || !isTrustedImageHostname(url.hostname)) {
+        console.warn('[loadImage] URL rejeitada (não confiável/IP privado):', source);
+        return getFallbackImage();
+    }
+
+    // Tenta espelho local para assets do site
+    if ((url.hostname === 'www.ernas.com.br' || url.hostname === 'ernas.com.br') && url.pathname.startsWith('/assets/')) {
+        const relative = decodeURIComponent(url.pathname).replace(/^\/assets\//, '');
+        if (!relative.includes('..') && !relative.includes('\0')) {
+            const localPath = path.resolve('/var/www/assets', relative);
+            const base = path.resolve('/var/www/assets');
+            if ((localPath.startsWith(base + path.sep) || localPath === base) && fs.existsSync(localPath)) {
                 return _originalLoadImage(localPath);
             }
         }
-        try {
-            const response = await axios.get(source, {
-                responseType: 'arraybuffer',
-                httpsAgent: new https.Agent({ rejectUnauthorized: false })
-            });
-            return _originalLoadImage(response.data);
-        } catch (e) {}
     }
-    return _originalLoadImage(source);
+
+    try {
+        const response = await axios.get(source, {
+            responseType: 'arraybuffer',
+            timeout: IMAGE_DOWNLOAD_TIMEOUT,
+            maxContentLength: MAX_IMAGE_BYTES,
+            maxBodyLength: MAX_IMAGE_BYTES,
+            maxRedirects: 2,
+            validateStatus: status => status === 200
+        });
+        return _originalLoadImage(response.data);
+    } catch (e) {
+        console.warn('[loadImage] Falha ao baixar imagem:', source, e.message);
+        return getFallbackImage();
+    }
 }
 
 const HUD_ASSET_PATH = './assets/ui/painel-hud-medieval.png';
@@ -2204,7 +2296,8 @@ function getCenaBotoes(cena) {
 }
 
 async function atualizarMapaDebounced(channel, cena) {
-    if (!cena.msgId) return;
+    if (cena) cena.ultimaAtividade = Date.now();
+    if (!cena?.msgId) return;
 
     if (renderTimers.has(cena.msgId)) clearTimeout(renderTimers.get(cena.msgId));
 
@@ -2235,7 +2328,8 @@ async function atualizarMapaDebounced(channel, cena) {
 
 // Cria uma Nova Mensagem do Mapa no Chat (Utilizado no Next Turn)
 async function repintarMapaNovo(channel, cena) {
-    if (cena.msgId) {
+    if (cena) cena.ultimaAtividade = Date.now();
+    if (cena?.msgId) {
         if (cena.msgRodada === cena.rodada) {
             return atualizarMapaDebounced(channel, cena);
         }

@@ -5,6 +5,8 @@ const fs = require('fs');
 
 const { mestresNarrando } = require('./utils/state');
 const catalogCache = require('./catalogCache');
+const cooldown = require('./cooldown');
+const { startSceneCleanup } = require('./utils/sceneCleanup');
 
 const client = new Client({
     intents: [
@@ -89,6 +91,7 @@ client.once('ready', async () => {
     } catch (err) {
         console.error('Erro ao inicializar o catalogCache:', err);
     }
+    startSceneCleanup();
     await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); 
 });
 
@@ -99,6 +102,14 @@ client.on('interactionCreate', async interaction => {
         const command = client.commands.get(interaction.commandName);
         if (command) {
             try {
+                const cd = cooldown.check(interaction.user.id, interaction.commandName);
+                if (cd.onCooldown) {
+                    return await interaction.reply({
+                        content: `Aguarde ${Math.ceil(cd.remaining / 1000)}s antes de usar /${interaction.commandName} novamente.`,
+                        ephemeral: true
+                    });
+                }
+                cooldown.apply(interaction.user.id, interaction.commandName);
                 console.log(`[DEBUG] Executando comando ${interaction.commandName}...`);
                 await command.execute(interaction);
             } catch (error) {

@@ -53,7 +53,8 @@ async function execute(interaction) {
             capitaes: capitaesIds,
             turnoCapitao: 0,
             mapasRestantes: [...MAPAS_ARENA],
-            tempoTurnoMs: tempoTurno * 1000
+            tempoTurnoMs: tempoTurno * 1000,
+            criadoEm: Date.now()
         };
 
         const buffer = await renderDraft(draftData);
