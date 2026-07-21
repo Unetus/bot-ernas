@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const { cenasAtivas, missoesPreparacao, renderTimers, arenasDraft, timersTurno, mestresNarrando } = require('../utils/state');
 const { AttachmentBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
+const fonts = require('../utils/fonts');
+fonts.registerFonts();
 
 const TRUSTED_IMAGE_HOSTS = new Set([
     'www.ernas.com.br',
@@ -177,12 +179,12 @@ function drawHudBox(ctx, x, y, w, h, radius = 12) {
 
 function drawHudHeader(ctx, title, subtitle, x, y, width) {
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 42px sans-serif';
+    ctx.font = 'bold 42px "Cinzel"';
     ctx.fillText(title, x, y);
 
     if (subtitle) {
         ctx.fillStyle = HUD_MUTED;
-        ctx.font = '18px sans-serif';
+        ctx.font = '18px "Nunito"';
         ctx.fillText(subtitle, x + 2, y + 34);
     }
 
@@ -278,17 +280,17 @@ async function gerarBannerPerfilLegacy(p) {
 
     // Textos Principais
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 45px sans-serif';
+    ctx.font = 'bold 45px "Cinzel"';
     ctx.fillText(nome, 340, 90);
 
     if (titulo) {
         ctx.fillStyle = colorHex;
-        ctx.font = 'bold 24px sans-serif';
+        ctx.font = 'bold 24px "Cinzel"';
         ctx.fillText(titulo, 340, 130);
     }
 
     ctx.fillStyle = '#A0AAB5';
-    ctx.font = '22px sans-serif';
+    ctx.font = '22px "Nunito"';
     ctx.fillText(`${raca} â€¢ ${classe}`, 340, 170);
 
     // Status boxes (Rank & Nível, Tier & Poder)
@@ -307,16 +309,16 @@ async function gerarBannerPerfilLegacy(p) {
         ctx.stroke();
         
         ctx.fillStyle = '#8B949E';
-        ctx.font = 'bold 11px sans-serif';
+        ctx.font = 'bold 11px "Baloo 2"';
         ctx.textAlign = 'center';
         ctx.fillText(label.toUpperCase(), x + w / 2, y + 22);
         
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 28px sans-serif';
+        ctx.font = 'bold 28px "Cinzel"';
         ctx.fillText(mainVal, x + w / 2, y + 50);
         
         ctx.fillStyle = colorHex;
-        ctx.font = 'bold 13px sans-serif';
+        ctx.font = 'bold 13px "Baloo 2"';
         ctx.fillText(subVal, x + w / 2, y + 72);
         ctx.textAlign = 'left';
     };
@@ -331,7 +333,7 @@ async function gerarBannerPerfilLegacy(p) {
     // Deck de Habilidades
     const skillsStart = 71;
     ctx.fillStyle = '#8B949E';
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = 'bold 12px "Baloo 2"';
     ctx.fillText('DECK DE HABILIDADES', skillsStart, 323);
 
     const skills = p.build_skills || [];
@@ -388,7 +390,7 @@ async function gerarBannerPerfilLegacy(p) {
 
             if (i === 0) {
                 ctx.fillStyle = '#D4AF37';
-                ctx.font = '9px sans-serif';
+                ctx.font = '9px "Baloo 2"';
                 ctx.fillText('RACIAL', slotX, slotY - 4);
             }
         } else {
@@ -405,14 +407,14 @@ async function gerarBannerPerfilLegacy(p) {
             ctx.setLineDash([]);
 
             ctx.fillStyle = '#4F5660';
-            ctx.font = '20px sans-serif';
+            ctx.font = '20px "Nunito"';
             ctx.textAlign = 'center';
             ctx.fillText('+', slotX + slotSize / 2, slotY + slotSize / 2 + 7);
             ctx.textAlign = 'left';
 
             if (i === 0) {
                 ctx.fillStyle = '#4F5660';
-                ctx.font = '9px sans-serif';
+                ctx.font = '9px "Baloo 2"';
                 ctx.fillText('RACIAL', slotX, slotY - 4);
             }
         }
@@ -432,7 +434,7 @@ async function gerarBannerPerfilLegacy(p) {
     ctx.stroke();
 
     ctx.fillStyle = '#8B949E';
-    ctx.font = 'bold 12px sans-serif';
+    ctx.font = 'bold 12px "Baloo 2"';
     ctx.fillText('EQUIPAMENTO', 920, 35);
 
     const equips = p.equipamento || [];
@@ -455,7 +457,7 @@ async function gerarBannerPerfilLegacy(p) {
         ctx.setLineDash([]);
 
         ctx.fillStyle = '#4F5660';
-        ctx.font = '10px sans-serif';
+        ctx.font = '10px "Baloo 2"';
         ctx.textAlign = 'center';
         ctx.fillText(label.toUpperCase(), x + 32, y + 36);
         ctx.textAlign = 'left';
@@ -533,7 +535,7 @@ async function gerarBannerPerfilLegacy(p) {
     const conquistas = p.conquistas;
     if (conquistas) {
         ctx.fillStyle = '#8B949E';
-        ctx.font = 'bold 10px sans-serif';
+        ctx.font = 'bold 10px "Baloo 2"';
         ctx.fillText('CONQUISTAS', 920, 345);
 
         const badges = [
@@ -552,12 +554,12 @@ async function gerarBannerPerfilLegacy(p) {
             ctx.fill();
 
             ctx.fillStyle = b.color;
-            ctx.font = 'bold 11px sans-serif';
+            ctx.font = 'bold 11px "Baloo 2"';
             ctx.textAlign = 'center';
             ctx.fillText('â˜…', bx + 22, by + 17);
 
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 14px sans-serif';
+            ctx.font = 'bold 14px "Baloo 2"';
             ctx.fillText(b.label, bx + 22, by + 34);
             ctx.textAlign = 'left';
         });
@@ -577,7 +579,7 @@ async function gerarBannerPerfil(p) {
     const titulo = p.titulo ? formatarTexto(p.titulo) : '';
     const raca = formatarTexto(p.raca || '');
     const classe = formatarTexto(p.classe || '');
-    const identidade = [raca, classe].filter(Boolean).join(' â€¢ ');
+    const identidade = [raca, classe].filter(Boolean).join(' \u00B7 ');
 
     drawHudHeader(ctx, trimToWidth(ctx, nome, 520), titulo || identidade || 'Ficha do personagem', 330, 96, 690);
 
@@ -607,7 +609,7 @@ async function gerarBannerPerfil(p) {
 
     if (identidade && titulo) {
         ctx.fillStyle = HUD_MUTED;
-        ctx.font = '18px sans-serif';
+        ctx.font = '18px "Nunito"';
         ctx.fillText(identidade, 332, 196);
     }
 
@@ -625,11 +627,11 @@ async function gerarBannerPerfil(p) {
         const x = 330 + i * 174;
         drawHudBox(ctx, x, 216, 150, 82, 12);
         ctx.fillStyle = HUD_MUTED;
-        ctx.font = 'bold 12px sans-serif';
+        ctx.font = 'bold 12px "Baloo 2"';
         ctx.textAlign = 'center';
         ctx.fillText(stat[0].toUpperCase(), x + 75, 242);
         ctx.fillStyle = HUD_TEXT;
-        ctx.font = 'bold 28px sans-serif';
+        ctx.font = 'bold 28px "Cinzel"';
         ctx.fillText(String(stat[1]), x + 75, 277);
         ctx.textAlign = 'left';
     });
@@ -638,7 +640,7 @@ async function gerarBannerPerfil(p) {
     ctx.fillStyle = HUD_GOLD;
     ctx.fillRect(82, 376, 4, 52);
     ctx.fillStyle = HUD_MUTED;
-    ctx.font = 'bold 13px sans-serif';
+    ctx.font = 'bold 13px "Baloo 2"';
     ctx.fillText('DECK DE HABILIDADES', 104, 382);
 
     const skills = p.build_skills || [];
@@ -690,7 +692,7 @@ async function gerarBannerPerfil(p) {
     ctx.fillStyle = HUD_GOLD;
     ctx.fillRect(814, 376, 4, 52);
     ctx.fillStyle = HUD_MUTED;
-    ctx.font = 'bold 13px sans-serif';
+    ctx.font = 'bold 13px "Baloo 2"';
     ctx.fillText('EQUIPAMENTO', 836, 382);
 
     const equips = p.equipamento || [];
@@ -701,24 +703,44 @@ async function gerarBannerPerfil(p) {
         ['Botas', ['sapatos', 'botas', 'boots', 'shoes', 'feet', 'pes', 'bota']]
     ];
 
-    equipSlots.forEach((slot, i) => {
+    for (let i = 0; i < equipSlots.length; i++) {
+        const slot = equipSlots[i];
         const item = equips.find(e => slot[1].includes(e.slot?.toLowerCase()));
         const x = 836 + i * 48;
         const y = 398;
-        ctx.fillStyle = item ? 'rgba(212, 175, 55, 0.14)' : 'rgba(15, 16, 21, 0.86)';
+        const size = 38;
+
+        ctx.save();
         ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(x, y, 38, 38, 8);
-        else ctx.rect(x, y, 38, 38);
-        ctx.fill();
+        if (ctx.roundRect) ctx.roundRect(x, y, size, size, 8);
+        else ctx.rect(x, y, size, size);
+        ctx.clip();
+
+        ctx.fillStyle = item ? 'rgba(212, 175, 55, 0.14)' : 'rgba(15, 16, 21, 0.86)';
+        ctx.fillRect(x, y, size, size);
+
+        try {
+            if (item?.imagem_url) {
+                const img = await loadImage(item.imagem_url);
+                ctx.drawImage(img, x, y, size, size);
+            }
+        } catch (e) {}
+
+        ctx.restore();
+
         ctx.strokeStyle = item ? HUD_GOLD : 'rgba(212, 175, 55, 0.18)';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = item ? 2 : 1.5;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(x, y, size, size, 8);
+        else ctx.rect(x, y, size, size);
         ctx.stroke();
-        ctx.fillStyle = item ? HUD_TEXT : '#5E6673';
-        ctx.font = 'bold 10px sans-serif';
+
+        ctx.fillStyle = item ? '#FFD27A' : '#5E6673';
+        ctx.font = 'bold 8px "Baloo 2"';
         ctx.textAlign = 'center';
-        ctx.fillText(slot[0].slice(0, 3).toUpperCase(), x + 19, y + 24);
+        ctx.fillText(slot[0].slice(0, 3).toUpperCase(), x + 19, y + size - 5);
         ctx.textAlign = 'left';
-    });
+    }
 
     return canvas.toBuffer('image/png');
 }
@@ -784,25 +806,25 @@ async function gerarBannerLoot(item, qtd) {
 
     // Textos
     ctx.fillStyle = '#8B949E';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = 'bold 14px "Baloo 2"';
     ctx.fillText('LOOT DROP', 200, 55);
 
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 36px sans-serif';
+    ctx.font = 'bold 36px "Cinzel"';
     ctx.fillText(formatarTexto(item.nome), 200, 100);
 
     ctx.fillStyle = corRaridade;
-    ctx.font = 'bold 20px sans-serif';
+    ctx.font = 'bold 20px "Baloo 2"';
     ctx.fillText(formatarTexto(item.raridade || 'Comum'), 200, 132);
 
     ctx.fillStyle = '#A0AAB5';
-    ctx.font = '18px sans-serif';
+    ctx.font = '18px "Nunito"';
     ctx.fillText(`${formatarTexto(item.categoria || '')}${item.grau ? ' â€¢ Grau ' + item.grau : ''}`, 200, 162);
 
     // Quantidade (badge no canto superior direito)
     if (qtd > 1) {
         const qtdStr = `x${qtd}`;
-        ctx.font = 'bold 24px sans-serif';
+        ctx.font = 'bold 24px "Cinzel"';
         const tw = ctx.measureText(qtdStr).width;
         const qx = 760 - tw;
 
@@ -845,12 +867,12 @@ async function gerarBannerInventarioLegacy(p, sliceItens, categoria, pag, totalP
     ctx.fillRect(0, 0, w, 8); // Borda superior
     
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 36px sans-serif';
+    ctx.font = 'bold 36px "Cinzel"';
     ctx.fillText(`Inventário de ${formatarTexto(p.nome)}`, 40, 60);
     
     const libras = p.libras || p.saldo || 0;
     ctx.fillStyle = '#F1C40F';
-    ctx.font = 'bold 24px sans-serif';
+    ctx.font = 'bold 24px "Cinzel"';
     ctx.textAlign = 'right';
     ctx.fillText(`${libras.toLocaleString('pt-BR')} Libras`, w - 40, 60);
     ctx.textAlign = 'left';
@@ -915,14 +937,14 @@ async function gerarBannerInventarioLegacy(p, sliceItens, categoria, pag, totalP
             
             const qtd = item.quantidade || 1;
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 16px sans-serif';
+            ctx.font = 'bold 16px "Baloo 2"';
             ctx.textAlign = 'right';
             ctx.fillText(`x${qtd}`, iconX + iconSize + 15, iconY + iconSize - 5);
             ctx.textAlign = 'left';
             
             if (item.equipado) {
                 ctx.fillStyle = '#2ECC71';
-                ctx.font = 'bold 12px sans-serif';
+                ctx.font = 'bold 12px "Baloo 2"';
                 ctx.fillText('EQUIPADO', x + 10, iconY + 15);
             }
             
@@ -930,7 +952,7 @@ async function gerarBannerInventarioLegacy(p, sliceItens, categoria, pag, totalP
             const catLabel = formatarTexto(item.categoria || item.item?.categoria || '');
             
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 16px sans-serif';
+            ctx.font = 'bold 16px "Baloo 2"';
             ctx.textAlign = 'center';
             
             let nomeDisplay = itemNome;
@@ -940,17 +962,17 @@ async function gerarBannerInventarioLegacy(p, sliceItens, categoria, pag, totalP
             ctx.fillText(nomeDisplay, x + cardW / 2, y + 130);
             
             ctx.fillStyle = corRaridade;
-            ctx.font = '14px sans-serif';
+            ctx.font = '14px "Nunito"';
             ctx.fillText(formatarTexto(raridade), x + cardW / 2, y + 152);
             
             ctx.fillStyle = '#A0AAB5';
-            ctx.font = '13px sans-serif';
+            ctx.font = '13px "Nunito"';
             ctx.fillText(catLabel, x + cardW / 2, y + 172);
             
             ctx.textAlign = 'left';
         } else {
             ctx.fillStyle = '#15171D';
-            ctx.font = 'bold 24px sans-serif';
+            ctx.font = 'bold 24px "Cinzel"';
             ctx.textAlign = 'center';
             ctx.fillText('vazio', x + cardW / 2, y + cardH / 2 + 8);
             ctx.textAlign = 'left';
@@ -958,7 +980,7 @@ async function gerarBannerInventarioLegacy(p, sliceItens, categoria, pag, totalP
     }
     
     ctx.fillStyle = '#8B949E';
-    ctx.font = '16px sans-serif';
+    ctx.font = '16px "Nunito"';
     ctx.fillText(`Categoria: ${formatarTexto(categoria === 'todos' ? 'Tudo' : categoria)}`, 40, h - 20);
     
     ctx.textAlign = 'right';
@@ -1007,7 +1029,7 @@ async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas
 
         if (!item) {
             ctx.fillStyle = '#5E6673';
-            ctx.font = 'bold 18px sans-serif';
+            ctx.font = 'bold 18px "Baloo 2"';
             ctx.textAlign = 'center';
             ctx.fillText('Vazio', x + cardW / 2, y + cardH / 2 + 6);
             ctx.textAlign = 'left';
@@ -1055,7 +1077,7 @@ async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas
             else ctx.rect(iconX + 34, iconY + 37, 34, 24);
             ctx.fill();
             ctx.fillStyle = HUD_TEXT;
-            ctx.font = 'bold 12px sans-serif';
+            ctx.font = 'bold 12px "Baloo 2"';
             ctx.textAlign = 'center';
             ctx.fillText(`x${qtd}`, iconX + 51, iconY + 54);
             ctx.textAlign = 'left';
@@ -1065,20 +1087,20 @@ async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas
         const catLabel = formatarTexto(item.categoria || item.item?.categoria || '');
 
         ctx.fillStyle = HUD_TEXT;
-        ctx.font = 'bold 16px sans-serif';
+        ctx.font = 'bold 16px "Baloo 2"';
         ctx.fillText(trimToWidth(ctx, itemNome, 92), x + 104, y + 48);
 
         ctx.fillStyle = corRaridade;
-        ctx.font = 'bold 12px sans-serif';
+        ctx.font = 'bold 12px "Baloo 2"';
         ctx.fillText(formatarTexto(raridade), x + 104, y + 70);
 
         ctx.fillStyle = HUD_MUTED;
-        ctx.font = '12px sans-serif';
+        ctx.font = '12px "Nunito"';
         ctx.fillText(trimToWidth(ctx, catLabel, 82), x + 104, y + 90);
 
         if (item.equipado) {
             ctx.fillStyle = HUD_GOLD;
-            ctx.font = 'bold 10px sans-serif';
+            ctx.font = 'bold 10px "Baloo 2"';
             ctx.fillText('EQUIPADO', x + 32, y + 106);
         }
     }
@@ -1090,7 +1112,7 @@ async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas
     ctx.fill();
 
     ctx.fillStyle = HUD_MUTED;
-    ctx.font = '14px sans-serif';
+    ctx.font = '14px "Nunito"';
     ctx.textAlign = 'center';
     ctx.fillText(`Página ${pag + 1} de ${totalPaginas}`, w / 2, 535);
     ctx.textAlign = 'left';
@@ -1115,11 +1137,11 @@ async function gerarBannerRankingLegacy(tipo, dados) {
 
     // Cabeçalho
     ctx.fillStyle = '#D4AF37';
-    ctx.font = 'bold 32px sans-serif';
+    ctx.font = 'bold 32px "Cinzel"';
     ctx.fillText('RANKING DE ARKANDIA', 50, 60);
 
     ctx.fillStyle = '#8B949E';
-    ctx.font = 'bold 18px sans-serif';
+    ctx.font = 'bold 18px "Baloo 2"';
     const tipoTraduzido = {
         poder: 'ÍNDICE DE PODER',
         nivel: 'NÍVEL E EXPERIÊNCIA',
@@ -1141,7 +1163,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
 
     if (top10.length === 0) {
         ctx.fillStyle = '#8B949E';
-        ctx.font = '22px sans-serif';
+        ctx.font = '22px "Nunito"';
         ctx.textAlign = 'center';
         ctx.fillText('Nenhum dado encontrado no ranking no momento.', 400, 320);
         ctx.textAlign = 'left';
@@ -1181,7 +1203,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
 
         // Posição
         ctx.fillStyle = i === 0 ? '#D4AF37' : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : '#8B949E';
-        ctx.font = 'bold 18px sans-serif';
+        ctx.font = 'bold 18px "Baloo 2"';
         ctx.textAlign = 'center';
         const posText = `#${i + 1}`;
         ctx.fillText(posText, 80, y + rowHeight / 2 + 5);
@@ -1189,7 +1211,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
         // Nome
         ctx.textAlign = 'left';
         ctx.fillStyle = i === 0 ? '#FFFFFF' : '#D0D5DD';
-        ctx.font = i === 0 ? 'bold 16px sans-serif' : '15px sans-serif';
+        ctx.font = i === 0 ? 'bold 16px "Baloo 2"' : '15px "Nunito"';
         
         let nomeStr = item.nome || 'Desconhecido';
         if (item.sigla) {
@@ -1207,7 +1229,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
         // Valor
         ctx.textAlign = 'right';
         ctx.fillStyle = i === 0 ? '#D4AF37' : '#FFFFFF';
-        ctx.font = 'bold 16px sans-serif';
+        ctx.font = 'bold 16px "Baloo 2"';
 
         let valorText = '';
         if (tipo === 'poder') {
@@ -1249,7 +1271,7 @@ async function gerarBannerRanking(tipo, dados) {
     if (top10.length === 0) {
         drawHudBox(ctx, 62, 230, 676, 130, 14);
         ctx.fillStyle = HUD_MUTED;
-        ctx.font = '22px sans-serif';
+        ctx.font = '22px "Nunito"';
         ctx.textAlign = 'center';
         ctx.fillText('Nenhum dado encontrado no ranking no momento.', w / 2, 306);
         ctx.textAlign = 'left';
@@ -1268,13 +1290,13 @@ async function gerarBannerRanking(tipo, dados) {
         ctx.fillRect(82, y + 8, 4, 16);
 
         ctx.fillStyle = i === 0 ? HUD_GOLD : HUD_MUTED;
-        ctx.font = 'bold 15px sans-serif';
+        ctx.font = 'bold 15px "Baloo 2"';
         ctx.textAlign = 'center';
         ctx.fillText(`#${i + 1}`, 110, y + 22);
 
         ctx.textAlign = 'left';
         ctx.fillStyle = i === 0 ? '#FFFFFF' : HUD_TEXT;
-        ctx.font = i === 0 ? 'bold 15px sans-serif' : '14px sans-serif';
+        ctx.font = i === 0 ? 'bold 15px "Baloo 2"' : '14px "Nunito"';
 
         let nomeStr = item.nome || 'Desconhecido';
         if (item.sigla) nomeStr = `${nomeStr} [${item.sigla}]`;
@@ -1299,7 +1321,7 @@ async function gerarBannerRanking(tipo, dados) {
 
         ctx.textAlign = 'right';
         ctx.fillStyle = i === 0 ? HUD_GOLD : HUD_MUTED;
-        ctx.font = 'bold 14px sans-serif';
+        ctx.font = 'bold 14px "Baloo 2"';
         ctx.fillText(trimToWidth(ctx, valorText, 150), 710, y + 22);
         ctx.textAlign = 'left';
     }
@@ -1377,7 +1399,7 @@ async function gerarBannerGuilda(guilda) {
 
     if (!logoCarregada) {
         ctx.fillStyle = '#D4AF37';
-        ctx.font = 'bold 64px serif';
+        ctx.font = 'bold 64px "Cinzel"';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         const inicial = guilda.nome ? guilda.nome.charAt(0).toUpperCase() : 'G';
@@ -1388,14 +1410,14 @@ async function gerarBannerGuilda(guilda) {
 
     // Nome e Sigla da Guilda
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 36px sans-serif';
+    ctx.font = 'bold 36px "Cinzel"';
     const nome = formatarTexto(guilda.nome || 'Sem Nome');
     const sigla = guilda.sigla ? `[${guilda.sigla.toUpperCase()}]` : '';
     ctx.fillText(`${nome} ${sigla}`, 200, 90);
 
     // Mestre / Líder da Guilda
     ctx.fillStyle = '#D4AF37';
-    ctx.font = 'bold 18px sans-serif';
+    ctx.font = 'bold 18px "Baloo 2"';
     const liderNome = (typeof guilda.lider === 'object' && guilda.lider !== null)
         ? (guilda.lider.nome || guilda.lider.lider_nome || 'Desconhecido')
         : (guilda.lider || guilda.lider_nome || 'Desconhecido');
@@ -1403,7 +1425,7 @@ async function gerarBannerGuilda(guilda) {
     ctx.fillText(`Líder: ${lider}`, 200, 125);
 
     ctx.fillStyle = '#8B949E';
-    ctx.font = '16px sans-serif';
+    ctx.font = '16px "Nunito"';
     ctx.fillText(`Membros: ${guilda.membros_qtd || (guilda.membros && guilda.membros.length) || 0} / 50`, 200, 155);
 
     // Caixa de Informações
@@ -1418,11 +1440,11 @@ async function gerarBannerGuilda(guilda) {
         ctx.stroke();
 
         ctx.fillStyle = '#8B949E';
-        ctx.font = 'bold 11px sans-serif';
+        ctx.font = 'bold 11px "Baloo 2"';
         ctx.fillText(label.toUpperCase(), x + 15, y + 25);
 
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 22px sans-serif';
+        ctx.font = 'bold 22px "Baloo 2"';
         ctx.fillText(`${value}`, x + 15, y + 55);
     };
 
@@ -1432,13 +1454,13 @@ async function gerarBannerGuilda(guilda) {
 
     // Seção de Perks
     ctx.fillStyle = '#8B949E';
-    ctx.font = 'bold 14px sans-serif';
+    ctx.font = 'bold 14px "Baloo 2"';
     ctx.fillText('BÔNUS E PERKS ATIVOS', 50, 335);
 
     const perks = guilda.perks || guilda.perks_ativos || [];
     if (perks.length === 0) {
         ctx.fillStyle = '#4F5660';
-        ctx.font = 'italic 15px sans-serif';
+        ctx.font = 'italic 15px "Nunito"';
         ctx.fillText('Nenhum bÃ´nus ativo no momento.', 50, 370);
     } else {
         perks.slice(0, 3).forEach((p, idx) => {
@@ -1464,11 +1486,11 @@ async function gerarBannerGuilda(guilda) {
             };
 
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = 'bold 12px sans-serif';
+            ctx.font = 'bold 12px "Baloo 2"';
             ctx.fillText(info.nome, px + 15, 368);
 
             ctx.fillStyle = '#8B949E';
-            ctx.font = '10px sans-serif';
+            ctx.font = '10px "Baloo 2"';
             ctx.fillText(info.efeito, px + 15, 385);
         });
     }
@@ -1590,7 +1612,7 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
         ctx.fillRect(x + 18, y + 20, 4, height - 40);
 
         ctx.fillStyle = '#F4E7C8';
-        ctx.font = 'bold 26px sans-serif';
+        ctx.font = 'bold 26px "Cinzel"';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(title, x + width / 2, y + height / 2 + 1);
@@ -1601,11 +1623,11 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
     const displayName = user.globalName || user.username || 'Aventureiro';
 
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 44px sans-serif';
+    ctx.font = 'bold 44px "Cinzel"';
     ctx.fillText('Painel do Jogador', 82, 132);
 
     ctx.fillStyle = '#AEB6C2';
-    ctx.font = '18px sans-serif';
+    ctx.font = '18px "Nunito"';
     ctx.fillText(`Sessão privada para ${displayName}`, 84, 166);
 
     const contextParts = [];
@@ -1615,7 +1637,7 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
 
     if (contextParts.length > 0) {
         ctx.fillStyle = '#D4AF37';
-        ctx.font = 'bold 13px sans-serif';
+        ctx.font = 'bold 13px "Baloo 2"';
         ctx.fillText(contextParts.join('  â€¢  '), 84, 188);
     }
 
@@ -1661,7 +1683,7 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
     ctx.fill();
 
     ctx.fillStyle = '#AEB6C2';
-    ctx.font = '15px sans-serif';
+    ctx.font = '15px "Nunito"';
     ctx.textAlign = 'center';
     ctx.fillText('Use os botões abaixo para navegar sem expor seus dados no canal.', w / 2, 505);
     ctx.textAlign = 'left';
@@ -1715,11 +1737,11 @@ async function gerarBannerEnciclopedia() {
         ctx.fillRect(x + 22, y + 22, 4, cardH - 44);
 
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 25px sans-serif';
+        ctx.font = 'bold 25px "Cinzel"';
         ctx.fillText(card.title, x + 50, y + 38);
 
         ctx.fillStyle = HUD_MUTED;
-        ctx.font = '16px sans-serif';
+        ctx.font = '16px "Nunito"';
         card.lines.forEach((line, lineIndex) => {
             ctx.fillText(line, x + 50, y + 62 + (lineIndex * 20));
         });
@@ -1727,7 +1749,7 @@ async function gerarBannerEnciclopedia() {
 
     drawHudBox(ctx, 82, 506, 836, 30, 10);
     ctx.fillStyle = HUD_TEXT;
-    ctx.font = '15px sans-serif';
+    ctx.font = '15px "Nunito"';
     ctx.textAlign = 'center';
     ctx.fillText('Use as abas para navegar ou abra a busca para localizar qualquer registro.', w / 2, 526);
     ctx.textAlign = 'left';
@@ -1812,12 +1834,12 @@ async function renderMap(scene) {
     drawHudBox(ctx, PAD - 14, 16, width - (PAD * 2) + 28, 70 + descHeight, 8);
 
     ctx.fillStyle = HUD_GOLD;
-    ctx.font = 'bold 32px serif';
+    ctx.font = 'bold 32px "Cinzel"';
     ctx.textAlign = 'left';
     ctx.fillText(sceneName, PAD, 48);
 
     ctx.fillStyle = HUD_MUTED;
-    ctx.font = '16px sans-serif';
+    ctx.font = '16px "Nunito"';
     const subtitle = scene.estado === 'COMBATE'
         ? `Rodada ${scene.rodada} | Turno de ${active?.name || 'Ninguem'}`
         : `${scene.estado || 'ABERTA'} | ${totalCount} jogadores na cena`;
@@ -1825,7 +1847,7 @@ async function renderMap(scene) {
 
     if (scene.descricao) {
         ctx.fillStyle = '#D7D0BE';
-        ctx.font = '14px sans-serif';
+        ctx.font = '14px "Nunito"';
         ctx.fillText(String(scene.descricao).substring(0, 120), PAD, 96);
     }
 
@@ -1836,7 +1858,7 @@ async function renderMap(scene) {
 
     scene.players.forEach((p, i) => {
         const isActive = scene.estado === 'COMBATE' && scene.turnoAtual === i;
-        ctx.font = isActive ? 'bold 13px sans-serif' : '13px sans-serif';
+        ctx.font = isActive ? 'bold 13px "Baloo 2"' : '13px "Nunito"';
         const label = `${i + 1}. ${p.name}`;
         const textW = ctx.measureText(label).width;
         const boxW = textW + 16;
@@ -1887,7 +1909,7 @@ async function renderMap(scene) {
     ctx.fillRect(mapX, mapY, mapWidth, mapHeight);
 
     ctx.fillStyle = HUD_TEXT;
-    ctx.font = 'bold 15px sans-serif';
+    ctx.font = 'bold 15px "Baloo 2"';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -1959,7 +1981,7 @@ async function renderMap(scene) {
             ctx.fill();
 
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = `bold ${Math.floor(radius * 0.78)}px sans-serif`;
+            ctx.font = `bold ${Math.floor(radius * 0.78)}px "Baloo 2"`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(p.name ? p.name.charAt(0).toUpperCase() : '?', cx, cy);
@@ -1988,7 +2010,7 @@ async function renderMap(scene) {
         }
 
         const label = p.name.length > 12 ? `${p.name.substring(0, 11)}.` : p.name;
-        ctx.font = 'bold 13px sans-serif';
+        ctx.font = 'bold 13px "Baloo 2"';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'alphabetic';
         ctx.fillStyle = '#FFFFFF';
@@ -2000,12 +2022,12 @@ async function renderMap(scene) {
 
     drawHudBox(ctx, sideX, mapY - 10, SIDE_W, mapHeight + 20, 8);
     ctx.fillStyle = HUD_GOLD;
-    ctx.font = 'bold 18px serif';
+    ctx.font = '18px "Cinzel"';
     ctx.textAlign = 'left';
     ctx.fillText('Histórico', sideX + 18, mapY + 26);
 
     ctx.fillStyle = HUD_MUTED;
-    ctx.font = '13px sans-serif';
+    ctx.font = '13px "Nunito"';
     ctx.fillText(`${livingCount}/${totalCount} jogadores na cena`, sideX + 18, mapY + 48);
 
     if (scene.tempoTurnoMs && scene.estado === 'COMBATE') {
@@ -2013,7 +2035,7 @@ async function renderMap(scene) {
             ? Math.max(0, Math.ceil((scene.fimTurnoTimestamp - Date.now()) / 1000))
             : Math.ceil(scene.tempoTurnoMs / 1000);
         ctx.fillStyle = remainingSecs <= 10 ? '#E76F51' : HUD_TEXT;
-        ctx.font = 'bold 18px sans-serif';
+        ctx.font = 'bold 18px "Baloo 2"';
         ctx.fillText(`${remainingSecs}s`, sideX + SIDE_W - 62, mapY + 38);
     }
 
@@ -2031,7 +2053,7 @@ async function renderMap(scene) {
         let lines = [];
         let line = '';
 
-        ctx.font = (idx === logs.length - 1) ? 'bold 12px sans-serif' : '12px sans-serif';
+        ctx.font = (idx === logs.length - 1) ? 'bold 12px "Baloo 2"' : '12px "Nunito"';
 
         for(let n = 0; n < words.length; n++) {
             const testLine = line + words[n] + ' ';
@@ -2088,7 +2110,7 @@ async function renderDraft(draft) {
 
     // Titulo
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 36px sans-serif';
+    ctx.font = 'bold 36px "Cinzel"';
     ctx.textAlign = 'center';
     ctx.fillText('â– Arena - Picks & Bans', canvasWidth / 2, 50);
 
@@ -2127,7 +2149,7 @@ async function renderDraft(draft) {
 
         // Texto do nome
         ctx.fillStyle = '#FFF';
-        ctx.font = 'bold 16px sans-serif';
+        ctx.font = 'bold 16px "Baloo 2"';
         ctx.textAlign = 'center';
         ctx.fillText(mapa.nome, x + mapW / 2, y + mapH + 25);
 
@@ -2224,7 +2246,7 @@ async function renderBanner(scene) {
 
     if (scene.estado === 'COMBATE') {
         ctx.fillStyle = HUD_GOLD;
-        ctx.font = 'bold 30px serif';
+        ctx.font = 'bold 30px "Cinzel"';
         ctx.fillText(`${sceneName} | Combate - Rodada ${scene.rodada}`, width / 2, 60);
         
         const baseText = `Turno de ${active?.name || 'Ninguem'}. Use os controles para mover ou passar o turno.`;
@@ -2233,35 +2255,35 @@ async function renderBanner(scene) {
             const remainingSecs = Math.max(0, Math.ceil((scene.fimTurnoTimestamp - Date.now()) / 1000));
             const timeText = `   |   Tempo restante: ${remainingSecs}s`;
             
-            ctx.font = '14px sans-serif';
+            ctx.font = '14px "Nunito"';
             const baseWidth = ctx.measureText(baseText).width;
-            ctx.font = 'bold 14px sans-serif';
+            ctx.font = 'bold 14px "Baloo 2"';
             const timeWidth = ctx.measureText(timeText).width;
             
             const startX = (width / 2) - ((baseWidth + timeWidth) / 2);
             
             ctx.textAlign = 'left';
             ctx.fillStyle = HUD_TEXT;
-            ctx.font = '14px sans-serif';
+            ctx.font = '14px "Nunito"';
             ctx.fillText(baseText, startX, 108);
             
             ctx.fillStyle = remainingSecs <= 10 ? '#E76F51' : HUD_GOLD;
-            ctx.font = 'bold 14px sans-serif';
+            ctx.font = 'bold 14px "Baloo 2"';
             ctx.fillText(timeText, startX + baseWidth, 108);
             
             ctx.textAlign = 'center'; // Reseta pro padrao caso precise no futuro
         } else {
             ctx.fillStyle = HUD_TEXT;
-            ctx.font = '14px sans-serif';
+            ctx.font = '14px "Nunito"';
             ctx.fillText(baseText, width / 2, 108);
         }
     } else {
         ctx.fillStyle = HUD_GOLD;
-        ctx.font = 'bold 30px serif';
+        ctx.font = 'bold 30px "Cinzel"';
         ctx.fillText(`${sceneName} | Cena ${scene.estado || 'ABERTA'}`, width / 2, 60);
         
         ctx.fillStyle = HUD_TEXT;
-        ctx.font = '14px sans-serif';
+        ctx.font = '14px "Nunito"';
         ctx.fillText(`Cena em modo livre. Mova-se pelo mapa ou entre/saia da cena.`, width / 2, 108);
     }
     
@@ -2470,10 +2492,10 @@ async function gerarBannerPainelMestreModern(channelId, guild) {
         ctx.fillStyle = HUD_GOLD;
         ctx.fillRect(card.x + 22, card.y + 24, 4, 80);
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 26px sans-serif';
+        ctx.font = 'bold 26px "Cinzel"';
         ctx.fillText(card.title, card.x + 44, card.y + 42);
         ctx.fillStyle = HUD_MUTED;
-        ctx.font = '16px sans-serif';
+        ctx.font = '16px "Nunito"';
         card.lines.forEach((line, index) => {
             ctx.fillText(trimToWidth(ctx, line, 310), card.x + 44, card.y + 70 + (index * 22));
         });
@@ -2481,7 +2503,7 @@ async function gerarBannerPainelMestreModern(channelId, guild) {
 
     drawHudBox(ctx, 82, 506, 836, 30, 10);
     ctx.fillStyle = HUD_TEXT;
-    ctx.font = '15px sans-serif';
+    ctx.font = '15px "Nunito"';
     ctx.textAlign = 'center';
     ctx.fillText('Use os menus abaixo para abrir acoes do mestre sem poluir o canal.', w / 2, 526);
     ctx.textAlign = 'left';
@@ -2515,7 +2537,8 @@ function getMestrePainelComponentsModern() {
                 { label: 'Voltar ao perfil', description: 'Desativa a voz atual e retorna ao normal', value: 'voltar_mestre' },
                 { label: 'Consultar bestiario', description: 'Busca dados de NPC ou criatura', value: 'consultar_bestiario' },
                 { label: 'Consultar perfil', description: 'Indica o comando de ficha do jogador', value: 'visualizar_perfil' },
-                { label: 'Consultar inventario', description: 'Indica o comando de mochila do jogador', value: 'visualizar_inventario' }
+                { label: 'Consultar inventario', description: 'Indica o comando de mochila do jogador', value: 'visualizar_inventario' },
+                { label: 'Historico de sessao', description: 'Consulta sessoes salvas deste canal', value: 'historico_sessao' }
             ])
     );
 
@@ -2582,14 +2605,14 @@ async function gerarBannerRpTitulo({ titulo, subtitulo, criador, mestre = false 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = HUD_GOLD;
-    ctx.font = 'bold 52px serif';
+    ctx.font = 'bold 52px "Cinzel"';
     const titleText = trimToWidth(ctx, titulo, w - 120);
     ctx.fillText(titleText, w / 2, h / 2 - (subtitulo ? 18 : 6));
 
     // Subtítulo
     if (subtitulo) {
         ctx.fillStyle = HUD_TEXT;
-        ctx.font = '22px sans-serif';
+        ctx.font = '22px "Nunito"';
         const subText = trimToWidth(ctx, subtitulo, w - 160);
         ctx.fillText(subText, w / 2, h / 2 + 42);
     }
@@ -2598,7 +2621,7 @@ async function gerarBannerRpTitulo({ titulo, subtitulo, criador, mestre = false 
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
     ctx.fillStyle = HUD_MUTED;
-    ctx.font = '14px sans-serif';
+    ctx.font = '14px "Nunito"';
     const badge = mestre ? ' • Mestre' : '';
     ctx.fillText(`Criado por ${criador.tag || 'Desconhecido'}${badge}`, w - 52, h - 36);
 
@@ -2625,7 +2648,7 @@ async function gerarBannerRpParticipantes(participantes) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillStyle = HUD_GOLD;
-    ctx.font = 'bold 26px serif';
+    ctx.font = 'bold 26px "Cinzel"';
     ctx.fillText('Participantes', padding, padding + 4);
 
     const visible = participantes.slice(0, maxVisible);
@@ -2677,7 +2700,7 @@ async function gerarBannerRpParticipantes(participantes) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillStyle = HUD_TEXT;
-        ctx.font = 'bold 15px sans-serif';
+        ctx.font = 'bold 15px "Baloo 2"';
         const name = trimToWidth(ctx, p.displayName || 'Aventureiro', avatarSize + gap - 6);
         ctx.fillText(name, cx, y + avatarSize + 12);
 
@@ -2698,7 +2721,7 @@ async function gerarBannerRpParticipantes(participantes) {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = HUD_GOLD;
-        ctx.font = 'bold 28px sans-serif';
+        ctx.font = 'bold 28px "Cinzel"';
         ctx.fillText(`+${extra}`, cx, cy);
     }
 
@@ -2714,7 +2737,7 @@ async function gerarBannerRpAmbientacao(ambientacao, subtitulo = null) {
 
     const measureCanvas = createCanvas(w, 1);
     const mctx = measureCanvas.getContext('2d');
-    mctx.font = '20px sans-serif';
+    mctx.font = '20px "Nunito"';
     const lines = wrapText(mctx, ambientacao, maxTextWidth).slice(0, maxLines);
 
     const headerExtra = subtitulo ? 40 : 0;
@@ -2729,12 +2752,12 @@ async function gerarBannerRpAmbientacao(ambientacao, subtitulo = null) {
     ctx.textBaseline = 'top';
 
     ctx.fillStyle = HUD_GOLD;
-    ctx.font = 'bold 28px serif';
+    ctx.font = 'bold 28px "Cinzel"';
     ctx.fillText(subtitulo ? 'Contexto da Cena' : 'Ambientação', padding, 52);
 
     if (subtitulo) {
         ctx.fillStyle = HUD_MUTED;
-        ctx.font = 'italic 17px sans-serif';
+        ctx.font = 'italic 17px "Nunito"';
         const subLines = wrapText(ctx, subtitulo, maxTextWidth).slice(0, 2);
         let sy = 90;
         for (const line of subLines) {
@@ -2744,7 +2767,7 @@ async function gerarBannerRpAmbientacao(ambientacao, subtitulo = null) {
     }
 
     ctx.fillStyle = HUD_TEXT;
-    ctx.font = '20px sans-serif';
+    ctx.font = '20px "Nunito"';
     let y = 95 + headerExtra;
     for (const line of lines) {
         ctx.fillText(line, padding, y);
@@ -2754,4 +2777,359 @@ async function gerarBannerRpAmbientacao(ambientacao, subtitulo = null) {
     return canvas.toBuffer('image/png');
 }
 
-module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerEnciclopedia, gerarBannerPainelMestreModern, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponentsModern, gerarBannerRpTitulo, gerarBannerRpParticipantes, gerarBannerRpAmbientacao };
+async function gerarBannerRpUnificado({ titulo, subtitulo, ambientacao, criador, mestre, participantes, cenarioUrl }) {
+    const w = 1000;
+    const H_REF = 780;
+    let h = H_REF;
+    let bgImage = null;
+
+    if (cenarioUrl) {
+        try {
+            bgImage = await loadImage(cenarioUrl);
+            if (bgImage.width <= 16 || bgImage.height <= 16) {
+                bgImage = null;
+            } else {
+                const aspect = bgImage.height / bgImage.width;
+                h = Math.max(H_REF, Math.min(1500, Math.round(w * aspect)));
+            }
+        } catch (e) {
+            bgImage = null;
+        }
+    }
+
+    const s = h / H_REF;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+
+    if (bgImage) {
+        const sCover = Math.max(w / bgImage.width, h / bgImage.height);
+        const sw = w / sCover;
+        const sh = bgImage.height * sCover;
+        const sx = (bgImage.width - sw) / 2;
+        const sy = (bgImage.height - sh) / 2;
+        ctx.drawImage(bgImage, sx, sy, sw, sh, 0, 0, w, h);
+    } else {
+        await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.5 });
+    }
+
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, 'rgba(8, 9, 12, 0.15)');
+    grad.addColorStop(0.35, 'rgba(8, 9, 12, 0.45)');
+    grad.addColorStop(0.70, 'rgba(8, 9, 12, 0.82)');
+    grad.addColorStop(1, 'rgba(8, 9, 12, 0.95)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = HUD_GOLD;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(24, 24, w - 48, h - 48);
+
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.moveTo(60, 44);
+    ctx.lineTo(w - 60, 44);
+    ctx.moveTo(60, h - 44);
+    ctx.lineTo(w - 60, h - 44);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    const m = createCanvas(w, 1).getContext('2d');
+
+    ctx.save();
+    ctx.scale(1, s);
+
+    const x = 60;
+    const maxW = w - 120;
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 18px "Baloo 2"';
+    m.font = 'bold 18px "Baloo 2"';
+    ctx.fillText('  C E N A   D E   R P  ', x, 52);
+
+    m.font = 'bold 50px "Cinzel"';
+    const titleStr = trimToWidth(m, titulo || 'Cena de RP', maxW);
+    ctx.font = 'bold 50px "Cinzel"';
+    let cursorY = 100;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 3;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(titleStr, x, cursorY);
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    cursorY += 58;
+
+    if (subtitulo) {
+        m.font = '22px "Nunito"';
+        const subText = trimToWidth(m, subtitulo, maxW);
+        ctx.font = '22px "Nunito"';
+        ctx.fillStyle = HUD_MUTED;
+        ctx.fillText(subText, x, cursorY);
+        cursorY += 32;
+    }
+    cursorY += 8;
+
+    const ruleY = cursorY;
+    ctx.strokeStyle = HUD_GOLD;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x, ruleY);
+    ctx.lineTo(w - 60, ruleY);
+    ctx.stroke();
+    cursorY += 28;
+
+    if (ambientacao) {
+        ctx.fillStyle = HUD_GOLD;
+        ctx.font = 'bold 24px "Cinzel"';
+        m.font = 'bold 24px "Cinzel"';
+        ctx.fillText('Ambientacao', x, cursorY);
+        cursorY += 32;
+        m.font = '20px "Nunito"';
+        let ambLines = wrapText(m, ambientacao, maxW);
+        const maxAmb = 5;
+        if (ambLines.length > maxAmb) {
+            ambLines = ambLines.slice(0, maxAmb);
+            ambLines[maxAmb - 1] = (ambLines[maxAmb - 1] || '').replace(/\s+\S*$/, '') + '...';
+        }
+        ctx.font = '20px "Nunito"';
+        ctx.fillStyle = HUD_TEXT;
+        for (const line of ambLines) {
+            ctx.fillText(line, x, cursorY);
+            cursorY += 30;
+        }
+        cursorY += 12;
+    }
+
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 24px "Cinzel"';
+    m.font = 'bold 24px "Cinzel"';
+    ctx.fillText('Participantes', x, cursorY);
+    cursorY += 32;
+
+    const avatarSize = 64;
+    const gap = 18;
+    const maxVis = 8;
+    const parts = participantes || [];
+    const visible = parts.slice(0, maxVis);
+    const extra = Math.max(0, parts.length - maxVis);
+    const total = visible.length + (extra > 0 ? 1 : 0);
+    const totalW = total * avatarSize + Math.max(0, total - 1) * gap;
+    let ax = x + Math.max(0, (maxW - totalW) / 2);
+    const ay = cursorY;
+
+    for (const p of visible) {
+        const cx = ax + avatarSize / 2;
+        const cy = ay + avatarSize / 2;
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, avatarSize / 2 + 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fill();
+        ctx.restore();
+        ctx.beginPath();
+        ctx.arc(cx, cy, avatarSize / 2 + 2, 0, Math.PI * 2);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = HUD_GOLD;
+        ctx.stroke();
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, avatarSize / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        try {
+            const img = await loadImage(p.avatarUrl || 'https://i.imgur.com/vHqB3q0.png');
+            ctx.drawImage(img, ax, ay, avatarSize, avatarSize);
+        } catch (e) {
+            ctx.fillStyle = '#2A2D38';
+            ctx.fillRect(ax, ay, avatarSize, avatarSize);
+        }
+        ctx.restore();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = HUD_TEXT;
+        m.font = 'bold 13px "Baloo 2"';
+        ctx.font = 'bold 13px "Baloo 2"';
+        ctx.fillText(trimToWidth(m, p.displayName || 'Aventureiro', avatarSize + gap - 4), cx, ay + avatarSize + 6);
+        ctx.textAlign = 'left';
+        ax += avatarSize + gap;
+    }
+    if (extra > 0) {
+        const cx = ax + avatarSize / 2;
+        const cy = ay + avatarSize / 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, avatarSize / 2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(18,20,27,0.85)';
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = HUD_GOLD;
+        ctx.stroke();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = HUD_GOLD;
+        m.font = 'bold 22px "Cinzel"';
+        ctx.font = 'bold 22px "Cinzel"';
+        ctx.fillText('+' + extra, cx, cy);
+    }
+
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = HUD_MUTED;
+    m.font = '14px "Nunito"';
+    ctx.font = '14px "Nunito"';
+    const badge = mestre ? ' - Mestre' : '';
+    ctx.fillText('Criado por ' + (criador?.tag || 'Desconhecido') + badge, w - 60, h - 36);
+
+    ctx.restore();
+
+    return canvas.toBuffer('image/png');
+}
+
+async function gerarBannerLocalidade({ titulo, descricao, imagemUrl }) {
+    const w = 1000;
+    const H_REF = 620;
+    let h = H_REF;
+    let bgImage = null;
+
+    if (imagemUrl) {
+        try {
+            bgImage = await loadImage(imagemUrl);
+            if (bgImage.width <= 16 || bgImage.height <= 16) {
+                bgImage = null;
+            } else {
+                const aspect = bgImage.height / bgImage.width;
+                h = Math.max(H_REF, Math.min(1200, Math.round(w * aspect)));
+            }
+        } catch (e) {
+            bgImage = null;
+        }
+    }
+
+    const s = h / H_REF;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+
+    if (bgImage) {
+        const sCover = Math.max(w / bgImage.width, h / bgImage.height);
+        const sw = w / sCover;
+        const sh = bgImage.height * sCover;
+        const sx = (bgImage.width - sw) / 2;
+        const sy = (bgImage.height - sh) / 2;
+        ctx.drawImage(bgImage, sx, sy, sw, sh, 0, 0, w, h);
+    } else {
+        await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.5 });
+    }
+
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, 'rgba(8, 9, 12, 0.10)');
+    grad.addColorStop(0.35, 'rgba(8, 9, 12, 0.40)');
+    grad.addColorStop(0.70, 'rgba(8, 9, 12, 0.80)');
+    grad.addColorStop(1, 'rgba(8, 9, 12, 0.95)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.strokeStyle = HUD_GOLD;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(24, 24, w - 48, h - 48);
+
+    ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    ctx.moveTo(60, 44);
+    ctx.lineTo(w - 60, 44);
+    ctx.moveTo(60, h - 44);
+    ctx.lineTo(w - 60, h - 44);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    const m = createCanvas(w, 1).getContext('2d');
+
+    ctx.save();
+    ctx.scale(1, s);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 18px "Baloo 2"';
+    m.font = 'bold 18px "Baloo 2"';
+    ctx.fillText('  L O C A L I D A D E  ', 60, 52);
+
+    const titleY = 380;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 3;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 48px "Cinzel"';
+    m.font = 'bold 48px "Cinzel"';
+    ctx.fillText(trimToWidth(m, titulo || 'Localidade', w - 140), 60, titleY);
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    ctx.strokeStyle = HUD_GOLD;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(60, titleY + 64);
+    ctx.lineTo(w - 60, titleY + 64);
+    ctx.stroke();
+
+    const descX = 60;
+    const descY = titleY + 84;
+    const maxDescWidth = w - 120;
+    const maxDescLines = 4;
+    m.font = '20px "Nunito"';
+    let descLines = wrapText(m, descricao || '', maxDescWidth);
+    if (descLines.length > maxDescLines) {
+        descLines = descLines.slice(0, maxDescLines);
+        descLines[maxDescLines - 1] = (descLines[maxDescLines - 1] || '').replace(/\s+\S*$/, '') + '...';
+    }
+    ctx.fillStyle = HUD_TEXT;
+    ctx.font = '20px "Nunito"';
+    let dy = descY;
+    for (const line of descLines) {
+        ctx.fillText(line, descX, dy);
+        dy += 30;
+    }
+
+    ctx.restore();
+
+    return canvas.toBuffer('image/png');
+}
+
+async function gerarBannerPainelLocalidade({ titulo }) {
+    const w = 900;
+    const h = 160;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.5 });
+    drawHudBox(ctx, 18, 18, w - 36, h - 36, 14);
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 14px "Baloo 2"';
+    ctx.fillText('  P A I N E L  ', 44, 38);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 28px "Cinzel"';
+    ctx.fillText(trimToWidth(ctx, titulo || 'Localidade', w - 100), 44, 60);
+
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(44, 102);
+    ctx.lineTo(w - 44, 102);
+    ctx.stroke();
+
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = '17px "Nunito"';
+    ctx.fillText('Escolha sua acao abaixo para comecar.', 44, 116);
+
+    return canvas.toBuffer('image/png');
+}
+
+module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerEnciclopedia, gerarBannerPainelMestreModern, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponentsModern,     gerarBannerRpTitulo, gerarBannerRpParticipantes, gerarBannerRpAmbientacao, gerarBannerRpUnificado, gerarBannerLocalidade, gerarBannerPainelLocalidade };
