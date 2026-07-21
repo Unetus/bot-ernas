@@ -5,13 +5,13 @@ Este projeto usa GitHub Actions para publicar o bot automaticamente em producao 
 ## Producao Atual
 
 - Provedor/host: servidor Linux acessado via SSH.
-- Host configurado no workflow: `212.38.89.129`
+- Host configurado no workflow: `179.61.185.170`
 - Usuario SSH configurado no workflow: `dev`
 - Diretorio remoto do bot: `/home/dev/bot-ernas`
 - Processo PM2: `rpg-bot`
 - Workflow: `.github/workflows/deploy.yml`
 
-> Observacao: havia documentacao antiga apontando para `137.131.222.150` com usuario `ubuntu`. O workflow ativo usa `212.38.89.129` com usuario `dev`; por isso este guia foi atualizado para refletir o deploy real.
+> Observacao: havia documentacao antiga apontando para `137.131.222.150` com usuario `ubuntu`, e depois para `212.38.89.129`. O workflow ativo usa `179.61.185.170` com usuario `dev`; por isso este guia foi atualizado para refletir o deploy real.
 
 ## Como o Deploy Funciona
 
@@ -24,15 +24,15 @@ Ao enviar commits para `main`, o GitHub Actions:
 5. Se o processo ainda nao existir, inicia `index.js` com o nome `rpg-bot`.
 6. Salva a configuracao do PM2 com `pm2 save`.
 
-O deploy inclui as pastas e arquivos usados em runtime, incluindo `assets/**`, `canvas/**`, `commands/**`, `mapas-arena/**` e `utils/**`.
+O deploy inclui as pastas e arquivos usados em runtime, incluindo `assets/**` (com `assets/fonts/**` das fontes padronizadas), `canvas/**`, `commands/**`, `mapas-arena/**` e `utils/**`.
 
 ## Secrets Necessarios no GitHub
 
 Configure em `Settings > Secrets and variables > Actions`:
 
-- `SSH_PRIVATE_KEY`: chave privada que permite o acesso SSH do usuario `dev` ao host `212.38.89.129`.
+- `SSH_PRIVATE_KEY`: chave privada que permite o acesso SSH do usuario `dev` ao host `179.61.185.170`.
 
-Nunca envie para o GitHub arquivos locais sensiveis como `.env`, `*.key` ou `db.json`. Eles ja estao protegidos pelo `.gitignore`.
+Nunca envie para o GitHub arquivos locais sensiveis como `.env`, `*.key`, `db.json` ou `data/`. O `data/` (banco SQLite do sistema de sessoes) ja esta protegido pelo `.gitignore`.
 
 ## Como Publicar uma Atualizacao
 
