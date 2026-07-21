@@ -1,18 +1,18 @@
-const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, PermissionFlagsBits } = require('discord.js');
-const { gerarBannerRpTitulo, gerarBannerRpParticipantes, gerarBannerRpAmbientacao } = require('../canvas/renderer');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { iniciarCenaRp } = require('../utils/rpScene');
+const sessionStore = require('../utils/sessionStore');
 
 const MAX_PARTICIPANTES = 15;
-const MENTION_REGEX = /<@!?(\d+)>/g;
 
 const data = new SlashCommandBuilder()
     .setName('rp')
-    .setDescription('Sistema de Criação de Cenas (Tópicos)')
+    .setDescription('Sistema de Criacao de Cenas (Topicos)')
     .addSubcommand(sub => sub
         .setName('iniciar')
-        .setDescription('Cria um tópico visual para RP')
+        .setDescription('Cria um topico visual para RP')
         .addStringOption(o => o
             .setName('titulo')
-            .setDescription('Título da cena')
+            .setDescription('Titulo da cena')
             .setRequired(true)
             .setMaxLength(80))
         .addStringOption(o => o
@@ -21,46 +21,55 @@ const data = new SlashCommandBuilder()
             .setRequired(true))
         .addStringOption(o => o
             .setName('subtitulo')
-            .setDescription('Subtítulo ou contexto da cena (Opcional)')
+            .setDescription('Subtitulo ou contexto da cena (Opcional)')
             .setMaxLength(120))
         .addStringOption(o => o
             .setName('ambientacao')
-            .setDescription('Descrição da ambientação do local (Opcional)')
+            .setDescription('Descricao da ambientacao do local (Opcional)')
             .setMaxLength(800))
         .addAttachmentOption(o => o
             .setName('cenario')
-            .setDescription('Imagem ilustrativa do cenário (Opcional)'))
-    );
-
-function extrairMencoes(texto) {
-    if (!texto) return [];
-    const matches = [...texto.matchAll(MENTION_REGEX)];
-    return [...new Set(matches.map(m => m[1]))];
-}
-
-async function buscarParticipantes(guild, ids) {
-    const resultado = [];
-    for (const id of ids) {
-        try {
-            const member = await guild.members.fetch(id);
-            resultado.push({
-                id,
-                displayName: member.displayName || member.user.username,
-                avatarUrl: member.displayAvatarURL({ extension: 'png', size: 128 })
-            });
-        } catch {
-            resultado.push({
-                id,
-                displayName: 'Aventureiro',
-                avatarUrl: 'https://i.imgur.com/vHqB3q0.png'
-            });
-        }
-    }
-    return resultado;
-}
+            .setDescription('Imagem ilustrativa do cenario (Opcional)')))
+    .addSubcommand(sub => sub
+        .setName('encerrar')
+        .setDescription('Encerra a sessao de RP ativa neste topico e salva o historico'));
 
 async function execute(interaction) {
     const sub = interaction.options.getSubcommand();
+
+    if (sub === 'encerrar') {
+        await interaction.deferReply({ ephemeral: true });
+
+        const activeSession = sessionStore.findActiveRpSessionByChannel(interaction.channelId);
+        if (!activeSession) {
+            return await interaction.editReply('Nao ha uma sessao de RP ativa neste canal/topico.');
+        }
+
+        const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
+        if (activeSession.creator_discord_id !== interaction.user.id && !isAdmin) {
+            return await interaction.editReply('Apenas o criador da sessao ou um administrador pode encerra-la.');
+        }
+
+        try {
+            sessionStore.finishSession(activeSession.id, interaction.user.id);
+        } catch (err) {
+            console.error('[rp encerrar] Erro ao finalizar sessao:', err);
+            return await interaction.editReply('Erro ao encerrar a sessao.');
+        }
+
+        await interaction.editReply('Sessao encerrada e historico salvo com sucesso!');
+
+        try {
+            const channel = interaction.channel;
+            if (channel?.isThread?.() && channel?.delete) {
+                await channel.delete(`Sessao de RP encerrada por ${interaction.user.tag}`);
+            }
+        } catch (e) {
+            console.warn('[rp encerrar] Nao foi possivel deletar o topico:', e.message);
+        }
+        return;
+    }
+
     if (sub !== 'iniciar') return;
 
     const titulo = interaction.options.getString('titulo')?.trim();
@@ -69,121 +78,30 @@ async function execute(interaction) {
     const ambientacao = interaction.options.getString('ambientacao')?.trim() || null;
     const cenario = interaction.options.getAttachment('cenario');
 
-    const ids = extrairMencoes(participantesRaw);
-    if (ids.length === 0) {
-        return await interaction.reply({
-            content: '✗ Marque pelo menos um participante usando @usuário.',
-            ephemeral: true
-        });
-    }
-    if (ids.length > MAX_PARTICIPANTES) {
-        return await interaction.reply({
-            content: `✗ Limite de ${MAX_PARTICIPANTES} participantes por cena.`,
-            ephemeral: true
-        });
-    }
-
     await interaction.deferReply({ ephemeral: true });
-
-    let targetChannel = interaction.channel;
-    if (!targetChannel.threads) {
-        targetChannel = await interaction.guild.channels.fetch(interaction.channelId);
-    }
-    if (!targetChannel.threads) {
-        return await interaction.editReply('✗ Este tipo de canal não suporta a criação de tópicos de RP.');
-    }
 
     const isMestre = interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages) || false;
 
-    let participantes;
-    try {
-        participantes = await buscarParticipantes(interaction.guild, ids);
-    } catch (e) {
-        console.error('[rp iniciar] Erro ao buscar participantes:', e);
-        participantes = ids.map(id => ({
-            id,
-            displayName: 'Aventureiro',
-            avatarUrl: 'https://i.imgur.com/vHqB3q0.png'
-        }));
+    const result = await iniciarCenaRp({
+        guild: interaction.guild,
+        targetChannel: interaction.channel,
+        criador: {
+            id: interaction.user.id,
+            tag: interaction.user.tag,
+            displayName: interaction.member.displayName || interaction.user.username
+        },
+        isMestre,
+        titulo,
+        participantesRaw,
+        subtitulo,
+        ambientacao,
+        cenarioUrl: cenario?.url || null
+    });
+
+    if (!result.ok) {
+        return await interaction.editReply(`✗ ${result.error}`);
     }
-
-    let tituloBuffer, participantesBuffer, ambientacaoBuffer;
-    try {
-        tituloBuffer = await gerarBannerRpTitulo({
-            titulo,
-            subtitulo,
-            criador: { tag: interaction.user.tag },
-            mestre: isMestre
-        });
-        participantesBuffer = await gerarBannerRpParticipantes(participantes);
-        if (ambientacao) {
-            ambientacaoBuffer = await gerarBannerRpAmbientacao(ambientacao, subtitulo);
-        }
-    } catch (e) {
-        console.error('[rp iniciar] Erro ao renderizar banners:', e);
-        return await interaction.editReply('✗ Erro ao gerar as imagens da cena de RP.');
-    }
-
-    try {
-        const thread = await targetChannel.threads.create({
-            name: titulo.substring(0, 100),
-            autoArchiveDuration: 1440,
-            reason: `Cena de RP: ${titulo}`
-        });
-
-        let webhook;
-        try {
-            const webhooks = await targetChannel.fetchWebhooks();
-            webhook = webhooks.find(wh => wh.token) || await targetChannel.createWebhook({ name: 'Arkandia System' });
-        } catch (e) {
-            console.warn('[rp iniciar] Webhook indisponível, usando fallback:', e.message);
-        }
-
-        const enviar = async (conteudo) => {
-            if (webhook) {
-                return await webhook.send({
-                    ...conteudo,
-                    threadId: thread.id,
-                    username: 'Narrador',
-                    avatarURL: 'https://i.imgur.com/2U5fPoy.png'
-                });
-            }
-            return await thread.send(conteudo);
-        };
-
-        // 1. Banner de título (fixado)
-        const tituloAttachment = new AttachmentBuilder(tituloBuffer, { name: 'rp-titulo.png' });
-        const msgTitulo = await enviar({ files: [tituloAttachment] });
-        try {
-            await msgTitulo.pin();
-        } catch (pinErr) {
-            console.warn('[rp iniciar] Não foi possível fixar a mensagem de título:', pinErr.message);
-        }
-
-        // 2. Banner de participantes
-        const partAttachment = new AttachmentBuilder(participantesBuffer, { name: 'rp-participantes.png' });
-        await enviar({ files: [partAttachment] });
-
-        // 3. Banner de ambientação/contexto
-        if (ambientacaoBuffer) {
-            const ambAttachment = new AttachmentBuilder(ambientacaoBuffer, { name: 'rp-ambientacao.png' });
-            await enviar({ files: [ambAttachment] });
-        }
-
-        // 4. Ilustração do cenário (mantida como estava)
-        if (cenario) {
-            const imgEmbed = new EmbedBuilder()
-                .setTitle('Ilustração do Cenário')
-                .setImage(cenario.url)
-                .setColor(0x1E1E1E);
-            await enviar({ embeds: [imgEmbed] });
-        }
-
-        return await interaction.editReply(`✓ **Cena Iniciada:** <#${thread.id}>`);
-    } catch (e) {
-        console.error('[rp iniciar] Erro ao criar cena de RP:', e);
-        return await interaction.editReply('✗ Houve um erro ao criar a cena de RP.');
-    }
+    return await interaction.editReply(`✓ **Cena Iniciada:** <#${result.threadId}>`);
 }
 
 module.exports = { data, execute };

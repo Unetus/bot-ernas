@@ -1,8 +1,9 @@
-const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const axios = require('axios');
 const { cenasAtivas, timersTurno, renderTimers } = require('../utils/state');
 const { repintarMapaNovo, atualizarMapaDebounced } = require('../canvas/renderer');
 const { parsePosicao } = require('../utils/helpers');
+const sessionStore = require('../utils/sessionStore');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
@@ -178,6 +179,33 @@ function createScene({ colunas, linhas, fundoUrl, nome, descricao, tempoTurnoMs,
     };
 }
 
+function getActiveCenaSession(channelId) {
+    const session = sessionStore.findActiveSessionByChannel(channelId);
+    return session && session.type === 'cena' ? session : null;
+}
+
+function addCenaParticipant(channelId, discordId, displayName) {
+    try {
+        const session = getActiveCenaSession(channelId);
+        if (session) {
+            sessionStore.addParticipant(session.id, discordId, displayName);
+        }
+    } catch (e) {
+        console.error('[cena] Erro ao adicionar participante à sessão:', e);
+    }
+}
+
+function finishActiveCenaSession(channelId, finishedById) {
+    try {
+        const session = getActiveCenaSession(channelId);
+        if (session) {
+            sessionStore.finishSession(session.id, finishedById);
+        }
+    } catch (e) {
+        console.error('[cena] Erro ao finalizar sessão da cena:', e);
+    }
+}
+
 async function resolveNpcOrCreature(nomeInput) {
     try {
         const res = await axios.get(`${ARKANDIA_API}/npcs/${encodeURIComponent(nomeInput)}`, { headers: { 'X-API-Key': API_KEY } });
@@ -210,6 +238,11 @@ async function execute(interaction) {
             return await interaction.editReply('Ja existe uma cena ativa neste canal. Encerre a cena atual antes de abrir outra.');
         }
 
+        const rpSession = sessionStore.findActiveRpSessionByChannel(cid);
+        if (!rpSession) {
+            return await interaction.editReply('Nao ha uma sessao de RP ativa neste canal. Use `/rp iniciar` primeiro.');
+        }
+
         const colunas = interaction.options.getInteger('colunas');
         const linhas = interaction.options.getInteger('linhas');
         const fundo = interaction.options.getAttachment('fundo');
@@ -228,6 +261,41 @@ async function execute(interaction) {
         });
 
         cenasAtivas.set(cid, cena);
+
+        try {
+            const parentChannelId = interaction.channel.parentId || cid;
+            const sessionId = sessionStore.createSession({
+                type: 'cena',
+                parentSessionId: rpSession.id,
+                discordThreadId: cid,
+                discordChannelId: parentChannelId,
+                discordGuildId: interaction.guild.id,
+                title: cena.nome,
+                subtitle: descricao || null,
+                ambiance: descricao || null,
+                scenarioUrl: fundo?.url || null,
+                creatorDiscordId: interaction.user.id,
+                creatorIsMaster: isMaster,
+                participants: [{
+                    discordId: interaction.user.id,
+                    displayName: interaction.member.displayName || interaction.user.username
+                }]
+            });
+
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`encerrar_sessao_${sessionId}`)
+                    .setLabel('Encerrar cena')
+                    .setStyle(ButtonStyle.Danger)
+            );
+            await interaction.channel.send({
+                content: 'Cena tatica iniciada dentro da sessao de RP. As mensagens deste tópico ja estao sendo salvas. Clique abaixo para encerrar esta cena.',
+                components: [row]
+            });
+        } catch (sessionErr) {
+            console.error('[cena iniciar] Erro ao criar sessao da cena:', sessionErr);
+        }
+
         await repintarMapaNovo(interaction.channel, cena);
         return await interaction.editReply(`Cena aberta: **${cena.nome}**. Jogadores podem usar \`/cena entrar\`.`);
     }
@@ -328,6 +396,7 @@ async function execute(interaction) {
         if (cena.msgId) {
             try { await (await interaction.channel.messages.fetch(cena.msgId)).delete(); } catch(e) {}
         }
+        finishActiveCenaSession(cid, interaction.user.id);
         cenasAtivas.delete(cid);
         return await interaction.editReply(`Cena **${cena.nome || 'Tatica'}** encerrada.`);
     }
@@ -350,6 +419,7 @@ async function execute(interaction) {
                 isNpc: false,
                 incapacitado: false
             });
+            addCenaParticipant(cid, interaction.user.id, res.data.nome);
             addLog(cena, `${res.data.nome} entrou em ${formatCoord(spawn)}.`);
             atualizarMapaDebounced(interaction.channel, cena);
             return await interaction.editReply(`Voce entrou na cena em ${formatCoord(spawn)}.`);
@@ -446,6 +516,7 @@ async function handleButton(interaction) {
                 isNpc: false,
                 incapacitado: false
             });
+            addCenaParticipant(interaction.channelId, interaction.user.id, res.data.nome);
             addLog(cena, `${res.data.nome} entrou em ${formatCoord(spawn)}.`);
             await interaction.deferUpdate();
             atualizarMapaDebounced(interaction.channel, cena);
@@ -482,6 +553,7 @@ async function handleButton(interaction) {
                 renderTimers.delete(cena.msgId);
             }
             cenasAtivas.delete(interaction.channelId);
+            finishActiveCenaSession(interaction.channelId, interaction.user.id);
             await interaction.deferUpdate();
             await interaction.channel.send(`**A cena ${cena.nome} foi encerrada pelo mestre.**`);
             try {

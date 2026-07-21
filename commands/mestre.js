@@ -26,6 +26,7 @@ const {
     lootsColetados
 } = require('../utils/state');
 const { parsePosicao, embedErro, embedSucesso } = require('../utils/helpers');
+const sessionStore = require('../utils/sessionStore');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
@@ -201,6 +202,14 @@ async function handleSelect(interaction) {
                     await (await interaction.channel.messages.fetch(cena.msgId)).delete();
                 } catch {}
             }
+            try {
+                const session = sessionStore.findActiveSessionByChannel(channelId);
+                if (session && session.type === 'cena') {
+                    sessionStore.finishSession(session.id, interaction.user.id);
+                }
+            } catch (e) {
+                console.error('[mestre encerrar] Erro ao finalizar sessao da cena:', e);
+            }
             cenasAtivas.delete(channelId);
             return await interaction.reply({ content: 'Cena encerrada com sucesso.', ephemeral: true });
         }
@@ -244,6 +253,26 @@ async function handleSelect(interaction) {
             modal.addComponents(new ActionRowBuilder().addComponents(nomeInput));
             await interaction.showModal(modal);
             return;
+        }
+
+        if (action === 'historico_sessao') {
+            try {
+                const sessions = sessionStore.listSessions({
+                    guildId: interaction.guild.id,
+                    status: 'ativa',
+                    limit: 10
+                }).filter(s => s.discord_thread_id === interaction.channelId || s.discord_channel_id === interaction.channelId);
+                let content = 'Use `/sessao historico id:<id>` para exportar o historico completo de uma sessao.\n\n';
+                if (sessions.length === 0) {
+                    content += 'Nenhuma sessao ativa registrada neste canal.';
+                } else {
+                    content += '**Sessoes ativas neste canal:**\n' + sessions.map(s => `\`${s.id}\` — ${s.type.toUpperCase()} — ${s.title}`).join('\n');
+                }
+                return await interaction.reply({ content, ephemeral: true });
+            } catch (e) {
+                console.error('[mestre historico_sessao] Erro:', e);
+                return await interaction.reply({ content: 'Erro ao consultar sessoes.', ephemeral: true });
+            }
         }
     }
 

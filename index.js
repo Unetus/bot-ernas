@@ -3,10 +3,12 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, REST, Routes, Collection, PermissionFlagsBits } = require('discord.js');
 const fs = require('fs');
 
-const { mestresNarrando } = require('./utils/state');
+const { mestresNarrando, cenasAtivas, timersTurno, renderTimers } = require('./utils/state');
 const catalogCache = require('./catalogCache');
 const cooldown = require('./cooldown');
 const { startSceneCleanup } = require('./utils/sceneCleanup');
+const sessionStore = require('./utils/sessionStore');
+const { deleteAfterDelay } = require('./utils/tempMessage');
 
 const client = new Client({
     intents: [
@@ -86,6 +88,12 @@ const genericButtonRoutes = [
 client.once('ready', async () => { 
     console.log(`✓ Bot logado como ${client.user.tag}!`);
     try {
+        sessionStore.init();
+        console.log('✓ sessionStore inicializado.');
+    } catch (err) {
+        console.error('Erro ao inicializar o sessionStore:', err);
+    }
+    try {
         await catalogCache.preload();
         catalogCache.startAutoRefresh();
     } catch (err) {
@@ -125,6 +133,54 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.isButton()) {
+        if (interaction.customId.startsWith('encerrar_sessao_')) {
+            const sessionId = interaction.customId.replace('encerrar_sessao_', '');
+            const session = sessionStore.getSession(sessionId);
+            if (!session || session.status !== 'ativa') {
+                return interaction.reply({ content: 'Esta sessão já foi encerrada ou não existe.', ephemeral: true });
+            }
+            const canFinish = session.creator_discord_id === interaction.user.id || interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+            if (!canFinish) {
+                return interaction.reply({ content: 'Apenas o criador da sessão ou um administrador pode encerrá-la.', ephemeral: true });
+            }
+            try {
+                sessionStore.finishSession(sessionId, interaction.user.id);
+                await interaction.reply({ content: 'Sessão encerrada e histórico salvo com sucesso!', ephemeral: true });
+
+                if (session.type === 'rp') {
+                    // Deleta o tópico do RP
+                    try {
+                        if (interaction.channel?.isThread?.() && interaction.channel.delete) {
+                            await interaction.channel.delete(`Sessão de RP encerrada por ${interaction.user.tag}`);
+                        }
+                    } catch (e) {
+                        console.warn('[session] Não foi possível deletar o tópico do RP:', e.message);
+                    }
+                } else if (session.type === 'cena') {
+                    // O tópico é compartilhado com o RP: limpa a cena em memória, não deleta o tópico
+                    try {
+                        const cena = cenasAtivas.get(session.discord_thread_id);
+                        if (cena) {
+                            if (timersTurno.has(cena.msgId)) { clearInterval(timersTurno.get(cena.msgId)); timersTurno.delete(cena.msgId); }
+                            if (renderTimers.has(cena.msgId)) { clearTimeout(renderTimers.get(cena.msgId)); renderTimers.delete(cena.msgId); }
+                            if (cena.msgId) {
+                                try { await (await interaction.channel.messages.fetch(cena.msgId)).delete(); } catch {}
+                            }
+                            cenasAtivas.delete(session.discord_thread_id);
+                        }
+                        const cenaFimMsg = await interaction.channel.send('🛑 **Cena encerrada.** O histórico foi salvo e pode ser consultado com `/sessao historico`.');
+                        deleteAfterDelay(cenaFimMsg, 10000);
+                    } catch (e) {
+                        console.warn('[session] Falha ao limpar cena ao encerrar:', e.message);
+                    }
+                }
+            } catch (err) {
+                console.error('[session] Erro ao encerrar sessão:', err);
+                await replyWithInteractionError(interaction);
+            }
+            return;
+        }
+
         for (const [name, command] of client.commands) {
             if (command.handleButton && interaction.customId.startsWith(name + '_')) {
                 await runInteractionHandler(command, 'handleButton', interaction);
@@ -169,7 +225,13 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.on('messageCreate', async message => {
-    if (message.author.bot) return;
+    // Deleta notificacoes automaticas de "X fixou uma mensagem" (type 7)
+    // para manter canais (especialmente de localidade) limpos.
+    if (message.type === 7) {
+        try { await message.delete(); } catch (e) { /* sem permissao */ }
+        return;
+    }
+    if (message.author.id === client.user.id) return;
     if (!message.guild) return;
 
     const key = `${message.channel.id}-${message.author.id}`;
@@ -209,6 +271,24 @@ client.on('messageCreate', async message => {
         } catch (e) {
             console.error('Erro na interpretação de fala do Mestre:', e);
         }
+    }
+
+    // Persistir mensagens de sessões ativas
+    try {
+        if (message.author.id !== client.user.id && message.channelId) {
+            const activeSession = sessionStore.findActiveSessionByChannel(message.channelId);
+            if (activeSession && message.content && message.content.trim()) {
+                sessionStore.addMessage(activeSession.id, {
+                    discordMessageId: message.id,
+                    authorDiscordId: message.author.id,
+                    authorName: message.author.tag || message.author.username,
+                    content: message.content,
+                    sentAt: message.createdAt.toISOString()
+                });
+            }
+        }
+    } catch (e) {
+        console.error('[session] Erro ao persistir mensagem:', e);
     }
 });
 
