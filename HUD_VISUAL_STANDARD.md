@@ -8,6 +8,21 @@ Este guia define o padrao visual para comandos que retornam HUDs em Canvas no Di
 - Fundo: usar o asset `assets/ui/painel-hud-medieval.png` via helper compartilhado do renderer.
 - Paleta base: fundo escuro, texto claro, detalhes em dourado antigo `#D4AF37`.
 - Evitar: excesso de descricoes, tags decorativas redundantes, cores muito saturadas e layouts poluidos.
+- **Evitar emojis em todos os textos renderizados** (cards, banners, botoes, transcripts). Usar simbolos discretos ou espacamento quando necessario.
+
+## Padrao Tipografico
+
+O bot registra tres familias via `GlobalFonts` em `utils/fonts.js` (arquivos em `assets/fonts/`). **Sempre use o nome da familia entre aspas** no `ctx.font`:
+
+| Papel | Fonte | Quando usar | Exemplo |
+| :--- | :--- | :--- | :--- |
+| **Header / Display** | **Cinzel** | Titulos, banners, numeros grandes (>=24px), eyebrow labels | `ctx.font = 'bold 50px "Cinzel"'` |
+| **Body** | **Nunito** | Textos, paragrafos, descricoes, subtitulos (12-23px, sem bold) | `ctx.font = '20px "Nunito"'` |
+| **UI** | **Baloo 2** | Menus, chrome, labels, numeros, botoes (bold <24px ou <=11px) | `ctx.font = 'bold 12px "Baloo 2"'` |
+
+Nunca use `sans-serif` ou `serif` cru — sao fontes do sistema e podem quebrar caracteres acentuados ou glifos especiais (causando mojibake como `Humano â€¢ Bardo` em vez de `Humano · Bardo`).
+
+Para peso no Cinzel: use `bold` direto. Para Nunito/Baloo 2: use `bold` ou `italic` (italic gera faux-italic se nao houver arquivo italic registrado — aceitavel para Nunito body).
 
 ## Estrutura de Canvas
 
@@ -17,6 +32,23 @@ Este guia define o padrao visual para comandos que retornam HUDs em Canvas no Di
 - Textos principais devem ser curtos e centralizados quando forem botoes ou cartoes de acao.
 - Descricoes longas devem aparecer apenas quando agregarem informacao real, como dados de item ou ranking.
 - A faixa lateral dos cards de navegacao deve usar uma cor unica: `#D4AF37`.
+
+### Canvas dinamico (proporcao da imagem)
+
+Banners de localidade e de cena de RP (`gerarBannerLocalidade`, `gerarBannerRpUnificado`) ajustam o canvas a proporcao da imagem enviada:
+
+- Largura fixa: 1000px (evita re-escala pelo Discord).
+- Altura: `h = max(altura_referencia, min(max, round(1000 * aspect))`).
+  - Localidade: H_REF=620, max=1200.
+  - RP: H_REF=780, max=1500.
+- Imagem: cover-fit (preenche todo o canvas).
+- Sem imagem: `drawHudBase` (fundo cinza do HUD com painel medieval).
+- Texto, fontes e molduras escalam proporcionalmente via `ctx.scale(1, s)`.
+- Se a imagem fornecida falha no `loadImage` (URL expirada, >8MB, host nao confiavel), o `loadImage` retorna um canvas 1x1 — os banners tratam isso como falha e usam `drawHudBase` em vez de desenhar a imagem invalida. Sempre cheque `bgImage.width > 16` antes de usar.
+
+### Banner unificado (padrao de RP e Localidade)
+
+Tanto `/localidade configurar` quanto `/rp iniciar` produzem **uma unica imagem** com layout consistente (eyebrow no topo, titulo, secao opcional, moldura dourada, gradiente de legibilidade, credito no rodape). Nao use mais banners separados para titulo/participantes/ambientacao — isso foi descontinuado em favor do unificado.
 
 ## Componentes do Discord
 

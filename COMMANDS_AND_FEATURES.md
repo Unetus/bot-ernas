@@ -83,6 +83,24 @@ Consulta dados de uma guilda registrada.
 
 Lista missoes abertas e permite consultar inscritos por botoes efemeros.
 
+### `/sessao`
+
+Consulta e exporta sessoes de RP/Cena gravadas automaticamente.
+
+- `listar` (mestre/admin): embed com as sessoes do servidor, com filtros por `status` e `criador`.
+- `historico id:` (mestre/admin): exporta transcricao `.txt` (sem emojis, com cabecalho formatado, participantes e mensagens com timestamp). Aceita o UUID **completo** ou um **prefixo de 4+ caracteres**. Se o prefixo for ambiguo, lista os matches.
+
+### `/localidade`
+
+Configura e gerencia canais de localidade (RP fixo por regiao). O canal deve ter `SendMessages: false` para `@everyone` (o bot ajusta o topico do RP para `true` automaticamente).
+
+- `configurar` (mestre/admin): publica o **card da localidade** (banner unico em canvas, com a imagem de referencia como background, titulo e descricao sobrepostos, fontes Cinzel/Nunito/Baloo 2). O canvas respeita a proporcao da imagem enviada. Posta como o bot (sem webhook) e fixa.
+- `painel` (mestre/admin): publica o **painel de acoes** fixo com dois botoes:
+  - `Iniciar RP` (verde): instrui o jogador a usar `/rp iniciar` neste canal. A mensagem do painel e deletada automaticamente quando o RP e iniciado.
+  - `Explorar` (cinza): resposta efemera "mecanica em desenvolvimento".
+
+O canal permanece limpo: notificacoes de pin do Discord (`"X fixou uma mensagem"`) sao deletadas automaticamente.
+
 ## Comandos do Mestre
 
 Comandos de mestre exigem permissao de `Gerenciar Mensagens`.
@@ -120,6 +138,20 @@ Regras:
 - Mensagens sem texto nao sao apagadas.
 - O modo e encerrado automaticamente se o usuario perder a permissao de mestre.
 - O bot precisa ter permissao para gerenciar mensagens e webhooks no canal.
+
+## Cenas de RP
+
+### `/rp`
+
+Cria e gerencia cenas de RP em threads, com gravacao automatica de todas as mensagens de texto no banco SQLite.
+
+- `iniciar` — cria o topico e renderiza um **banner unificado** (canvas dinamico que respeita a proporcao da imagem de cenario; o que for opcional e nao for preenchido simplesmente nao aparece). Aceita `titulo`, `participantes`, `subtitulo`, `ambientacao`, `cenario` (imagem). As fontes seguem o padrao Cinzel (header) / Nunito (body) / Baloo 2 (UI). O banner e postado como o bot (sem webhook). A mensagem com o botao "Encerrar sessao" e temporaria (some em 15s).
+- `encerrar` — encerra a sessao de RP ativa no topico (apenas o criador ou Administrator) e deleta o topico. Todas as mensagens de texto gravadas ficam disponiveis em `/sessao historico id:`.
+
+Regras:
+- O topico e criado com `autoArchiveDuration: 1440` (24h).
+- O bot garante que `@everyone` pode enviar mensagens no topico, mesmo que o canal-pai seja read-only (importante para canais de localidade).
+- Cenas filhas (`/cena iniciar` dentro do topico do RP) sao automaticamente encerradas quando o RP pai e encerrado.
 
 ## VTT, Arena e Mapa
 

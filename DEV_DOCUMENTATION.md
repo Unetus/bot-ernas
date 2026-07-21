@@ -1,205 +1,270 @@
-﻿# ðŸ“– Arkandia RPG Bot â€” DocumentaÃ§Ã£o de Desenvolvimento (Dev-Doc)
+﻿# Arkandia RPG Bot — Documentação de Desenvolvimento (Dev-Doc)
 
-Esta documentaÃ§Ã£o foi elaborada especificamente para **Desenvolvedores** e **Agentes de IA** compreenderem com precisÃ£o a arquitetura, o fluxo de dados e os padrÃµes de design do bot de RPG no Discord integrado Ã  API de Arkandia.
+Esta documentação foi elaborada especificamente para **Desenvolvedores** e **Agentes de IA** compreenderem com precisão a arquitetura, o fluxo de dados e os padrões de design do bot de RPG no Discord integrado à API de Arkandia.
 
 ---
 
-## ðŸ› ï¸ Stack TecnolÃ³gica & DependÃªncias
+## Stack Tecnológica e Dependências
 
-O bot Ã© construÃ­do utilizando a seguinte base tecnolÃ³gica:
+O bot é construído utilizando a seguinte base tecnológica:
 
-| Tecnologia | Finalidade | Detalhes / VersÃ£o |
+| Tecnologia | Finalidade | Detalhes / Versão |
 | :--- | :--- | :--- |
-| **Node.js** | Ambiente de execuÃ§Ã£o | Recomenda-se v18 ou superior |
-| **Discord.js** | ComunicaÃ§Ã£o com a API do Discord | `^14.26.4` (Slash Commands, Webhooks, Components) |
-| **@napi-rs/canvas** | RenderizaÃ§Ã£o 2D acelerada do VTT | `^1.0.0` (Performance nativa em Rust) |
-| **Axios** | Cliente HTTP para integraÃ§Ã£o externa | `^1.16.0` (RequisiÃ§Ãµes Ã  API de Arkandia) |
-| **dotenv** | Gerenciamento de variÃ¡veis de ambiente | `^17.4.2` |
+| **Node.js** | Ambiente de execução | v18 ou superior (testado em v20) |
+| **Discord.js** | Comunicação com a API do Discord | `^14.26.4` (Slash Commands, Webhooks, Components, Modals) |
+| **@napi-rs/canvas** | Renderização 2D acelerada das HUDs | `^1.0.0` (Performance nativa em Rust) |
+| **better-sqlite3** | Persistência local (sessões RP/Cena e localidades) | `^11.0.0` (sync, sem dependência externa) |
+| **Axios** | Cliente HTTP para integração externa | `^1.16.0` (Requisições à API de Arkandia) |
+| **dotenv** | Gerenciamento de variáveis de ambiente | `^17.4.2` |
+
+> **Fontes padronizadas** (registradas via `GlobalFonts` em `utils/fonts.js`):
+> - **Cinzel** (header/display) — títulos, banners, números grandes.
+> - **Nunito** (body) — textos, parágrafos, descrições.
+> - **Baloo 2** (UI) — menus, chrome, labels, números, botões.
+>
+> Os arquivos `.ttf` ficam em `assets/fonts/`. Para fontes ausentes ou caracteres não cobertos, o canvas faz fallback automático, mas a hierarquia acima deve ser respeitada nas renderizações.
 
 ---
 
-## ðŸ—ï¸ Arquitetura do Sistema & Fluxo de Dados
+## Arquitetura do Sistema e Fluxo de Dados
 
-O bot opera sob um modelo reativo orientado a eventos do Discord (`interactionCreate`). Ele consome dados em tempo real da API de Arkandia e mantÃ©m um estado em memÃ³ria cache para sessÃµes ativas e VTT. Na nova arquitetura, o bot tambÃ©m faz prÃ©-carregamento de dados (Preload) via `catalogCache` para diminuir a latÃªncia de consultas estÃ¡ticas (itens, skills e bestiÃ¡rio).
+O bot opera sob um modelo reativo orientado a eventos do Discord (`interactionCreate` e `messageCreate`). Ele consome dados em tempo real da API de Arkandia e mantém um estado em memória cache para sessões ativas e VTT, com persistência local em SQLite para sessões de RP/Cena e configurações de localidade.
 
 ```mermaid
 graph TD
-    User([UsuÃ¡rio no Discord]) -->|Slash Command / InteraÃ§Ãµes| Client[Discord.js Client]
-    Client -->|Valida PermissÃ£o & Coleta Dados| Controller{Gerenciador de Eventos}
-    
+    User([Usuário no Discord]) -->|Slash Command / Interações| Client[Discord.js Client]
+    Client -->|Valida Permissão & Coleta Dados| Controller{Gerenciador de Eventos}
+
     Controller -->|Dados em Cache / Arquivo| LocalState[Caches & mapa_config.json]
-    Controller -->|RequisiÃ§Ã£o HTTP com API Key| API[(API Arkandia)]
-    
-    Controller -->|Coordena RenderizaÃ§Ã£o| Canvas[Canvas Engine - Rust]
+    Controller -->|Requisição HTTP com API Key| API[(API Arkandia)]
+    Controller -->|Lê/Escreve| SQLite[(data/sessions.db)]
+    Controller -->|Coordena Renderização| Canvas[Canvas Engine - Rust]
     Canvas -->|Gera Buffer PNG| Attachment[AttachmentBuilder]
-    
+
     Controller -->|Resposta Enriquecida| User
 ```
 
----
-
-## ðŸ’¾ Estruturas de Estado e Caches Locais
-
-Por simplicidade e velocidade de acesso em canais de texto de RPG, parte do estado operacional do bot Ã© mantido em memÃ³ria, com persistÃªncia mÃ­nima em arquivos locais:
-
-### 1. Sistema de Cache Global (`catalogCache` & `renderQueue`)
-Para garantir mÃ¡xima performance durante a alta demanda (mÃºltiplos jogadores consultando itens ou renderizando canvas), o bot implementa duas esteiras de otimizaÃ§Ã£o:
-*   **`catalogCache`**: Carrega e atualiza periodicamente em background os catÃ¡logos de `/itens`, `/skills`, `/bestiario` e `/npcs` vindos da API. Os comandos `/catalogo`, `/bestiario` e `/enciclopedia` consultam esta memÃ³ria Ram, poupando a API do site e respondendo instantaneamente.
-*   **`renderQueue`**: Uma fila (Queue) especializada em gerenciar a renderizaÃ§Ã£o Canvas no `@napi-rs/canvas`. Evita que requisiÃ§Ãµes assÃ­ncronas concorrentes engasguem a single-thread do Node.js, processando no mÃ¡ximo 3 imagens simultÃ¢neas.
-
-### 2. Mapa de ConfiguraÃ§Ã£o (`mapaConfig` & `mapa_config.json`)
-Armazena um array de IDs das categorias do Discord que representam regiÃµes de RPG vÃ¡lidas no servidor para controle de viagem rÃ¡pida.
-*   **PersistÃªncia:** Sincronizado automaticamente no arquivo `mapa_config.json` via `fs.writeFileSync`.
-
-### 2. Cenas Ativas (`cenasAtivas` - `Map`)
-DicionÃ¡rio chaveado por `channelId` (ID do canal de texto onde o mapa foi aberto) contendo o estado da cena tÃ¡tica (VTT):
-```typescript
-interface PlayerToken {
-    discordId: string; // "npc_timestamp" para NPCs
-    name: string;      // Nome visÃ­vel no token
-    avatarUrl: string; // URL da imagem para o retrato
-    x: number;         // PosiÃ§Ã£o horizontal indexada em 0
-    y: number;         // PosiÃ§Ã£o vertical indexada em 0
-    isNpc: boolean;    // Flag para distinÃ§Ã£o de borda
-    incapacitado: boolean; // Flag de status de vida (morto/caÃ­do)
-}
-
-interface CenaVTT {
-    nome: string;          // Nome curto exibido no HUD do mapa
-    descricao?: string;    // Ambientacao curta exibida no cabecalho visual
-    linhas: number;       // Altura em celulas
-    colunas: number;     // Largura em celulas
-    fundoUrl: string | null; // URL da imagem de fundo do grid
-    estado: 'ABERTA' | 'FECHADA' | 'COMBATE';
-    rodada: number;
-    turnoAtual: number;  // Indice do array de players
-    players: PlayerToken[];
-    msgId: string | null; // ID da mensagem contendo a imagem do mapa ativa
-    tempoTurnoMs?: number | null; // Timer opcional por turno
-    fimTurnoTimestamp?: number;   // Timestamp do fim do turno atual
-    ultimoEvento?: string;        // Linha curta exibida no painel lateral
-}
-```
-
-### 3. Cache de GrimÃ³rios (`skillsCache` - `Map`)
-Chaveado por `message.id` (ID da mensagem de resposta ao comando `/skills`). Evita mÃºltiplas chamadas Ã  API quando o usuÃ¡rio interage vÃ¡rias vezes com o menu de seleÃ§Ã£o da mesma mensagem de grimÃ³rio.
-
-### 4. MissÃµes em PreparaÃ§Ã£o (`missoesPreparacao` - `Map`)
-Chaveado por `message.id` da mensagem de convocaÃ§Ã£o (`/missao preparar`), rastreia o estado da confirmaÃ§Ã£o ("Ready Check") de cada membro inscrito:
-```typescript
-interface MissaoPreparacao {
-    msgId: string;
-    nome: string;
-    jogadores: Array<{
-        id: string; // Discord ID
-        nomePersonagem: string;
-        pronto: boolean;
-    }>;
-    channelId: string;
-}
-```
-
-### 5. Drafts de Arena Ativos (`arenasDraft` - `Map`)
-Chaveado por `message.id` (ID da mensagem do painel de picks e bans), rastreia os dados do draft em andamento de uma arena:
-```typescript
-interface ArenaDraft {
-    capitaes: string[]; // Array com 2 Discord IDs dos capitÃ£es
-    turnoCapitao: number; // Ãndice de quem estÃ¡ banindo (0 ou 1)
-    mapasRestantes: MapaArena[]; // Mapas disponÃ­veis para banir
-    tempoTurnoMs: number; // Tempo de turno configurado em milissegundos
-}
-```
-
-### 6. Timers de Auto-Skip (`timersTurno` - `Map`)
-Chaveado por `message.id` (ID da mensagem do mapa ativo), armazena a referÃªncia aos timeouts (`NodeJS.Timeout`) ativos do auto-skip do turno do combate da arena. Sempre que o combate de uma arena Ã© encerrado ou o turno Ã© passado manualmente/automaticamente, o timer correspondente Ã© cancelado com `clearTimeout` e excluÃ­do deste Map para evitar vazamentos de memÃ³ria ou transiÃ§Ãµes indesejadas.
-
-### 7. Mestres Interpretando (`mestresNarrando` - `Map`)
-Chaveado pela string combinada `${channelId}-${userId}`, este Map armazena os dados de identidade (nome e URL de avatar) que o Mestre estÃ¡ emulando ativamente naquele canal. Se uma entrada existir para o autor da mensagem no canal em questÃ£o, a mensagem de texto padrÃ£o Ã© deletada e re-enviada via Webhook sob a identidade guardada em tempo real.
-
-### 8. Controle de Coleta de Loot (`lootsEmProcessamento` & `lootsColetados` - `Set`)
-Utilizados para garantir integridade transacional na coleta de recompensas (botÃ£o do comando `/mestre dropar`):
-*   `lootsEmProcessamento`: Conjunto de `message.id` das coletas de item cujo processo da API (resoluÃ§Ã£o + inserÃ§Ã£o POST) estÃ¡ em andamento. Bloqueia cliques concorrentes ou duplicados de forma imediata.
-*   `lootsColetados`: Conjunto de `message.id` das mensagens de loot que jÃ¡ foram totalmente coletadas por algum jogador. Previne que itens sejam resgatados mais de uma vez.
-
-### 9. Roteador DinÃ¢mico e ModularizaÃ§Ã£o (`commands/` e Autoloader)
-Todo o controle do bot agora reside em um Autoloader Ã¡gil e robusto no `index.js` (~120 linhas). O bot importa dinamicamente cada comando da pasta `commands/` usando `client.commands.set(...)`. 
-As interaÃ§Ãµes (`ChatInputCommand`, `Button`, `StringSelectMenu` e `ModalSubmit`) sÃ£o despachadas automaticamente para os handlers dentro do prÃ³prio arquivo do comando:
-- `execute(interaction)`: LÃ³gica base para Slash Commands.
-- `handleButton(interaction)`: Captura cliques em botÃµes baseados no prefixo do comando.
-- `handleSelect(interaction)`: Captura seleÃ§Ãµes de menus.
-- `handleModal(interaction)`: SubmissÃµes de formulÃ¡rios.
-Essa arquitetura isolada garante altÃ­ssima escalabilidade e facilidade de manutenÃ§Ã£o.
-
-### Padrao Atual de HUDs do Jogador
-As HUDs abertas pelo `/painel` seguem um roteamento de mensagem unica:
-*   A tela inicial exibe o menu completo do jogador.
-*   Ao entrar em uma sub-HUD, o bot reduz os componentes para `Inicio` + controles locais daquela tela.
-*   Inventario, ranking, perfil, enciclopedia e detalhes internos atualizam a mesma mensagem via `editReply` ou `update`.
-*   Modais de busca, como o da `/enciclopedia`, devem substituir a HUD original em vez de publicar uma nova resposta visual.
-
-## ðŸŽ¨ Engine de RenderizaÃ§Ã£o 2D (VTT)
-
-O VTT desenha dinamicamente um mapa tÃ¡tico utilizando `@napi-rs/canvas`. 
-
-### ParÃ¢metros FÃ­sicos do Grid:
-*   `CELL_SIZE`: `80` pixels por cÃ©lula.
-*   `MARGIN`: `30` pixels de recuo para exibiÃ§Ã£o de coordenadas (letras A-Z no eixo X, nÃºmeros 1-N no eixo Y).
-*   `Width / Height` do Canvas: Calculados com base no nÃºmero de colunas/linhas, respeitando um tamanho mÃ­nimo de `400x400` pixels.
-
-### Desenho dos Tokens:
-*   Os avatares dos jogadores sÃ£o carregados via `loadImage` e mascarados como cÃ­rculos perfeitos (`ctx.arc(...)` + `ctx.clip()`).
-*   **CÃ³digo de Cores das Bordas dos Tokens:**
-    *   `Cinza (#7F8C8D)`: Jogador incapacitado.
-    *   `Dourado (#F1C40F)`: Turno ativo do jogador (no modo `COMBATE`).
-    *   `Vermelho (#E74C3C)`: NPCs / Monstros vivos.
-    *   `Azul (#3498DB)`: Jogadores vivos.
-*   **IncapacitaÃ§Ã£o:** Um "X" vermelho semi-transparente Ã© renderizado sobre o token se `incapacitado: true`.
-
-> [!TIP]
-> **OtimizaÃ§Ã£o por Debounce:** Para evitar sobrecarga gerada por cliques rÃ¡pidos de movimentaÃ§Ã£o nos botÃµes, a funÃ§Ã£o `atualizarMapaDebounced` atrasa o envio de atualizaÃ§Ãµes em `600ms`. Se um novo movimento ocorrer dentro deste perÃ­odo, o timer anterior Ã© limpo.
-
-### Regras atuais do VTT
-
-*   `/cena iniciar` limita mapas entre `3x3` e `14x12`.
-*   `nome`, `descricao` e `tempo_turno` sao opcionais e aparecem no HUD quando preenchidos.
-*   Coordenadas fora do mapa sao rejeitadas em comandos e modais.
-*   Tokens vivos nao podem ocupar a mesma celula.
-*   Ao entrar na cena, o jogador recebe a primeira celula livre disponivel.
-*   Se o token ativo ficar incapacitado durante combate, o turno avanca automaticamente para o proximo token vivo.
-*   `tempo_turno` ativa contador e auto-skip tambem em cenas comuns, nao apenas em Arena.
+### Padrão Atual de HUDs do Jogador
+As HUDs abertas pelo `/painel` seguem um roteamento de mensagem única:
+- A tela inicial exibe o menu completo do jogador.
+- Ao entrar em uma sub-HUD, o bot reduz os componentes para `Inicio` + controles locais daquela tela.
+- Inventário, ranking, perfil, enciclopédia e detalhes internos atualizam a mesma mensagem via `editReply` ou `update`.
+- Modais de busca, como o da `/enciclopedia`, devem substituir a HUD original em vez de publicar uma nova resposta visual.
 
 ---
 
-## ðŸ“¡ IntegraÃ§Ã£o Arkandia API (v1)
+## Persistência Local (SQLite)
 
-Todas as requisiÃ§Ãµes para `https://www.ernas.com.br/api/public/v1` exigem o header `X-API-Key`.
+Banco: `data/sessions.db` (criado automaticamente, WAL mode). Ignorado pelo `.gitignore` (cada ambiente gera o seu).
 
-> [!IMPORTANT]
-> **Headers ObrigatÃ³rios:**
-> - `X-API-Key`: A chave secreta obtida no painel de desenvolvedor.
-> - `Idempotency-Key` (apenas para operaÃ§Ãµes do tipo `POST`): Um UUID v4 exclusivo gerado pelo bot para evitar execuÃ§Ãµes duplicadas sob oscilaÃ§Ãµes de rede.
+### Tabelas
+- `sessions`: sessões de RP (e cenas filhas) — id, type (`rp`/`cena`), status (`ativa`/`encerrada`/`abandonada`), `parent_session_id`, `discord_thread_id`, `discord_channel_id`, `discord_guild_id`, title, subtitle, ambiance, scenario_url, creator, finished_at/by, message_count, created_at.
+- `session_participants`: participantes (session_id + discord_id + display_name).
+- `session_messages`: cada mensagem de texto gravada (id, session_id, discord_message_id, author_discord_id, author_name, content, sent_at).
+- `localities`: configuração de canais de localidade (discord_channel_id PK, discord_guild_id, title, description, image_url, updated_at, updated_by, panel_message_id).
 
-### Principais Pontos de Consumo da API no Bot:
-1.  **ResoluÃ§Ã£o de Personagens:**
-    *   O bot resolve automaticamente o personagem buscando por Discord ID (`GET /personagens/discord/:idOuUsername`).
-2.  **Consulta a Itens e Drops:**
-    *   `/itens/:ref` suporta UUID, slug e nome.
-3.  **NPCs, BestiÃ¡rio e EnciclopÃ©dia:**
-    *   Para o sistema de impersonaÃ§Ã£o (`/narrar habilitar` e `/cena npc_entrar`), o bot tenta carregar os dados de `/npcs/:ref` e, caso dÃª 404, recorre ao `/bestiario/:ref` para criaturas selvagens.
-    *   O comando global `/bestiario` continua como atalho rÃ¡pido para criaturas.
-    *   O comando `/enciclopedia` consolida itens, habilidades, bestiÃ¡rio e NPCs canÃ´nicos em uma sÃ³ interface com busca modal e correspondÃªncia aproximada.
-4.  **InserÃ§Ã£o no InventÃ¡rio:**
-    *   Ao clicar no botÃ£o de coleta de drop, o bot efetua um `POST /personagens/:id/inventario/adicionar` passando o `item_id` e a `quantidade` para popular o inventÃ¡rio do jogador em tempo real no site do jogo, utilizando cabeÃ§alhos de controle e autenticaÃ§Ã£o (`X-API-Key` e `Idempotency-Key` com UUID v4 gerado no ato).
+### Módulo
+- `utils/sessionStore.js` — expõe `init`, `createSession`, `addMessage`, `addParticipant`, `finishSession`, `getSession`, `getSessionParticipants`, `findActiveSessionByChannel`, `findActiveRpSessionByChannel`, `listChildSessions`, `findSessionsByPrefix`, `listSessions`, `countSessions`, `getSessionHistory`, `canFinishSession`, `canViewHistory`, `upsertLocality`, `getLocality`, `setLocalityPanelMessageId`.
+- O `init()` deve ser chamado antes de qualquer operação (já é chamado em `index.js` no `ready`).
+- O banco é criado na primeira execução com `CREATE TABLE IF NOT EXISTS`. Migrações idempotentes (ex.: adicionar coluna) usam `ALTER TABLE` em `try/catch`.
 
 ---
 
-## âš ï¸ Armadilhas Comuns & Regras Importantes (Gotchas)
+## Estruturas de Estado e Caches Locais
 
-> [!WARNING]
-> **Tratamento de Fallbacks de Webhooks:**
-> Algumas funcionalidades como `/rp iniciar` e o sistema de interpretaÃ§Ã£o em tempo real `/narrar` tentam criar webhooks dinÃ¢micos no canal para enviar mensagens com avatares/nomes personalizados. 
-> Sempre implemente blocos `try-catch` robustos. Caso o bot nÃ£o tenha a permissÃ£o `ManageWebhooks` no servidor, a lÃ³gica deve reverter para um envio clÃ¡ssico do bot utilizando embeds explicativos para nÃ£o quebrar a experiÃªncia do usuÃ¡rio.
+Por simplicidade e velocidade de acesso em canais de texto de RPG, parte do estado operacional do bot é mantido em memória:
 
-> [!WARNING]
+### 1. Sistema de Cache Global (`catalogCache` e `renderQueue`)
+- **`catalogCache`**: carrega e atualiza periodicamente em background os catálogos de `/itens`, `/skills`, `/bestiario` e `/npcs`. Comandos como `/catalogo`, `/bestiario` e `/enciclopedia` consultam esta RAM.
+- **`renderQueue`**: fila (Queue) que gerencia a renderização Canvas no `@napi-rs/canvas` (no máximo 3 imagens simultâneas).
+
+### 2. Mapa de Configuração (`mapaConfig` e `mapa_config.json`)
+Array de IDs das categorias do Discord que representam regiões de RPG válidas no servidor. Sincronizado em `mapa_config.json`.
+
+### 3. Cenas Ativas (`cenasAtivas` — `Map`)
+Chaveado por `channelId` contendo o estado da cena tática (VTT). Veja o type `CenaVTT` com `players`, `estado`, `rodada`, `turnoAtual`, `msgId`, `tempoTurnoMs`, etc.
+
+### 4. Cache de Grimórios (`skillsCache` — `Map`)
+Chaveado por `message.id` da resposta ao comando `/skills`.
+
+### 5. Missões em Preparação (`missoesPreparacao` — `Map`)
+Chaveado por `message.id` da convocação (`/missao preparar`), rastreia o "Ready Check" de cada membro.
+
+### 6. Drafts de Arena Ativos (`arenasDraft` — `Map`)
+Chaveado por `message.id` do painel de picks/bans.
+
+### 7. Timers de Auto-Skip (`timersTurno` — `Map`)
+Chaveado por `message.id` do mapa ativo, armazena timeouts (`NodeJS.Timeout`) ativos do auto-skip.
+
+### 8. Mestres Interpretando (`mestresNarrando` — `Map`)
+Chaveado por `${channelId}-${userId}`. Armazena nome e avatar do NPC que o Mestre está emulando. A mensagem é deletada e reenviada via webhook.
+
+### 9. Controle de Coleta de Loot (`lootsEmProcessamento`, `lootsColetados` — `Set`)
+Garantem integridade transacional na coleta de recompensas (botão do `/mestre dropar`).
+
+### 10. Roteador Dinâmico e Modularização (`commands/` e Autoloader)
+O `index.js` importa dinamicamente cada comando de `commands/` via `client.commands.set(...)`. Interações são despachadas por prefixo de `customId`:
+- `execute(interaction)` — Slash Commands.
+- `handleButton(interaction)` — cliques em botões.
+- `handleSelect(interaction)` — seleções em menus.
+- `handleModal(interaction)` — submissões de modais.
+
+---
+
+## Sistema de Gravação de Sessões de RP/Cena
+
+Cada mensagem de texto enviada em um thread com sessão ativa (RP ou cena filha) é gravada automaticamente no banco (`session_messages`) pelo listener `messageCreate` do `index.js`. A sessão é encerrada manualmente (botão "Encerrar sessão" ou `/rp encerrar`), e nesse momento:
+- Status da sessão (e de todas as cenas filhas) vai para `encerrada`.
+- `finished_at` e `finished_by` são preenchidos.
+- No caso do RP, o thread é deletado pelo bot.
+
+### Comandos de consulta
+- **`/sessao listar`** (mestre/admin) — embed com as sessões do servidor, com filtros por status e criador.
+- **`/sessao historico id:`** — exporta transcrição `.txt` (sem emojis, com cabeçalho formatado). Aceita o UUID **completo** ou um **prefixo de 4+ caracteres** (busca `LIKE` com escape de wildcards, escopada ao servidor atual). Se o prefixo for ambíguo, lista os matches.
+
+### Permissões de consulta (`canViewHistory`)
+- Administrator e ManageMessages veem qualquer sessão.
+- Participantes registrados veem apenas suas próprias sessões.
+
+---
+
+## Localidades (Regiões de RP fixas)
+
+Categorias do Discord representam regiões; canais de texto sob elas são **localidades** (fixos, com jogadores impedidos de enviar mensagens pelo permissionamento do canal).
+
+### Comandos
+- **`/localidade configurar`** (mestre/admin) — publica o **card da localidade** (banner único em canvas, com a imagem de referência como background, título e descrição) como o bot do Discord e fixa. Salva a configuração no banco. Opcionalmente seguido de `/localidade painel`.
+- **`/localidade painel`** (mestre/admin) — publica o **painel de ações** com dois botões fixos:
+  - **Iniciar RP** — instrui o usuário a usar `/rp iniciar` neste canal. A mensagem do painel é deletada automaticamente para manter o canal limpo.
+  - **Explorar** — resposta ephemeral: "mecânica em desenvolvimento".
+
+### Permissões do canal
+- O canal deve estar configurado com `Send Messages: false` para `@everyone`.
+- O bot precisa de `Create Public Threads`, `Manage Messages` (para fixar) e `Manage Webhooks` (se usar).
+- O tópico criado pelo RP recebe automaticamente `SendMessages: true` para `@everyone` (aplicado pelo `rpScene`), permitindo que os jogadores conversem no tópico mesmo com o canal-pai read-only.
+
+### Limpeza automática do canal
+- Notificações de pin do Discord (`message.type === 7`, "X fixou uma mensagem") são **deletadas automaticamente** pelo listener `messageCreate` em `index.js`.
+- Mensagens de feedback efêmeras (`interaction.editReply`) já não persistem.
+- Mensagens de instrução dentro do tópico (ex.: "A sessão foi iniciada...") são deletadas após 15s via `utils/tempMessage.deleteAfterDelay`.
+
+---
+
+## Banner Unificado do RP e Canvas Dinâmico
+
+`/rp iniciar` (e o botão de iniciar RP no painel) usa `utils/rpScene.iniciarCenaRp`, que:
+1. Renderiza **uma única imagem** com `canvas/renderer.js → gerarBannerRpUnificado` (cenário como background; título, subtítulo, ambientação, participantes e crédito empilhados verticalmente; seções opcionais só aparecem quando preenchidas).
+2. Cria a thread, ajusta permissões para permitir mensagens, apaga o painel da localidade (se aplicável) e envia o banner via `thread.send` como o bot (sem webhook Narrador para os banners).
+3. Persiste a sessão no banco e envia a mensagem do botão de encerramento (com `deleteAfterDelay(15000)`).
+
+### Canvas dinâmico
+Ambos os banners (`gerarBannerLocalidade` e `gerarBannerRpUnificado`) ajustam a altura do canvas de saída à proporção da imagem enviada:
+- Largura fixa: 1000px (para evitar re-escala pelo Discord).
+- Altura: `h = max(altura_referência, min(max, round(1000 * aspect))`).
+- Localidade: H_REF=620, max=1200.
+- RP: H_REF=780, max=1500.
+- Texto, fontes e molduras escalam proporcionalmente via `ctx.scale(1, s)`.
+
+### Bug fix do `loadImage`
+`loadImage` (em `canvas/renderer.js`) retorna um canvas 1x1 transparente quando o download falha. Os banners tratam isso como falha: se `bgImage.width <= 16 || bgImage.height <= 16`, usam o `drawHudBase` (fundo cinza do HUD com painel medieval) em vez de renderizar a imagem inválida.
+
+---
+
+## VTT, Arena e Mapa
+
+### `/cena`
+Subcomandos principais: `iniciar`, `entrar`, `mover`, `npc_entrar`, `fechar`, `combate_iniciar`, `combate_proximo`, `mover_livre`, `status_vida`, `encerrar`. Regras: mapa 3x3 a 14x12, sem colisão de tokens, timer opcional com auto-skip.
+
+### `/arena`
+- `iniciar`: abre picks/bans.
+- `encerrar`: finaliza a arena no canal.
+
+### `/mapa`
+Categorias regionais e viagens.
+
+---
+
+## Comandos Slash Adicionais
+
+- **`/rp iniciar`** — cria cena de RP (banner unificado + thread + sessão no banco). Aceita titulo, participantes, subtitulo, ambientação, cenário (imagem).
+- **`/rp encerrar`** — encerra a sessão de RP ativa no tópico e deleta o tópico.
+- **`/sessao listar` / `/sessao historico id:`** — consulta e exporta sessões de RP/Cena.
+- **`/localidade configurar` / `/localidade painel`** — configura canal de localidade e publica painel fixo.
+
+---
+
+## Integração Arkandia API (v1)
+
+Todas as requisições para `https://www.ernas.com.br/api/public/v1` exigem o header `X-API-Key`.
+
+> **Headers Obrigatórios:**
+> - `X-API-Key`: a chave secreta obtida no painel de desenvolvedor.
+> - `Idempotency-Key` (apenas para POSTs): UUID v4 gerado pelo bot para evitar execuções duplicadas.
+
+### Pontos de Consumo
+1. **Resolução de Personagens:** `GET /personagens/discord/:id`.
+2. **Itens e Drops:** `/itens/:ref` suporta UUID, slug e nome.
+3. **NPCs, Bestiário e Enciclopédia:** `/npcs/:ref` e fallback `/bestiario/:ref`.
+4. **Inserção no Inventário:** `POST /personagens/:id/inventario/adicionar` com `Idempotency-Key`.
+
+---
+
+## Armadilhas Comuns e Regras Importantes (Gotchas)
+
+> **Renderização Canvas:**
+> - Sempre use as fontes registradas via `utils/fonts.js` (Cinzel/Nunito/Baloo 2). Não use `sans-serif`/`serif` cru (são fontes do sistema e podem não ter glifos para caracteres acentuados/especiais).
+> - Para imagens de URL, use sempre o `loadImage` seguro (valida hostnames confiáveis: `cdn.discordapp.com`, `media.discordapp.net`, `www.ernas.com.br`, `*.supabase.co`, `*.imgur.com`). URLs de outros hosts são rejeitadas por segurança (SSRF).
+> - Limite de download: 8MB e timeout de 8s. Se o `loadImage` falhar, ele retorna um canvas 1x1 — sempre cheque `bgImage.width > 16` antes de usar.
+
+> **Webhooks:**
+> - O sistema de mestres interpretando (`/narrar`) usa webhooks para re-enviar mensagens com identidade customizada.
+> - Os **banners de cena/localidade** não usam mais webhook — são enviados diretamente pelo bot.
+> - O bot pode não ter permissão de `ManageWebhooks` em todos os canais. Sempre use `try/catch` ao criar webhooks.
+
+> **Botão "Encerrar sessão":**
+> - Está implementado como botão Discord (customId `encerrar_sessao_<id>`) e também como comando `/rp encerrar`. Ambos podem encerrar (criador da sessão ou Administrator).
+> - No caso do RP, ao encerrar, o thread é deletado. Cenas filhas também são marcadas como encerradas automaticamente.
+> - Para cenas (`/cena encerrar`), o botão do painel da cena não deleta o thread (compartilhado com o RP pai), mas limpa `cenasAtivas` e timers.
+
 > **Build Skills vs Skills Adquiridas:**
-> Conforme a documentaÃ§Ã£o da API, o array `skills_adquiridas` representa o acervo total aprendido. Para exibir apenas o grimÃ³rio atualmente **equipado**, utilize `build_skills`. Atualmente, o comando `/skills` mapeia `skills_adquiridas` para visualizaÃ§Ã£o, mas lembre-se desta diferenÃ§a conceitual se for expandir mecÃ¢nicas de batalha!
+> O array `skills_adquiridas` é o acervo total aprendido. Para exibir apenas o grimório **equipado**, use `build_skills`. O `/skills` mapeia `skills_adquiridas` por padrão.
+
+> **Prefix Lookup em `/sessao historico`:**
+> Aceita prefixo de 4+ caracteres do UUID. Sanitiza caracteres não-hexadecimais e escapa wildcards SQL (`%`, `_`, `\`). Escopado ao servidor atual. Se o prefixo for ambíguo, retorna a lista de matches.
+
+> **Localidade — permissionamento do canal:**
+> O canal de localidade deve ter `SendMessages: false` para `@everyone`. O bot aplica `SendMessages: true` automaticamente no thread criado pelo RP, para que os jogadores possam conversar dentro do tópico mesmo com o canal-pai read-only.
+
+---
+
+## Estrutura de Pastas
+
+```
+bot-ernas/
+├── index.js                      # Cliente Discord + autoloader de comandos
+├── canvas/
+│   └── renderer.js               # Engine Canvas (todas as HUDs/banners)
+├── commands/                      # Slash commands (um arquivo por comando)
+│   ├── painel.js
+│   ├── perfil.js
+│   ├── rp.js                     # /rp iniciar, /rp encerrar
+│   ├── sessao.js                 # /sessao listar, /sessao historico
+│   ├── localidade.js             # /localidade configurar, /localidade painel
+│   └── ...
+├── utils/
+│   ├── sessionStore.js           # SQLite (sessoes RP/Cena + localidades)
+│   ├── rpScene.js                # Lógica compartilhada de criação de cena de RP
+│   ├── tempMessage.js            # deleteAfterDelay (canais sempre limpos)
+│   ├── fonts.js                  # Registro GlobalFonts (Cinzel/Nunito/Baloo 2)
+│   ├── state.js                  # Maps de estado em memória
+│   ├── sceneCleanup.js           # Limpeza periódica de cenas abandonadas
+│   ├── helpers.js                # formatarTexto, embedErro, embedSucesso, etc.
+│   └── profileCache.js
+├── assets/
+│   ├── fonts/                    # Cinzel, Nunito, Baloo 2 (TTF)
+│   ├── ui/painel-hud-medieval.png
+│   └── ...
+├── data/                         # SQLite (ignorado pelo .gitignore)
+├── .github/workflows/deploy.yml  # Deploy automático
+└── docs e guias (DEPLOY_GUIDE, COMMANDS_AND_FEATURES, HUD_VISUAL_STANDARD, DEV_DOCUMENTATION)
+```
