@@ -225,9 +225,10 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.on('messageCreate', async message => {
-    // Deleta notificacoes automaticas de "X fixou uma mensagem" (type 7)
+    // Deleta notificacoes automaticas de pin do Discord
+    // ("X fixou uma mensagem", MessageType.ChannelPinnedMessage = 6)
     // para manter canais (especialmente de localidade) limpos.
-    if (message.type === 7) {
+    if (message.type === 6) {
         try { await message.delete(); } catch (e) { /* sem permissao */ }
         return;
     }

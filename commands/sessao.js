@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, AttachmentBuilder, EmbedBuilder } = require('discord.js');
 const sessionStore = require('../utils/sessionStore');
+const { replyAndDelete } = require('../utils/tempMessage');
 
 const STATUS_CHOICES = [
     { name: 'Ativas', value: 'ativa' },
@@ -237,13 +238,13 @@ async function execute(interaction) {
     const isMaster = interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages);
     const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
     if (!isMaster && !isAdmin) {
-        return await interaction.reply({ content: 'Apenas mestres ou administradores podem usar este comando.', ephemeral: true });
+        return await replyAndDelete(interaction, 'Apenas mestres ou administradores podem usar este comando.', 6000);
     }
 
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'listar') {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply();
         const status = interaction.options.getString('status');
         const creator = interaction.options.getUser('criador');
         try {
@@ -256,15 +257,15 @@ async function execute(interaction) {
             return await interaction.editReply({ embeds: [buildListarEmbed(sessions, { status, creator })] });
         } catch (e) {
             console.error('[sessao listar] Erro:', e);
-            return await interaction.editReply('Erro ao listar sessoes.');
+            return await replyAndDelete(interaction, 'Erro ao listar sessoes.');
         }
     }
 
     if (sub === 'historico') {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply();
         const rawId = interaction.options.getString('id')?.trim();
         if (!rawId) {
-            return await interaction.editReply('Informe o ID da sessao (completo ou prefixo de 4+ caracteres).');
+            return await replyAndDelete(interaction, 'Informe o ID da sessao (completo ou prefixo de 4+ caracteres).');
         }
 
         try {
@@ -276,16 +277,16 @@ async function execute(interaction) {
                     session = matches[0];
                 } else if (matches.length > 1) {
                     const lista = matches.map(m => `  - \`${m.id}\` [${tipoInfo(m.type).rotulo}] ${m.title}`).join('\n');
-                    return await interaction.editReply({ content: `Prefixo ambigo. ${matches.length} sessoes correspondem a "${rawId}". Use o ID completo de uma delas:\n${lista}` });
+                    return await replyAndDelete(interaction, `Prefixo ambigo. ${matches.length} sessoes correspondem a "${rawId}". Use o ID completo de uma delas:\n${lista}`, 10000);
                 }
             }
 
             if (!session) {
-                return await interaction.editReply(`Sessao nao encontrada para o ID/prefixo "${rawId}" neste servidor.`);
+                return await replyAndDelete(interaction, `Sessao nao encontrada para o ID/prefixo "${rawId}" neste servidor.`);
             }
 
             if (!sessionStore.canViewHistory(session, interaction.user.id, interaction.member.permissions)) {
-                return await interaction.editReply('Voce nao tem permissao para visualizar este historico.');
+                return await replyAndDelete(interaction, 'Voce nao tem permissao para visualizar este historico.');
             }
 
             const participants = sessionStore.getSessionParticipants(session.id);
@@ -305,7 +306,7 @@ async function execute(interaction) {
             });
         } catch (e) {
             console.error('[sessao historico] Erro:', e);
-            return await interaction.editReply('Erro ao exportar historico.');
+            return await replyAndDelete(interaction, 'Erro ao exportar historico.');
         }
     }
 }

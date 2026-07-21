@@ -19,4 +19,30 @@ function deleteAfterDelay(message, ms = DEFAULT_DELAY_MS) {
     }, delay);
 }
 
-module.exports = { deleteAfterDelay, DEFAULT_DELAY_MS };
+/**
+ * Responde uma interaction com uma mensagem normal (visivel no canal)
+ * e agenda a delecao automatica. Substitui o padrao de mensagens
+ * efêmeras (ephemeral: true) — o feedback continua aparecendo para o
+ * usuario, mas temporariamente, sem persistir no canal.
+ *
+ * Usa editReply se a interaction ja foi diferida, ou reply caso contrario.
+ */
+async function replyAndDelete(interaction, content, ms = DEFAULT_DELAY_MS) {
+    let msg;
+    try {
+        if (interaction.deferred || interaction.replied) {
+            msg = await interaction.editReply(content);
+        } else {
+            msg = await interaction.reply(content);
+        }
+    } catch (e) {
+        // fallback: envia no canal
+        try {
+            msg = await interaction.channel.send(content);
+        } catch {}
+    }
+    if (msg) deleteAfterDelay(msg, ms);
+    return msg;
+}
+
+module.exports = { deleteAfterDelay, replyAndDelete, DEFAULT_DELAY_MS };

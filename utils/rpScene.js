@@ -129,6 +129,22 @@ async function iniciarCenaRp({
         return { ok: false, error: 'Houve um erro ao criar a cena de RP.' };
     }
 
+    // Deleta a mensagem automatica do Discord "X started a thread: ... See all threads"
+    // para manter o canal limpo.
+    try {
+        const recent = await targetChannel.messages.fetch({ limit: 3 });
+        const startedMsg = recent.find(m =>
+            m.author.id === targetChannel.client.user.id
+            && m.type === 0
+            && /started a thread|iniciou um t\u00f3pico/i.test(m.content || '')
+        );
+        if (startedMsg) {
+            deleteAfterDelay(startedMsg, 5000);
+        }
+    } catch (e) {
+        console.warn('[rpScene] Nao foi possivel deletar a mensagem de thread criada:', e.message);
+    }
+
     // Garante que o topico e gravavel mesmo que o canal-pai seja read-only
     try {
         await thread.permissionOverwrites.edit(guild.roles.everyone, { SendMessages: true });

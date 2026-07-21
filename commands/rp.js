@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { iniciarCenaRp } = require('../utils/rpScene');
 const sessionStore = require('../utils/sessionStore');
+const { replyAndDelete } = require('../utils/tempMessage');
 
 const MAX_PARTICIPANTES = 15;
 
@@ -38,26 +39,26 @@ async function execute(interaction) {
     const sub = interaction.options.getSubcommand();
 
     if (sub === 'encerrar') {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply();
 
         const activeSession = sessionStore.findActiveRpSessionByChannel(interaction.channelId);
         if (!activeSession) {
-            return await interaction.editReply('Nao ha uma sessao de RP ativa neste canal/topico.');
+            return await replyAndDelete(interaction, 'Nao ha uma sessao de RP ativa neste canal/topico.');
         }
 
         const isAdmin = interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
         if (activeSession.creator_discord_id !== interaction.user.id && !isAdmin) {
-            return await interaction.editReply('Apenas o criador da sessao ou um administrador pode encerra-la.');
+            return await replyAndDelete(interaction, 'Apenas o criador da sessao ou um administrador pode encerra-la.');
         }
 
         try {
             sessionStore.finishSession(activeSession.id, interaction.user.id);
         } catch (err) {
             console.error('[rp encerrar] Erro ao finalizar sessao:', err);
-            return await interaction.editReply('Erro ao encerrar a sessao.');
+            return await replyAndDelete(interaction, 'Erro ao encerrar a sessao.');
         }
 
-        await interaction.editReply('Sessao encerrada e historico salvo com sucesso!');
+        await replyAndDelete(interaction, 'Sessao encerrada e historico salvo com sucesso!', 5000);
 
         try {
             const channel = interaction.channel;
@@ -78,7 +79,7 @@ async function execute(interaction) {
     const ambientacao = interaction.options.getString('ambientacao')?.trim() || null;
     const cenario = interaction.options.getAttachment('cenario');
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
 
     const isMestre = interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages) || false;
 
@@ -99,9 +100,9 @@ async function execute(interaction) {
     });
 
     if (!result.ok) {
-        return await interaction.editReply(`✗ ${result.error}`);
+        return await replyAndDelete(interaction, `✗ ${result.error}`);
     }
-    return await interaction.editReply(`✓ **Cena Iniciada:** <#${result.threadId}>`);
+    return await replyAndDelete(interaction, `✓ **Cena Iniciada:** <#${result.threadId}>`, 5000);
 }
 
 module.exports = { data, execute };
