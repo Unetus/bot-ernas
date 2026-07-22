@@ -1,4 +1,4 @@
-﻿# Arkandia RPG Bot — Documentação de Desenvolvimento (Dev-Doc)
+# Arkandia RPG Bot — Documentação de Desenvolvimento (Dev-Doc)
 
 Esta documentação foi elaborada especificamente para **Desenvolvedores** e **Agentes de IA** compreenderem com precisão a arquitetura, o fluxo de dados e os padrões de design do bot de RPG no Discord integrado à API de Arkandia.
 
@@ -135,7 +135,7 @@ Categorias do Discord representam regiões; canais de texto sob elas são **loca
 ### Comandos
 - **`/localidade configurar`** (mestre/admin) — publica o **card da localidade** (banner único em canvas, com a imagem de referência como background, título e descrição) como o bot do Discord e fixa. Salva a configuração no banco. Opcionalmente seguido de `/localidade painel`.
 - **`/localidade painel`** (mestre/admin) — publica o **painel de ações** com dois botões fixos:
-  - **Iniciar RP** — instrui o usuário a usar `/rp iniciar` neste canal. A mensagem do painel é deletada automaticamente para manter o canal limpo.
+  - **Iniciar RP** — abre um formulário (Modal) solicitando Título, Participantes, Subtítulo e Ambientação para iniciar o RP diretamente pelo painel. O painel permanece fixo no canal.
   - **Explorar** — resposta ephemeral: "mecânica em desenvolvimento".
 
 ### Permissões do canal
@@ -144,18 +144,19 @@ Categorias do Discord representam regiões; canais de texto sob elas são **loca
 - O tópico criado pelo RP recebe automaticamente `SendMessages: true` para `@everyone` (aplicado pelo `rpScene`), permitindo que os jogadores conversem no tópico mesmo com o canal-pai read-only.
 
 ### Limpeza automática do canal
-- Notificações de pin do Discord (`message.type === 7`, "X fixou uma mensagem") são **deletadas automaticamente** pelo listener `messageCreate` em `index.js`.
-- Mensagens de feedback efêmeras (`interaction.editReply`) já não persistem.
+- Notificações de pin do Discord (`message.type === 6`, "X fixou uma mensagem") e notificações de thread criada são **deletadas automaticamente** pelo listener de eventos ou `tempMessage.deleteAfterDelay` (5s).
+- Respostas de comandos e submissões de modais no canal de localidade são auto-deletadas em 5s via `replyAndDelete`, mantendo apenas o painel fixo visível.
 - Mensagens de instrução dentro do tópico (ex.: "A sessão foi iniciada...") são deletadas após 15s via `utils/tempMessage.deleteAfterDelay`.
 
 ---
 
 ## Banner Unificado do RP e Canvas Dinâmico
 
-`/rp iniciar` (e o botão de iniciar RP no painel) usa `utils/rpScene.iniciarCenaRp`, que:
+`/rp iniciar` (e o botão de iniciar RP no painel de localidade) usa `utils/rpScene.iniciarCenaRp`, que:
 1. Renderiza **uma única imagem** com `canvas/renderer.js → gerarBannerRpUnificado` (cenário como background; título, subtítulo, ambientação, participantes e crédito empilhados verticalmente; seções opcionais só aparecem quando preenchidas).
-2. Cria a thread, ajusta permissões para permitir mensagens, apaga o painel da localidade (se aplicável) e envia o banner via `thread.send` como o bot (sem webhook Narrador para os banners).
+2. Cria a thread, ajusta permissões para permitir mensagens e envia o banner via `thread.send` como o bot (o painel da localidade permanece intacto).
 3. Persiste a sessão no banco e envia a mensagem do botão de encerramento (com `deleteAfterDelay(15000)`).
+4. Ao encerrar o tópico (via botão "Encerrar sessão", `/rp encerrar` ou se o tópico for excluído no Discord), seus registros no banco SQLite e recursos em memória são completamente apagados.
 
 ### Canvas dinâmico
 Ambos os banners (`gerarBannerLocalidade` e `gerarBannerRpUnificado`) ajustam a altura do canvas de saída à proporção da imagem enviada:

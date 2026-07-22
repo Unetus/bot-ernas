@@ -1,7 +1,8 @@
-const { SlashCommandBuilder, PermissionFlagsBits, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const { gerarBannerLocalidade, gerarBannerPainelLocalidade } = require('../canvas/renderer');
 const sessionStore = require('../utils/sessionStore');
 const { replyAndDelete } = require('../utils/tempMessage');
+const { iniciarCenaRp } = require('../utils/rpScene');
 
 const data = new SlashCommandBuilder()
     .setName('localidade')
@@ -149,8 +150,83 @@ async function handleButton(interaction) {
     }
 
     if (interaction.customId === 'localidade_iniciar_rp') {
-        return await replyAndDelete(interaction, 'Use o comando `/rp iniciar` neste canal para abrir a cena. A mensagem deste painel sera removida automaticamente para manter apenas as mensagens fixas.', 8000);
+        const modal = new ModalBuilder()
+            .setCustomId('localidade_modal_iniciar_rp')
+            .setTitle('Iniciar Cena de RP');
+
+        const tituloInput = new TextInputBuilder()
+            .setCustomId('rp_titulo')
+            .setLabel('Titulo da cena')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true)
+            .setMaxLength(80);
+
+        const participantesInput = new TextInputBuilder()
+            .setCustomId('rp_participantes')
+            .setLabel('Participantes (ex: @user1 @user2)')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(true);
+
+        const subtituloInput = new TextInputBuilder()
+            .setCustomId('rp_subtitulo')
+            .setLabel('Subtitulo ou contexto (opcional)')
+            .setStyle(TextInputStyle.Short)
+            .setRequired(false)
+            .setMaxLength(120);
+
+        const ambientacaoInput = new TextInputBuilder()
+            .setCustomId('rp_ambientacao')
+            .setLabel('Ambientacao do local (opcional)')
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(false)
+            .setMaxLength(800);
+
+        modal.addComponents(
+            new ActionRowBuilder().addComponents(tituloInput),
+            new ActionRowBuilder().addComponents(participantesInput),
+            new ActionRowBuilder().addComponents(subtituloInput),
+            new ActionRowBuilder().addComponents(ambientacaoInput)
+        );
+
+        return await interaction.showModal(modal);
     }
 }
 
-module.exports = { data, execute, handleButton };
+async function handleModal(interaction) {
+    if (interaction.customId !== 'localidade_modal_iniciar_rp') return false;
+
+    await interaction.deferReply();
+
+    const titulo = interaction.fields.getTextInputValue('rp_titulo')?.trim();
+    const participantesRaw = interaction.fields.getTextInputValue('rp_participantes')?.trim();
+    const subtitulo = interaction.fields.getTextInputValue('rp_subtitulo')?.trim() || null;
+    const ambientacao = interaction.fields.getTextInputValue('rp_ambientacao')?.trim() || null;
+
+    const isMestre = interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages) || false;
+
+    const result = await iniciarCenaRp({
+        guild: interaction.guild,
+        targetChannel: interaction.channel,
+        criador: {
+            id: interaction.user.id,
+            tag: interaction.user.tag,
+            displayName: interaction.member.displayName || interaction.user.username
+        },
+        isMestre,
+        titulo,
+        participantesRaw,
+        subtitulo,
+        ambientacao,
+        cenarioUrl: null
+    });
+
+    if (!result.ok) {
+        await replyAndDelete(interaction, `✗ ${result.error}`, 5000);
+        return true;
+    }
+
+    await replyAndDelete(interaction, `✓ **Cena Iniciada:** <#${result.threadId}>`, 5000);
+    return true;
+}
+
+module.exports = { data, execute, handleButton, handleModal };

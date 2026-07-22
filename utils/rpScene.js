@@ -152,21 +152,7 @@ async function iniciarCenaRp({
         console.warn('[rpScene] Nao foi possivel ajustar permissoes do topico:', e.message);
     }
 
-    // Se o canal e uma localidade configurada, apaga o painel de botoes
-    try {
-        const locality = sessionStore.getLocality(targetChannel.id);
-        if (locality?.panel_message_id) {
-            try {
-                const panelMsg = await targetChannel.messages.fetch(locality.panel_message_id).catch(() => null);
-                if (panelMsg) await panelMsg.delete();
-            } catch (delErr) {
-                console.warn('[rpScene] Nao foi possivel deletar o painel da localidade:', delErr.message);
-            }
-            sessionStore.setLocalityPanelMessageId(targetChannel.id, null);
-        }
-    } catch (e) {
-        console.warn('[rpScene] Erro ao limpar painel da localidade:', e.message);
-    }
+    // O painel fixo da localidade permanece intacto no canal principal.
 
     // Envia o banner unificado como o bot do Discord e fixa
     try {

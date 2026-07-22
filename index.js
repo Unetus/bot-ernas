@@ -144,10 +144,10 @@ client.on('interactionCreate', async interaction => {
                 return interaction.reply({ content: 'Apenas o criador da sessão ou um administrador pode encerrá-la.', ephemeral: true });
             }
             try {
-                sessionStore.finishSession(sessionId, interaction.user.id);
-                await interaction.reply({ content: 'Sessão encerrada e histórico salvo com sucesso!', ephemeral: true });
-
                 if (session.type === 'rp') {
+                    sessionStore.deleteSession(sessionId);
+                    await interaction.reply({ content: 'Sessão encerrada e registros removidos com sucesso!', ephemeral: true });
+
                     // Deleta o tópico do RP
                     try {
                         if (interaction.channel?.isThread?.() && interaction.channel.delete) {
@@ -157,6 +157,9 @@ client.on('interactionCreate', async interaction => {
                         console.warn('[session] Não foi possível deletar o tópico do RP:', e.message);
                     }
                 } else if (session.type === 'cena') {
+                    sessionStore.finishSession(sessionId, interaction.user.id);
+                    await interaction.reply({ content: 'Sessão encerrada e histórico salvo com sucesso!', ephemeral: true });
+
                     // O tópico é compartilhado com o RP: limpa a cena em memória, não deleta o tópico
                     try {
                         const cena = cenasAtivas.get(session.discord_thread_id);
@@ -221,6 +224,24 @@ client.on('interactionCreate', async interaction => {
                 if (handled) return;
             }
         }
+    }
+});
+
+client.on('threadDelete', async thread => {
+    try {
+        console.log(`[DEBUG] Tópico deletado: ${thread.id} (${thread.name})`);
+        sessionStore.deleteSessionByThreadId(thread.id);
+
+        if (cenasAtivas.has(thread.id)) {
+            const cena = cenasAtivas.get(thread.id);
+            if (cena) {
+                if (timersTurno.has(cena.msgId)) { clearInterval(timersTurno.get(cena.msgId)); timersTurno.delete(cena.msgId); }
+                if (renderTimers.has(cena.msgId)) { clearTimeout(renderTimers.get(cena.msgId)); renderTimers.delete(cena.msgId); }
+            }
+            cenasAtivas.delete(thread.id);
+        }
+    } catch (e) {
+        console.error('[threadDelete] Erro ao limpar registros do tópico deletado:', e);
     }
 });
 

@@ -197,6 +197,28 @@ function finishSession(sessionId, finishedByDiscordId) {
     finishChildren.run({ sessionId, finishedAt, finishedBy: finishedByDiscordId });
 }
 
+function deleteSession(sessionId) {
+    if (!db) init();
+
+    const childSessions = db.prepare(`SELECT id FROM sessions WHERE parent_session_id = @sessionId`).all({ sessionId });
+    for (const child of childSessions) {
+        deleteSession(child.id);
+    }
+
+    db.prepare(`DELETE FROM session_messages WHERE session_id = @sessionId`).run({ sessionId });
+    db.prepare(`DELETE FROM session_participants WHERE session_id = @sessionId`).run({ sessionId });
+    db.prepare(`DELETE FROM sessions WHERE id = @sessionId`).run({ sessionId });
+}
+
+function deleteSessionByThreadId(discordThreadId) {
+    if (!db) init();
+
+    const sessions = db.prepare(`SELECT id FROM sessions WHERE discord_thread_id = @discordThreadId`).all({ discordThreadId });
+    for (const s of sessions) {
+        deleteSession(s.id);
+    }
+}
+
 function getSession(sessionId) {
     if (!db) init();
     return db.prepare(`SELECT * FROM sessions WHERE id = @sessionId`).get({ sessionId });
@@ -413,6 +435,8 @@ module.exports = {
     addMessage,
     addParticipant,
     finishSession,
+    deleteSession,
+    deleteSessionByThreadId,
     getSession,
     getSessionParticipants,
     findActiveSessionByChannel,

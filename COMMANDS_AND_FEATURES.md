@@ -96,10 +96,10 @@ Configura e gerencia canais de localidade (RP fixo por regiao). O canal deve ter
 
 - `configurar` (mestre/admin): publica o **card da localidade** (banner unico em canvas, com a imagem de referencia como background, titulo e descricao sobrepostos, fontes Cinzel/Nunito/Baloo 2). O canvas respeita a proporcao da imagem enviada. Posta como o bot (sem webhook) e fixa.
 - `painel` (mestre/admin): publica o **painel de acoes** fixo com dois botoes:
-  - `Iniciar RP` (verde): instrui o jogador a usar `/rp iniciar` neste canal. A mensagem do painel e deletada automaticamente quando o RP e iniciado.
+  - `Iniciar RP` (verde): abre um formulário (Modal) solicitando Título, Participantes, Subtítulo e Ambientação. O painel permanece fixo no canal.
   - `Explorar` (cinza): resposta efemera "mecanica em desenvolvimento".
 
-O canal permanece limpo: notificacoes de pin do Discord (`"X fixou uma mensagem"`) sao deletadas automaticamente.
+O canal permanece limpo: notificacoes de pin e criacao de topico sao deletadas automaticamente (5s), e as respostas de interacoes sao auto-deletadas para manter apenas os painéis fixos.
 
 ## Comandos do Mestre
 
@@ -145,8 +145,8 @@ Regras:
 
 Cria e gerencia cenas de RP em threads, com gravacao automatica de todas as mensagens de texto no banco SQLite.
 
-- `iniciar` — cria o topico e renderiza um **banner unificado** (canvas dinamico que respeita a proporcao da imagem de cenario; o que for opcional e nao for preenchido simplesmente nao aparece). Aceita `titulo`, `participantes`, `subtitulo`, `ambientacao`, `cenario` (imagem). As fontes seguem o padrao Cinzel (header) / Nunito (body) / Baloo 2 (UI). O banner e postado como o bot (sem webhook). A mensagem com o botao "Encerrar sessao" e temporaria (some em 15s).
-- `encerrar` — encerra a sessao de RP ativa no topico (apenas o criador ou Administrator) e deleta o topico. Todas as mensagens de texto gravadas ficam disponiveis em `/sessao historico id:`.
+- `iniciar` — cria o topico e renderiza um **banner unificado** (canvas dinamico que respeita a proporcao da imagem de cenario; o que for opcional e nao for preenchido simplesmente nao aparece). Pode ser chamado por `/rp iniciar` ou pelo botao "Iniciar RP" no painel fixo da localidade. A mensagem com o botao "Encerrar sessao" e temporaria (some em 15s).
+- `encerrar` — encerra a sessao de RP ativa no topico (apenas o criador ou Administrator), deleta o topico e remove automaticamente todos os registros da sessao e mensagens no banco de dados.
 
 Regras:
 - O topico e criado com `autoArchiveDuration: 1440` (24h).

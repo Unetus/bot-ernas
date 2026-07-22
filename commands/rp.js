@@ -52,13 +52,13 @@ async function execute(interaction) {
         }
 
         try {
-            sessionStore.finishSession(activeSession.id, interaction.user.id);
+            sessionStore.deleteSession(activeSession.id);
         } catch (err) {
-            console.error('[rp encerrar] Erro ao finalizar sessao:', err);
+            console.error('[rp encerrar] Erro ao deletar registros da sessao:', err);
             return await replyAndDelete(interaction, 'Erro ao encerrar a sessao.');
         }
 
-        await replyAndDelete(interaction, 'Sessao encerrada e historico salvo com sucesso!', 5000);
+        await replyAndDelete(interaction, 'Sessao encerrada e registros removidos com sucesso!', 5000);
 
         try {
             const channel = interaction.channel;
