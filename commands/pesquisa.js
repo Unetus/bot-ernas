@@ -168,7 +168,6 @@ function buildStatusComponents(pesquisa, registro, activeView = null) {
         new ButtonBuilder().setCustomId('pesq:tree_cat:oficios').setLabel(label('oficios', 'Ofícios')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('pesq:tree_cat:desenvolvimento').setLabel(label('desenvolvimento', 'Desenvolvimento')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('pesq:tree_cat:beneficios').setLabel(label('beneficios', 'Benefícios')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('pesq:tree_cat:geral').setLabel(label('geral', 'Visão Geral')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('pesq:show:status').setLabel(label('status', 'Painel')).setStyle(ButtonStyle.Secondary),
     ];
     rows.push(new ActionRowBuilder().addComponents(...navButtons));
@@ -358,26 +357,7 @@ async function execute(interaction) {
 
     if (sub === 'iniciar') {
         const slug = interaction.options.getString('disciplina', true).toLowerCase();
-        const disc = logic.DISCIPLINAS[slug];
-        if (!disc) {
-            return await replyAndDelete(interaction, `Disciplina desconhecida: ${slug}`, 6000);
-        }
-        const did = discordId(interaction);
-        const status = await api.getPesquisaCached(did).catch(() => null);
-        if (!status || status.error) {
-            return await replyAndDelete(interaction, 'Erro ao consultar seu status. Tente novamente.', 6000);
-        }
-        const statusDisc = logic.statusDisciplina({ ...status, arvore: status.arvore || [] }, slug);
-        if (statusDisc === logic.STATUS.BLOQUEADO) {
-            return await replyAndDelete(interaction, `${disc.nome} ainda nao esta desbloqueada.`, 6000);
-        }
-        if (statusDisc === logic.STATUS.MAXIMO) {
-            return await replyAndDelete(interaction, `${disc.nome} ja esta no nivel maximo.`, 6000);
-        }
-        if (statusDisc === logic.STATUS.EM_ANDAMENTO) {
-            return await replyAndDelete(interaction, `${disc.nome} ja esta sendo pesquisada.`, 6000);
-        }
-        return await interaction.showModal(buildIniciarModal(slug));
+        return await iniciarPesquisaAutomatica(interaction, slug);
     }
 
     if (sub === 'coletar') {
@@ -497,21 +477,82 @@ async function handleButton(interaction) {
     if (action === 'iniciar' && cat === 'pesq') {
         const slug = rest[0];
         if (!slug) return false;
-        const did = discordId(interaction);
-        const status = await api.getPesquisaCached(did).catch(() => null);
-        if (!status || status.error) {
-            await interaction.reply({ content: 'Erro ao consultar status.', ephemeral: true });
-            return true;
-        }
-        const statusDisc = logic.statusDisciplina({ ...status, arvore: status.arvore || [] }, slug);
-        if (statusDisc === logic.STATUS.BLOQUEADO || statusDisc === logic.STATUS.MAXIMO || statusDisc === logic.STATUS.EM_ANDAMENTO) {
-            await interaction.reply({ content: 'Esta disciplina nao pode ser pesquisada agora.', ephemeral: true });
-            return true;
-        }
-        await interaction.showModal(buildIniciarModal(slug));
+        await iniciarPesquisaAutomatica(interaction, slug);
         return true;
     }
     return false;
+}
+
+async function iniciarPesquisaAutomatica(interaction, slug) {
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: true });
+    }
+    const did = discordId(interaction);
+    try {
+        const status = await api.getPesquisaCached(did).catch(() => null);
+        if (!status || status.error) {
+            return await replyAndDelete(interaction, 'Erro ao consultar seu status de pesquisa. Tente novamente.', 8000);
+        }
+
+        const disc = logic.DISCIPLINAS[slug];
+        if (!disc) {
+            return await replyAndDelete(interaction, `Disciplina desconhecida: ${slug}`, 6000);
+        }
+
+        const statusDisc = logic.statusDisciplina(status, slug);
+        if (statusDisc === logic.STATUS.BLOQUEADO) {
+            return await replyAndDelete(interaction, `${disc.nome} ainda não está desbloqueada.`, 6000);
+        }
+        if (statusDisc === logic.STATUS.MAXIMO) {
+            return await replyAndDelete(interaction, `${disc.nome} já está no nível máximo.`, 6000);
+        }
+        if (statusDisc === logic.STATUS.EM_ANDAMENTO) {
+            return await replyAndDelete(interaction, `${disc.nome} já está sendo pesquisada no momento.`, 6000);
+        }
+
+        const ativas = status.slots?.ativas || [];
+        const slot1Ocupado = ativas.some((a) => a.slot === 1 && new Date(a.termina_em).getTime() > Date.now());
+        const slot2Ocupado = ativas.some((a) => a.slot === 2 && new Date(a.termina_em).getTime() > Date.now());
+        const slot2Ativo = status.slots?.slot2_ativo;
+
+        let freeSlot = null;
+        if (!slot1Ocupado) {
+            freeSlot = 1;
+        } else if (slot2Ativo && !slot2Ocupado) {
+            freeSlot = 2;
+        }
+
+        if (!freeSlot) {
+            if (!slot2Ativo) {
+                return await replyAndDelete(interaction, `Seu **Slot 1** está ocupado. O **Slot 2** é pago (1.500 Runas / 15 dias) e precisa ser ativado no site (ernas.com.br/pesquisa).`, 10000);
+            }
+            return await replyAndDelete(interaction, `Ambos os seus 2 slots de pesquisa já estão ocupados no momento. Aguarde uma pesquisa concluir.`, 8000);
+        }
+
+        const res = await api.postPesquisaIniciar(did, { disciplina: slug, slot: freeSlot });
+        if (res.error) {
+            return await replyAndDelete(interaction, `Erro ao iniciar pesquisa: ${res.error}`, 8000);
+        }
+
+        api.invalidateCache(did);
+        const updatedStatus = await api.getPesquisaCached(did).catch(() => null);
+        const node = updatedStatus?.arvore?.find((n) => n.slug === slug);
+        const nivelNovo = res.nivel_alvo ?? ((node?.nivel ?? 0) + 1);
+
+        const dataFim = res.termina_em
+            ? new Date(res.termina_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+            : 'em breve';
+
+        const saldoStr = res.novo_saldo_conhecimento != null
+            ? res.novo_saldo_conhecimento.toLocaleString('pt-BR')
+            : '?';
+
+        return await replyAndDelete(interaction, `Pesquisa de **${disc.nome}** iniciada no **Slot ${freeSlot}** (Nv ${nivelNovo - 1} → Nv ${nivelNovo})!\nConclusão em: ${dataFim}\nSaldo restante: ${saldoStr} Conhecimento`, 12000);
+    } catch (e) {
+        console.error('[iniciarPesquisaAutomatica] erro:', e);
+        const msg = e.response?.data?.error || e.message;
+        return await replyAndDelete(interaction, `Erro ao iniciar pesquisa: ${msg}`, 8000);
+    }
 }
 
 async function handleSelect(interaction) {
@@ -520,18 +561,7 @@ async function handleSelect(interaction) {
     if (interaction.customId === 'pesq:select_iniciar') {
         const slug = interaction.values[0];
         if (!slug) return false;
-        const did = discordId(interaction);
-        const status = await api.getPesquisaCached(did).catch(() => null);
-        if (!status || status.error) {
-            await interaction.reply({ content: 'Erro ao consultar seu status.', ephemeral: true });
-            return true;
-        }
-        const statusDisc = logic.statusDisciplina({ ...status, arvore: status.arvore || [] }, slug);
-        if (statusDisc === logic.STATUS.BLOQUEADO || statusDisc === logic.STATUS.MAXIMO || statusDisc === logic.STATUS.EM_ANDAMENTO) {
-            await interaction.reply({ content: 'Esta disciplina não pode ser pesquisada agora.', ephemeral: true });
-            return true;
-        }
-        await interaction.showModal(buildIniciarModal(slug));
+        await iniciarPesquisaAutomatica(interaction, slug);
         return true;
     }
 

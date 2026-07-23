@@ -3613,7 +3613,7 @@ function drawHudBoxCustom(ctx, x, y, w, h, fill, stroke, radius = 12) {
 async function gerarBannerPesquisaDetalhe(disc, status, opts = {}) {
     const DISCIPLINAS = require('../utils/pesquisaLogic');
     const w = 1000;
-    const h = 520;
+    const h = 540;
     const canvas = createCanvas(w, h);
     const ctx = canvas.getContext('2d');
     await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.5 });
@@ -3621,111 +3621,125 @@ async function gerarBannerPesquisaDetalhe(disc, status, opts = {}) {
     ctx.strokeStyle = HUD_GOLD;
     ctx.lineWidth = 3;
     ctx.strokeRect(24, 24, w - 48, h - 48);
-    ctx.globalAlpha = 0.55;
-    ctx.beginPath();
-    ctx.moveTo(60, 44);
-    ctx.lineTo(w - 60, 44);
-    ctx.moveTo(60, h - 44);
-    ctx.lineTo(w - 60, h - 44);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
 
     const node = (status.arvore || []).find((n) => n.slug === disc.slug);
     const nivel = node?.nivel ?? 0;
-    const statusDisc = DISCIPLINAS.statusDisciplina({ ...status, arvore: status.arvore || [] }, disc.slug);
+    const statusDisc = DISCIPLINAS.statusDisciplina(status, disc.slug);
 
-    // Eyebrow
-    ctx.textAlign = 'left';
+    const cx = w / 2;
+
+    // Eyebrow centralizado
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillStyle = HUD_GOLD;
+    ctx.fillStyle = DISCIPLINAS.GRUPO_COLOR[disc.grupo] || HUD_GOLD;
     ctx.font = 'bold 16px "Baloo 2"';
-    ctx.fillText(`  ${DISCIPLINAS.GRUPO_LABEL[disc.grupo].toUpperCase()}  `, 60, 50);
+    const grupoLabel = (DISCIPLINAS.GRUPO_LABEL[disc.grupo] || 'DISCIPLINA').toUpperCase();
+    ctx.fillText(`◆   ${grupoLabel}   ◆`, cx, 46);
 
-    // Icone grande
+    // Ícone grande centralizado (80x80)
+    const iconSize = 80;
+    const iconX = cx - iconSize / 2;
+    const iconY = 82;
+
     if (opts.iconBuffer) {
         try {
             const icon = await loadImage(opts.iconBuffer);
             ctx.save();
             ctx.beginPath();
-            ctx.arc(120, 160, 48, 0, Math.PI * 2);
+            if (ctx.roundRect) ctx.roundRect(iconX, iconY, iconSize, iconSize, 14);
+            else ctx.rect(iconX, iconY, iconSize, iconSize);
             ctx.closePath();
             ctx.clip();
-            ctx.drawImage(icon, 72, 112, 96, 96);
+            ctx.drawImage(icon, iconX, iconY, iconSize, iconSize);
             ctx.restore();
+
             ctx.strokeStyle = HUD_GOLD;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(120, 160, 48, 0, Math.PI * 2);
+            if (ctx.roundRect) ctx.roundRect(iconX, iconY, iconSize, iconSize, 14);
+            else ctx.rect(iconX, iconY, iconSize, iconSize);
             ctx.stroke();
-        } catch {}
+        } catch {
+            drawFallbackIcon(ctx, disc, iconX, iconY, iconSize, false);
+        }
+    } else {
+        drawFallbackIcon(ctx, disc, iconX, iconY, iconSize, false);
     }
 
-    // Titulo
+    // Título centralizado
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 42px "Cinzel"';
-    ctx.fillText(disc.nome, 200, 110);
+    ctx.font = 'bold 36px "Cinzel"';
+    ctx.fillText(disc.nome, cx, 176);
 
-    // Nivel
-    ctx.fillStyle = '#D4AF37';
-    ctx.font = 'bold 20px "Cinzel"';
-    ctx.fillText(`Nv ${nivel}/${disc.nivelMax}`, 200, 158);
-
-    // Status
+    // Nível + Status centralizados
     const statusLabels = {
         [DISCIPLINAS.STATUS.BLOQUEADO]: 'BLOQUEADO',
         [DISCIPLINAS.STATUS.DESBLOQUEADO]: 'DESBLOQUEADO',
         [DISCIPLINAS.STATUS.EM_ANDAMENTO]: 'EM ANDAMENTO',
-        [DISCIPLINAS.STATUS.PRONTO]: 'PRONTO',
-        [DISCIPLINAS.STATUS.MAXIMO]: 'NIVEL MAXIMO',
+        [DISCIPLINAS.STATUS.PRONTO]: 'PRONTO PRA COLETAR',
+        [DISCIPLINAS.STATUS.MAXIMO]: 'NÍVEL MÁXIMO',
     };
     const statusColors = {
         [DISCIPLINAS.STATUS.BLOQUEADO]: '#6B7280',
         [DISCIPLINAS.STATUS.DESBLOQUEADO]: '#10B981',
         [DISCIPLINAS.STATUS.EM_ANDAMENTO]: '#F59E0B',
-        [DISCIPLINAS.STATUS.PRONTO]: '#10B981',
+        [DISCIPLINAS.STATUS.PRONTO]: '#34D399',
         [DISCIPLINAS.STATUS.MAXIMO]: '#D4AF37',
     };
-    ctx.fillStyle = statusColors[statusDisc];
-    ctx.font = 'bold 16px "Baloo 2"';
-    ctx.fillText(statusLabels[statusDisc], 200, 188);
 
-    // Efeito atual (se nivel > 0)
+    ctx.fillStyle = statusColors[statusDisc] || HUD_GOLD;
+    ctx.font = 'bold 16px "Baloo 2"';
+    ctx.fillText(`Nível ${nivel} / ${disc.nivelMax}   •   ${statusLabels[statusDisc] || ''}`, cx, 222);
+
+    // Linha divisória
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cx - 250, 256);
+    ctx.lineTo(cx + 250, 256);
+    ctx.stroke();
+
+    // Efeito Atual
+    let cursorY = 276;
     if (nivel > 0 && node?.efeito_atual) {
-        ctx.fillStyle = '#F4E7C8';
+        ctx.fillStyle = HUD_GOLD;
         ctx.font = 'bold 14px "Cinzel"';
-        ctx.fillText('EFEITO ATUAL', 60, 230);
-        ctx.fillStyle = HUD_TEXT;
+        ctx.fillText('EFEITO ATUAL', cx, cursorY);
+        cursorY += 24;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '16px "Nunito"';
+        ctx.fillText(trimToWidth(ctx, node.efeito_atual, w - 160), cx, cursorY);
+        cursorY += 34;
+    } else {
+        ctx.fillStyle = '#9CA3AF';
         ctx.font = '15px "Nunito"';
-        ctx.fillText(trimToWidth(ctx, node.efeito_atual, w - 140), 60, 256);
-    } else if (nivel === 0) {
-        ctx.fillStyle = '#6B7280';
-        ctx.font = '14px "Nunito"';
-        ctx.fillText('Nivel 0: sem efeito. Pesquise para desbloquear o nivel 1.', 60, 240);
+        ctx.fillText('Nível 0: Sem efeito ativo. Inicie a pesquisa para desbloquear o Nível 1.', cx, cursorY);
+        cursorY += 34;
     }
 
-    // Proximo nivel
-    const yNext = nivel > 0 ? 310 : 280;
+    // Próximo Nível
     if (node?.proximo) {
-        ctx.fillStyle = '#D4AF37';
+        ctx.fillStyle = HUD_GOLD;
         ctx.font = 'bold 14px "Cinzel"';
-        ctx.fillText(`PROXIMO NIVEL (${node.proximo.nivel})`, 60, yNext);
-        ctx.fillStyle = HUD_TEXT;
+        ctx.fillText(`PROXIMO NÍVEL (${node.proximo.nivel})`, cx, cursorY);
+        cursorY += 24;
+
+        ctx.fillStyle = '#E5E7EB';
         ctx.font = '15px "Nunito"';
-        ctx.fillText(`Custo: ${node.proximo.custo_conhecimento.toLocaleString('pt-BR')} Conhecimento`, 60, yNext + 28);
-        ctx.fillText(`Duracao: ${DISCIPLINAS.formatDuracao(node.proximo.duracao_segundos)}`, 60, yNext + 50);
-        ctx.fillStyle = '#AEB6C2';
-        ctx.font = 'italic 13px "Nunito"';
-        ctx.fillText(trimToWidth(ctx, node.proximo.efeito || '', w - 140), 60, yNext + 72);
+        const custoStr = node.proximo.custo_conhecimento.toLocaleString('pt-BR');
+        const durStr = DISCIPLINAS.formatDuracao(node.proximo.duracao_segundos);
+        ctx.fillText(`Custo: ${custoStr} pts Conhecimento   •   Duração: ${durStr}`, cx, cursorY);
+        cursorY += 26;
+
+        if (node.proximo.efeito) {
+            ctx.fillStyle = '#9CA3AF';
+            ctx.font = 'italic 14px "Nunito"';
+            ctx.fillText(trimToWidth(ctx, node.proximo.efeito, w - 160), cx, cursorY);
+        }
     } else if (nivel >= disc.nivelMax) {
-        ctx.fillStyle = '#D4AF37';
+        ctx.fillStyle = HUD_GOLD;
         ctx.font = 'bold 16px "Cinzel"';
-        ctx.textAlign = 'center';
-        ctx.fillText('Disciplina no nivel maximo!', w / 2, yNext + 20);
-        ctx.textAlign = 'left';
-    } else {
-        ctx.fillStyle = '#6B7280';
-        ctx.font = '14px "Nunito"';
-        ctx.fillText('Use /pesquisa iniciar para comecar.', 60, yNext + 10);
+        ctx.fillText('Disciplina no nível máximo!', cx, cursorY + 10);
     }
 
     return canvas.toBuffer('image/png');
