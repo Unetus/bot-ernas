@@ -71,3 +71,6 @@ O retorno esperado e um painel privado com banner medieval moderno, botoes nativ
 - Se o bot nao aparecer no PM2, o workflow tentara criar o processo com `pm2 start index.js --name rpg-bot`.
 - Se o painel aparecer sem imagem de fundo, confirme se `assets/ui/painel-hud-medieval.png` existe no servidor e se o workflow esta copiando `assets/**`.
 - Se comandos novos nao aparecerem no Discord, aguarde alguns minutos ou reinicie o bot; o `index.js` registra slash commands no evento `ready`.
+
+## Dependências de Deploy
+Ao atualizar funcionalidades que dependem da API pública (como o sistema de /pesquisa), certifique-se de que o **site (arkandia2)** foi publicado em produção antes do bot para evitar erros de endpoints não encontrados.

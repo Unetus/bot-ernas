@@ -109,3 +109,4 @@ Tanto `/localidade configurar` quanto `/rp iniciar` produzem **uma unica imagem*
 3. Testar renderizacao local do Canvas antes do deploy.
 4. Rodar `node test_commands.js`.
 5. Conferir se assets novos estao incluidos no workflow de deploy.
+- /pesquisa (Renderiza painéis de progressão de habilidades, slots e árvore de conhecimentos)

@@ -213,3 +213,6 @@ Controla viagens por categorias/canais.
 4. Editar a mensagem original em navegacoes internas.
 5. Validar permissoes em qualquer acao sensivel.
 6. Rodar `node test_commands.js` antes do deploy.
+
+### Comandos Ja Padronizados
+- /pesquisa (Novo!)

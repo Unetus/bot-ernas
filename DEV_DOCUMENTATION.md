@@ -269,3 +269,6 @@ bot-ernas/
 â”œâ”€â”€ .github/workflows/deploy.yml  # Deploy automÃ¡tico
 â””â”€â”€ docs e guias (DEPLOY_GUIDE, COMMANDS_AND_FEATURES, HUD_VISUAL_STANDARD, DEV_DOCUMENTATION)
 ```
+
+## Sistema de Pesquisa
+O bot possui suporte ao sistema de pesquisa de slots de skills e registro de novos conhecimentos através do comando /pesquisa e /pesquisa registro. Toda a lógica de gating, cache de assets e chamadas RPC com a API pública está encapsulada nos utilitários pesquisaLogic.js, pesquisaAssets.js e pesquisaApi.js. Os endpoints correspondentes (no rkandia2) lidam com persistência de banco e validação idempotente.
