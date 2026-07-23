@@ -159,14 +159,25 @@ async function renderPesquisaStatusForPainel(interaction) {
     return await sendStatus(interaction, true);
 }
 
-function buildStatusComponents(pesquisa, registro) {
+function buildStatusComponents(pesquisa, registro, activeView = null) {
     const rows = [];
 
-    // 1. Select Menu para Iniciar Pesquisa
+    // Row 1: Botões de navegação da Árvore por Classificação (no mesmo padrão do /painel)
+    const label = (view, text) => `${activeView === view ? '◆' : '◇'} ${text}`;
+    const navButtons = [
+        new ButtonBuilder().setCustomId('pesq:tree_cat:oficios').setLabel(label('oficios', 'Ofícios')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('pesq:tree_cat:desenvolvimento').setLabel(label('desenvolvimento', 'Desenvolvimento')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('pesq:tree_cat:beneficios').setLabel(label('beneficios', 'Benefícios')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('pesq:tree_cat:geral').setLabel(label('geral', 'Visão Geral')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('pesq:show:status').setLabel(label('status', 'Painel')).setStyle(ButtonStyle.Secondary),
+    ];
+    rows.push(new ActionRowBuilder().addComponents(...navButtons));
+
+    // Row 2: Select Menu para Iniciar Pesquisa (Sem Emojis, padrão limpo)
     const availableOptions = [];
     for (const disc of logic.DISCIPLINAS_LIST) {
         const node = (pesquisa.arvore || []).find(n => n.slug === disc.slug);
-        const statusDisc = logic.statusDisciplina({ ...pesquisa, arvore: pesquisa.arvore || [] }, disc.slug);
+        const statusDisc = logic.statusDisciplina(pesquisa, disc.slug);
         if (statusDisc === logic.STATUS.DESBLOQUEADO || statusDisc === logic.STATUS.PRONTO) {
             const nivelAtual = node?.nivel ?? 0;
             const proximoNivel = nivelAtual + 1;
@@ -175,10 +186,9 @@ function buildStatusComponents(pesquisa, registro) {
             const desc = [custo ? `Custo: ${custo}` : '', dur ? `Duração: ${dur}` : ''].filter(Boolean).join(' | ') || 'Pronto para iniciar';
             
             availableOptions.push({
-                label: `${disc.nome} (Nv ${nivelAtual} → ${proximoNivel})`,
+                label: `${disc.nome} (Nv ${nivelAtual} -> ${proximoNivel})`,
                 description: desc.slice(0, 100),
                 value: disc.slug,
-                emoji: '⚡'
             });
         }
     }
@@ -186,19 +196,19 @@ function buildStatusComponents(pesquisa, registro) {
     if (availableOptions.length > 0) {
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId('pesq:select_iniciar')
-            .setPlaceholder('⚡ Selecione uma disciplina para iniciar pesquisa...')
+            .setPlaceholder('Selecione uma disciplina para iniciar a pesquisa...')
             .addOptions(availableOptions.slice(0, 25));
         rows.push(new ActionRowBuilder().addComponents(selectMenu));
     } else {
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId('pesq:select_iniciar_empty')
-            .setPlaceholder('🔒 Nenhuma disciplina disponível para iniciar')
+            .setPlaceholder('Nenhuma disciplina disponível para iniciar no momento')
             .setDisabled(true)
-            .addOptions([{ label: 'Vazio', value: 'vazio' }]);
+            .addOptions([{ label: 'Sem pesquisas disponíveis', value: 'vazio' }]);
         rows.push(new ActionRowBuilder().addComponents(selectMenu));
     }
 
-    // 2. Select Menu para Ver Detalhes
+    // Row 3: Select Menu para Ver Detalhes (Sem Emojis, padrão limpo)
     const detailOptions = logic.DISCIPLINAS_LIST.map(disc => {
         const node = (pesquisa.arvore || []).find(n => n.slug === disc.slug);
         const nivelAtual = node?.nivel ?? 0;
@@ -206,53 +216,44 @@ function buildStatusComponents(pesquisa, registro) {
             label: `${disc.nome} (Nv ${nivelAtual}/${disc.nivelMax})`,
             description: logic.GRUPO_LABEL[disc.grupo] || 'Disciplina',
             value: disc.slug,
-            emoji: '📖'
         };
     });
 
     const detailSelect = new StringSelectMenuBuilder()
         .setCustomId('pesq:select_detalhe')
-        .setPlaceholder('📖 Ver detalhes de uma disciplina...')
+        .setPlaceholder('Ver detalhes de uma disciplina...')
         .addOptions(detailOptions.slice(0, 25));
     rows.push(new ActionRowBuilder().addComponents(detailSelect));
 
-    // 3. Botões de ação (Coletar Pesquisa, Coletar Registro, Árvore, Status)
-    const buttons = [];
+    // Row 4: Botões de Ação de Coleta (Se houver pesquisas ou registros prontos)
+    const actionButtons = [];
     for (const ativa of pesquisa.slots?.ativas || []) {
         const terminou = new Date(ativa.termina_em).getTime() <= Date.now();
         if (terminou) {
-            buttons.push(new ButtonBuilder()
+            actionButtons.push(new ButtonBuilder()
                 .setCustomId(`pesq:coletar:${ativa.id}`)
-                .setLabel(`✨ Coletar Pesquisa (Nv ${ativa.nivel_alvo})`)
+                .setLabel(`Coletar Pesquisa (Nv ${ativa.nivel_alvo})`)
                 .setStyle(ButtonStyle.Success));
         }
     }
     for (const ativa of (registro?.slots?.ativas || [])) {
         const terminou = new Date(ativa.termina_em).getTime() <= Date.now();
         if (terminou) {
-            buttons.push(new ButtonBuilder()
+            actionButtons.push(new ButtonBuilder()
                 .setCustomId(`reg:coletar:${ativa.id}`)
-                .setLabel(`✨ Coletar Registro (${ativa.tipo?.toUpperCase()})`)
+                .setLabel(`Coletar Registro (${ativa.tipo?.toUpperCase()})`)
                 .setStyle(ButtonStyle.Success));
         }
     }
 
-    buttons.push(new ButtonBuilder()
-        .setCustomId('pesq:show:arvore')
-        .setLabel('🌳 Ver Árvore')
-        .setStyle(ButtonStyle.Primary));
-
-    buttons.push(new ButtonBuilder()
-        .setCustomId('pesq:show:status')
-        .setLabel('📊 Ver Painel')
-        .setStyle(ButtonStyle.Secondary));
-
-    rows.push(new ActionRowBuilder().addComponents(...buttons.slice(0, 5)));
+    if (actionButtons.length > 0) {
+        rows.push(new ActionRowBuilder().addComponents(...actionButtons.slice(0, 5)));
+    }
 
     return rows;
 }
 
-async function sendArvore(interaction) {
+async function sendArvore(interaction, grupo = 'oficios') {
     if (!interaction.deferred && !interaction.replied) {
         await interaction.deferReply({ ephemeral: true });
     }
@@ -266,9 +267,9 @@ async function sendArvore(interaction) {
             return await replyAndDelete(interaction, `Erro: ${status.error}`, 8000);
         }
         const icons = await loadAllIcons();
-        const buffer = await gerarBannerPesquisaArvore(status, { assets: icons });
-        const attachment = new AttachmentBuilder(buffer, { name: 'pesquisa-arvore.png' });
-        const components = buildStatusComponents(status, registro || {});
+        const buffer = await gerarBannerPesquisaArvore(status, { assets: icons, grupo });
+        const attachment = new AttachmentBuilder(buffer, { name: `pesquisa-arvore-${grupo}.png` });
+        const components = buildStatusComponents(status, registro || {}, grupo);
         return await interaction.editReply({ files: [attachment], components });
     } catch (e) {
         console.error('[pesquisa arvore] erro:', e);
@@ -465,9 +466,15 @@ function showRegistroIniciarModal(interaction, tipo) {
 async function handleButton(interaction) {
     if (!interaction.customId.startsWith('pesq:') && !interaction.customId.startsWith('reg:')) return false;
     const [cat, action, ...rest] = interaction.customId.split(':');
+    if (action === 'tree_cat' && cat === 'pesq') {
+        const grupo = rest[0] || 'oficios';
+        await interaction.deferUpdate().catch(() => {});
+        await sendArvore(interaction, grupo);
+        return true;
+    }
     if (action === 'show' && rest[0] === 'arvore') {
         await interaction.deferUpdate().catch(() => {});
-        await sendArvore(interaction);
+        await sendArvore(interaction, 'oficios');
         return true;
     }
     if (action === 'show' && rest[0] === 'status') {

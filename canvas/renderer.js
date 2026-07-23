@@ -3326,37 +3326,79 @@ function drawRegSlotContent(ctx, registro, slotNum, x, y, maxW) {
  */
 async function gerarBannerPesquisaArvore(status, opts = {}) {
     const DISCIPLINAS = require('../utils/pesquisaLogic');
+    const grupoFiltro = opts.grupo || 'oficios';
+
+    if (grupoFiltro === 'oficios' || grupoFiltro === 'desenvolvimento' || grupoFiltro === 'beneficios') {
+        const discs = DISCIPLINAS.DISCIPLINAS_LIST.filter(d => d.grupo === grupoFiltro);
+        const grupoNome = DISCIPLINAS.GRUPO_LABEL[grupoFiltro] || 'Disciplinas';
+        const isOficios = grupoFiltro === 'oficios';
+        const w = 1000;
+        const h = isOficios ? 600 : 400;
+        const canvas = createCanvas(w, h);
+        const ctx = canvas.getContext('2d');
+        await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.5 });
+
+        // Borda externa
+        ctx.strokeStyle = HUD_GOLD;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(24, 24, w - 48, h - 48);
+
+        // Header Topo
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = DISCIPLINAS.GRUPO_COLOR[grupoFiltro] || HUD_GOLD;
+        ctx.font = 'bold 16px "Baloo 2"';
+        ctx.fillText(`  ◆   Á R V O R E   D E   P E S Q U I S A   —   ${grupoNome.toUpperCase()}   ◆  `, 50, 46);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 34px "Cinzel"';
+        ctx.fillText(`${grupoNome} (${discs.length} Disciplinas)`, 50, 76);
+
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '15px "Nunito"';
+        const conhTxt = (status.conhecimento ?? 0).toLocaleString('pt-BR');
+        const taxaTxt = (status.taxa_hora ?? 0).toLocaleString('pt-BR');
+        ctx.fillText(`Conhecimento: ${conhTxt} pts   |   Ganho: +${taxaTxt}/h`, 50, 118);
+
+        const startY = 158;
+        const colW = 435;
+        const cardH = 72;
+        const gapX = 20;
+        const gapY = 10;
+
+        for (let i = 0; i < discs.length; i++) {
+            const disc = discs[i];
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const cx = 50 + col * (colW + gapX);
+            const cy = startY + row * (cardH + gapY);
+            await drawPesquisaCard(ctx, disc, status, opts, cx, cy, colW, cardH);
+        }
+
+        return canvas.toBuffer('image/png');
+    }
+
+    // Visão Geral (3 colunas)
     const w = 1100;
     const h = 780;
     const canvas = createCanvas(w, h);
     const ctx = canvas.getContext('2d');
     await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.5 });
 
-    // Borda externa
     ctx.strokeStyle = HUD_GOLD;
     ctx.lineWidth = 3;
     ctx.strokeRect(24, 24, w - 48, h - 48);
-    ctx.globalAlpha = 0.55;
-    ctx.beginPath();
-    ctx.moveTo(50, 44);
-    ctx.lineTo(w - 50, 44);
-    ctx.moveTo(50, h - 44);
-    ctx.lineTo(w - 50, h - 44);
-    ctx.stroke();
-    ctx.globalAlpha = 1;
 
-    // Header Topo
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillStyle = HUD_GOLD;
     ctx.font = 'bold 16px "Baloo 2"';
-    ctx.fillText('  ◆   Á R V O R E   D E   P E S Q U I S A   ◆  ', 50, 48);
+    ctx.fillText('  ◆   Á R V O R E   D E   P E S Q U I S A   —   V I S Ã O   G E R A L   ◆  ', 50, 48);
 
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 36px "Cinzel"';
-    ctx.fillText('Disciplinas & Especializações', 50, 80);
+    ctx.fillText('Todas as Disciplinas & Especializações', 50, 80);
 
-    // Sub-bar com saldos
     ctx.fillStyle = HUD_MUTED;
     ctx.font = '15px "Nunito"';
     const conhTxt = (status.conhecimento ?? 0).toLocaleString('pt-BR');
@@ -3373,7 +3415,6 @@ async function gerarBannerPesquisaArvore(status, opts = {}) {
     const desenvolvimento = DISCIPLINAS.DISCIPLINAS_LIST.filter(d => d.grupo === DISCIPLINAS.GRUPOS.DESENVOLVIMENTO);
     const beneficios = DISCIPLINAS.DISCIPLINAS_LIST.filter(d => d.grupo === DISCIPLINAS.GRUPOS.BENEFICIOS);
 
-    // COLUNA 1: OFÍCIOS (Parte 1: 5 itens)
     const col1X = 50;
     drawGroupHeader(ctx, 'OFÍCIOS (1/2)', DISCIPLINAS.GRUPO_COLOR.oficios, col1X, startY);
     let y1 = startY + 36;
@@ -3382,8 +3423,7 @@ async function gerarBannerPesquisaArvore(status, opts = {}) {
         y1 += cardH + cardGapY;
     }
 
-    // COLUNA 2: OFÍCIOS (Parte 2: 5 itens)
-    const col2X = col1X + colW + 20; // 390
+    const col2X = col1X + colW + 20;
     drawGroupHeader(ctx, 'OFÍCIOS (2/2)', DISCIPLINAS.GRUPO_COLOR.oficios, col2X, startY);
     let y2 = startY + 36;
     for (const disc of oficios.slice(5)) {
@@ -3391,11 +3431,9 @@ async function gerarBannerPesquisaArvore(status, opts = {}) {
         y2 += cardH + cardGapY;
     }
 
-    // COLUNA 3: DESENVOLVIMENTO + BENEFÍCIOS
-    const col3X = col2X + colW + 20; // 730
+    const col3X = col2X + colW + 20;
     let y3 = startY;
 
-    // Seção Desenvolvimento
     drawGroupHeader(ctx, 'DESENVOLVIMENTO', DISCIPLINAS.GRUPO_COLOR.desenvolvimento, col3X, y3);
     y3 += 36;
     for (const disc of desenvolvimento) {
@@ -3404,7 +3442,6 @@ async function gerarBannerPesquisaArvore(status, opts = {}) {
     }
 
     y3 += 10;
-    // Seção Benefícios
     drawGroupHeader(ctx, 'BENEFÍCIOS', DISCIPLINAS.GRUPO_COLOR.beneficios, col3X, y3);
     y3 += 36;
     for (const disc of beneficios) {

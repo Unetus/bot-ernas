@@ -162,11 +162,15 @@ const STATUS = {
     MAXIMO: 'maximo',
 };
 
-function statusDisciplina(arvore, slug) {
-    const node = arvore?.find?.((n) => n.slug === slug) || arvore?.[slug];
+function statusDisciplina(statusObj, slug) {
+    const arvore = Array.isArray(statusObj) ? statusObj : (statusObj?.arvore || []);
+    const node = arvore.find?.((n) => n?.slug === slug) || arvore?.[slug];
     if (!node) return STATUS.BLOQUEADO;
-    if (node.nivel >= DISCIPLINAS[slug].nivelMax) return STATUS.MAXIMO;
-    const ativa = arvore.ativas?.find((a) => a.disciplina === slug);
+    const max = DISCIPLINAS[slug]?.nivelMax || 5;
+    if (node.nivel >= max) return STATUS.MAXIMO;
+
+    const ativas = statusObj?.slots?.ativas || statusObj?.ativas || arvore?.ativas || [];
+    const ativa = Array.isArray(ativas) ? ativas.find((a) => a.disciplina === slug) : null;
     if (ativa) {
         const terminou = new Date(ativa.termina_em).getTime() <= Date.now();
         return terminou ? STATUS.PRONTO : STATUS.EM_ANDAMENTO;
