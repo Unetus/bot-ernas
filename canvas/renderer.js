@@ -3492,7 +3492,7 @@ async function drawPesquisaCard(ctx, disc, status, opts, x, y, w, h) {
     const iconSize = 44;
     const iconX = x + 10;
     const iconY = y + 12;
-    const iconBuffer = opts.assets?.[disc.slug];
+    const iconBuffer = opts.assets?.[disc.slug] || opts.iconBuffers?.[disc.slug];
 
     if (iconBuffer) {
         try {
