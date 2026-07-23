@@ -165,70 +165,264 @@ async function renderPesquisaStatusForPainel(interaction) {
     return await sendStatus(interaction, true);
 }
 
-function buildStatusComponents(pesquisa, registro, activeView = null) {
-    const rows = [];
+function buildRegistroUnlockedOptions(pesquisa) {
+    const options = [];
+    const niveis = {};
+    for (const n of (pesquisa?.arvore || [])) {
+        niveis[n.slug] = n.nivel ?? 0;
+    }
 
-    // Row 1: Botões de navegação da Árvore por Classificação (no mesmo padrão do /painel)
-    const label = (view, text) => `${activeView === view ? '◆' : '◇'} ${text}`;
-    const navButtons = [
-        new ButtonBuilder().setCustomId('pesq:tree_cat:oficios').setLabel(label('oficios', 'Ofícios')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('pesq:tree_cat:desenvolvimento').setLabel(label('desenvolvimento', 'Desenvolvimento')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('pesq:tree_cat:beneficios').setLabel(label('beneficios', 'Benefícios')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('pesq:show:status').setLabel(label('status', 'Painel')).setStyle(ButtonStyle.Secondary),
-    ];
-    rows.push(new ActionRowBuilder().addComponents(...navButtons));
+    // Mineração
+    const mineracaoNv = niveis.mineracao ?? 0;
+    if (mineracaoNv >= 1) {
+        const lingotes = [
+            { req: 1, rar: 'comum', nome: 'Lingote de Ferro' },
+            { req: 3, rar: 'raro', nome: 'Lingote de Aço' },
+            { req: 5, rar: 'epico', nome: 'Lingote de Platina' },
+            { req: 7, rar: 'lendario', nome: 'Lingote de Ferro Estígio' },
+            { req: 9, rar: 'mitico', nome: 'Lingote de Prata Celestial' },
+        ];
+        for (const l of lingotes) {
+            if (mineracaoNv >= l.req) {
+                options.push({
+                    label: `Mineração: ${l.nome} (${l.rar.toUpperCase()})`,
+                    description: 'Extração idle de minério',
+                    value: `extracao:mineracao:${l.rar}`,
+                });
+            }
+        }
+    }
 
-    // Row 2: Select Menu para Iniciar Pesquisa (Sem Emojis, padrão limpo)
-    const availableOptions = [];
-    for (const disc of logic.DISCIPLINAS_LIST) {
-        const node = (pesquisa.arvore || []).find(n => n.slug === disc.slug);
-        const statusDisc = logic.statusDisciplina(pesquisa, disc.slug);
-        if (statusDisc === logic.STATUS.DESBLOQUEADO || statusDisc === logic.STATUS.PRONTO) {
-            const nivelAtual = node?.nivel ?? 0;
-            const proximoNivel = nivelAtual + 1;
-            const custo = node?.proximo?.custo_conhecimento ? `${node.proximo.custo_conhecimento.toLocaleString('pt-BR')} pts` : '';
-            const dur = node?.proximo?.duracao_segundos ? logic.formatDuracao(node.proximo.duracao_segundos) : '';
-            const desc = [custo ? `Custo: ${custo}` : '', dur ? `Duração: ${dur}` : ''].filter(Boolean).join(' | ') || 'Pronto para iniciar';
-            
-            availableOptions.push({
-                label: `${disc.nome} (Nv ${nivelAtual} -> ${proximoNivel})`,
-                description: desc.slice(0, 100),
-                value: disc.slug,
+    // Dendrologia
+    const dendroNv = niveis.dendrologia ?? 0;
+    if (dendroNv >= 1) {
+        const madeiras = [
+            { tier: 1, nome: 'Carvalho-Bravo (Tier 1)' },
+            { tier: 2, nome: 'Freixo-Rubro (Tier 2)' },
+            { tier: 3, nome: 'Teixo-Lunar (Tier 3)' },
+            { tier: 4, nome: 'Ébano-Etéreo (Tier 4)' },
+            { tier: 5, nome: 'Coração-do-Bosque (Tier 5)' },
+        ];
+        for (const m of madeiras) {
+            if (dendroNv >= m.tier) {
+                options.push({
+                    label: `Dendrologia: ${m.nome}`,
+                    description: 'Extração idle de madeira especial',
+                    value: `extracao:dendrologia:${m.tier}`,
+                });
+            }
+        }
+    }
+
+    // Geologia Arcana
+    const geoNv = niveis.geologia_arcana ?? 0;
+    if (geoNv >= 1) {
+        options.push({
+            label: 'Geologia Arcana: Cristal de Éter',
+            description: 'Extração idle de cristais arcanos',
+            value: 'extracao:geologia_arcana',
+        });
+    }
+
+    // Herbologia
+    const herboNv = niveis.herbologia ?? 0;
+    if (herboNv >= 1) {
+        const ervas = [
+            { tier: 1, nome: 'Erva Salvabranca (Tier 1)' },
+            { tier: 2, nome: 'Erva Vermilho (Tier 2)' },
+            { tier: 3, nome: 'Erva Lumen (Tier 3)' },
+            { tier: 4, nome: 'Erva Bruma-Eterna (Tier 4)' },
+            { tier: 5, nome: 'Erva Lótus-do-Véu (Tier 5)' },
+        ];
+        for (const e of ervas) {
+            if (herboNv >= e.tier) {
+                options.push({
+                    label: `Herbologia: ${e.nome}`,
+                    description: 'Colheita idle de ervas para alquimia',
+                    value: `extracao:herbologia:${e.tier}`,
+                });
+            }
+        }
+    }
+
+    // Catalisação
+    const catNv = niveis.catalisacao ?? 0;
+    if (catNv >= 1) {
+        const designios = ['marcial', 'elemental', 'cinetica', 'vital', 'mimetica', 'espiritual', 'arcana', 'psiquica', 'conceitual', 'incomum'];
+        const numDes = Math.min(catNv, designios.length);
+        for (let i = 0; i < numDes; i++) {
+            const d = designios[i];
+            const nomeD = d.charAt(0).toUpperCase() + d.slice(1);
+            options.push({
+                label: `Catalisação: Essência ${nomeD}`,
+                description: 'Extração idle de essência de maestria',
+                value: `extracao:catalisacao:essencia:${d}`,
+            });
+        }
+        if (catNv >= 4) {
+            options.push({ label: 'Catalisação: Catalisador Épico', description: 'Extração de catalisador arcano épico', value: 'extracao:catalisacao:catalisador:epico' });
+        }
+        if (catNv >= 7) {
+            options.push({ label: 'Catalisação: Catalisador Lendário', description: 'Extração de catalisador arcano lendário', value: 'extracao:catalisacao:catalisador:lendario' });
+        }
+        if (catNv >= 10) {
+            options.push({ label: 'Catalisação: Catalisador Mítico', description: 'Extração de catalisador arcano mítico', value: 'extracao:catalisacao:catalisador:mitico' });
+        }
+    }
+
+    // Roleplay
+    const rpNv = niveis.roleplay ?? 0;
+    if (rpNv >= 1) {
+        const duracoes = [4, 8, 12, 24];
+        for (const h of duracoes) {
+            options.push({
+                label: `Roleplay: Sessão de ${h} horas`,
+                description: `Ganho de XP idle acumulado durante ${h}h`,
+                value: `roleplay:${h}`,
             });
         }
     }
 
-    if (availableOptions.length > 0) {
-        const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId('pesq:select_iniciar')
-            .setPlaceholder('Selecione uma disciplina para iniciar a pesquisa...')
-            .addOptions(availableOptions.slice(0, 25));
-        rows.push(new ActionRowBuilder().addComponents(selectMenu));
-    } else {
-        const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId('pesq:select_iniciar_empty')
-            .setPlaceholder('Nenhuma disciplina disponível para iniciar no momento')
-            .setDisabled(true)
-            .addOptions([{ label: 'Sem pesquisas disponíveis', value: 'vazio' }]);
-        rows.push(new ActionRowBuilder().addComponents(selectMenu));
+    // Benefícios
+    if ((niveis.metodologia_estudo ?? 0) >= 1) {
+        options.push({
+            label: 'Ativar Benefício: Metodologia de Estudo',
+            description: 'Aumenta produção passiva de Conhecimento por 6h',
+            value: 'beneficio:metodologia_estudo',
+        });
+    }
+    if ((niveis.valoracao_comercial ?? 0) >= 1) {
+        options.push({
+            label: 'Ativar Benefício: Valoração Comercial',
+            description: 'Bônus de % nas vendas à Loja NPC por 6h',
+            value: 'beneficio:valoracao_comercial',
+        });
+    }
+    if ((niveis.negociacao_mercantil ?? 0) >= 1) {
+        options.push({
+            label: 'Ativar Benefício: Negociação Mercantil',
+            description: 'Desconto de % nas compras da Loja NPC por 6h',
+            value: 'beneficio:negociacao_mercantil',
+        });
     }
 
-    // Row 3: Select Menu para Ver Detalhes (Sem Emojis, padrão limpo)
-    const detailOptions = logic.DISCIPLINAS_LIST.map(disc => {
-        const node = (pesquisa.arvore || []).find(n => n.slug === disc.slug);
-        const nivelAtual = node?.nivel ?? 0;
-        return {
-            label: `${disc.nome} (Nv ${nivelAtual}/${disc.nivelMax})`,
-            description: logic.GRUPO_LABEL[disc.grupo] || 'Disciplina',
-            value: disc.slug,
-        };
-    });
+    return options;
+}
 
-    const detailSelect = new StringSelectMenuBuilder()
-        .setCustomId('pesq:select_detalhe')
-        .setPlaceholder('Ver detalhes de uma disciplina...')
-        .addOptions(detailOptions.slice(0, 25));
-    rows.push(new ActionRowBuilder().addComponents(detailSelect));
+function buildStatusComponents(pesquisa, registro, activeView = null) {
+    const rows = [];
+    const isRegView = activeView && activeView.startsWith('reg_');
+
+    const label = (view, text) => `${activeView === view ? '◆' : '◇'} ${text}`;
+
+    if (isRegView) {
+        // Row 1: Botões de Navegação de Registro
+        const navButtons = [
+            new ButtonBuilder().setCustomId('pesq:reg_cat:extracao').setLabel(label('reg_extracao', 'Extração')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('pesq:reg_cat:producao').setLabel(label('reg_producao', 'Produção')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('pesq:reg_cat:treinos').setLabel(label('reg_treinos', 'Treinos & RP')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('pesq:tree_cat:oficios').setLabel(label('oficios', 'Árvore Pesquisa')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('pesq:show:status').setLabel(label('status', 'Painel')).setStyle(ButtonStyle.Secondary),
+        ];
+        rows.push(new ActionRowBuilder().addComponents(...navButtons));
+
+        // Row 2: Select Menu - Iniciar Registro (Apenas desbloqueadas!)
+        const regUnlocked = buildRegistroUnlockedOptions(pesquisa);
+        if (regUnlocked.length > 0) {
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('reg:select_iniciar')
+                .setPlaceholder('Selecione um registro desbloqueado para iniciar...')
+                .addOptions(regUnlocked.slice(0, 25));
+            rows.push(new ActionRowBuilder().addComponents(selectMenu));
+        } else {
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('reg:select_iniciar_empty')
+                .setPlaceholder('Nenhum registro desbloqueado (pesquise disciplinas primeiro)')
+                .setDisabled(true)
+                .addOptions([{ label: 'Sem registros desbloqueados', value: 'vazio' }]);
+            rows.push(new ActionRowBuilder().addComponents(selectMenu));
+        }
+
+        // Row 3: Select Menu - Ver Detalhes do Registro
+        const detailOptions = [
+            { label: 'Mineração', description: 'Extração de lingotes', value: 'mineracao' },
+            { label: 'Dendrologia', description: 'Extração de madeiras especiais', value: 'dendrologia' },
+            { label: 'Geologia Arcana', description: 'Extração de cristais de éter', value: 'geologia_arcana' },
+            { label: 'Herbologia', description: 'Colheita de ervas', value: 'herbologia' },
+            { label: 'Catalisação', description: 'Essências e catalisadores', value: 'catalisacao' },
+            { label: 'Roleplay', description: 'XP idle narrativo', value: 'roleplay' },
+            { label: 'Metodologia de Estudo', description: 'Buff de ganho de Conhecimento', value: 'metodologia_estudo' },
+            { label: 'Valoração Comercial', description: 'Buff de vendas NPC', value: 'valoracao_comercial' },
+            { label: 'Negociação Mercantil', description: 'Buff de compras NPC', value: 'negociacao_mercantil' },
+        ];
+        const detailSelect = new StringSelectMenuBuilder()
+            .setCustomId('pesq:select_detalhe')
+            .setPlaceholder('Ver detalhes de uma atividade de registro...')
+            .addOptions(detailOptions);
+        rows.push(new ActionRowBuilder().addComponents(detailSelect));
+    } else {
+        // Row 1: Botões de Navegação de Pesquisa
+        const navButtons = [
+            new ButtonBuilder().setCustomId('pesq:tree_cat:oficios').setLabel(label('oficios', 'Ofícios')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('pesq:tree_cat:desenvolvimento').setLabel(label('desenvolvimento', 'Desenvolvimento')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('pesq:tree_cat:beneficios').setLabel(label('beneficios', 'Benefícios')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('pesq:reg_cat:extracao').setLabel(label('reg_extracao', 'Hub Registro')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('pesq:show:status').setLabel(label('status', 'Painel')).setStyle(ButtonStyle.Secondary),
+        ];
+        rows.push(new ActionRowBuilder().addComponents(...navButtons));
+
+        // Row 2: Select Menu - Iniciar Pesquisa
+        const availableOptions = [];
+        for (const disc of logic.DISCIPLINAS_LIST) {
+            const node = (pesquisa.arvore || []).find(n => n.slug === disc.slug);
+            const statusDisc = logic.statusDisciplina(pesquisa, disc.slug);
+            if (statusDisc === logic.STATUS.DESBLOQUEADO || statusDisc === logic.STATUS.PRONTO) {
+                const nivelAtual = node?.nivel ?? 0;
+                const proximoNivel = nivelAtual + 1;
+                const custo = node?.proximo?.custo_conhecimento ? `${node.proximo.custo_conhecimento.toLocaleString('pt-BR')} pts` : '';
+                const dur = node?.proximo?.duracao_segundos ? logic.formatDuracao(node.proximo.duracao_segundos) : '';
+                const desc = [custo ? `Custo: ${custo}` : '', dur ? `Duração: ${dur}` : ''].filter(Boolean).join(' | ') || 'Pronto para iniciar';
+
+                availableOptions.push({
+                    label: `${disc.nome} (Nv ${nivelAtual} -> ${proximoNivel})`,
+                    description: desc.slice(0, 100),
+                    value: disc.slug,
+                });
+            }
+        }
+
+        if (availableOptions.length > 0) {
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('pesq:select_iniciar')
+                .setPlaceholder('Selecione uma disciplina para iniciar a pesquisa...')
+                .addOptions(availableOptions.slice(0, 25));
+            rows.push(new ActionRowBuilder().addComponents(selectMenu));
+        } else {
+            const selectMenu = new StringSelectMenuBuilder()
+                .setCustomId('pesq:select_iniciar_empty')
+                .setPlaceholder('Nenhuma disciplina disponível para iniciar no momento')
+                .setDisabled(true)
+                .addOptions([{ label: 'Sem pesquisas disponíveis', value: 'vazio' }]);
+            rows.push(new ActionRowBuilder().addComponents(selectMenu));
+        }
+
+        // Row 3: Select Menu - Ver Detalhes de Disciplina
+        const detailOptions = logic.DISCIPLINAS_LIST.map(disc => {
+            const node = (pesquisa.arvore || []).find(n => n.slug === disc.slug);
+            const nivelAtual = node?.nivel ?? 0;
+            return {
+                label: `${disc.nome} (Nv ${nivelAtual}/${disc.nivelMax})`,
+                description: logic.GRUPO_LABEL[disc.grupo] || 'Disciplina',
+                value: disc.slug,
+            };
+        });
+
+        const detailSelect = new StringSelectMenuBuilder()
+            .setCustomId('pesq:select_detalhe')
+            .setPlaceholder('Ver detalhes de uma disciplina...')
+            .addOptions(detailOptions.slice(0, 25));
+        rows.push(new ActionRowBuilder().addComponents(detailSelect));
+    }
 
     // Row 4: Botões de Ação de Coleta (Se houver pesquisas ou registros prontos)
     const actionButtons = [];
@@ -480,6 +674,12 @@ async function handleButton(interaction) {
         await interaction.deferUpdate().catch(() => {});
         return await coletarRegistro(interaction, id);
     }
+    if (action === 'reg_cat' && cat === 'pesq') {
+        const subCat = rest[0] || 'extracao';
+        await interaction.deferUpdate().catch(() => {});
+        await sendArvore(interaction, 'reg_' + subCat);
+        return true;
+    }
     if (action === 'iniciar' && cat === 'pesq') {
         const slug = rest[0];
         if (!slug) return false;
@@ -561,8 +761,90 @@ async function iniciarPesquisaAutomatica(interaction, slug) {
     }
 }
 
+async function iniciarRegistroAutomatico(interaction, actionValue) {
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: true });
+    }
+    const did = discordId(interaction);
+    try {
+        const registroStatus = await api.getRegistroCached(did).catch(() => null);
+        if (!registroStatus || registroStatus.error) {
+            return await replyAndDelete(interaction, 'Erro ao consultar seu status de registro. Tente novamente.', 8000);
+        }
+
+        const ativas = registroStatus.slots?.ativas || [];
+        const slot1Ocupado = ativas.some((a) => a.slot === 1 && new Date(a.termina_em).getTime() > Date.now());
+        const slot2Ocupado = ativas.some((a) => a.slot === 2 && new Date(a.termina_em).getTime() > Date.now());
+        const slot2Ativo = registroStatus.slots?.slot2_ativo;
+
+        let freeSlot = null;
+        if (!slot1Ocupado) {
+            freeSlot = 1;
+        } else if (slot2Ativo && !slot2Ocupado) {
+            freeSlot = 2;
+        }
+
+        if (!freeSlot) {
+            if (!slot2Ativo) {
+                return await replyAndDelete(interaction, `Seu **Slot 1** de Registro está ocupado. O **Slot 2** é pago (1.500 Runas / 15 dias) e precisa ser ativado no site (ernas.com.br/registro).`, 10000);
+            }
+            return await replyAndDelete(interaction, `Ambos os seus 2 slots de registro já estão ocupados no momento. Aguarde uma tarefa concluir.`, 8000);
+        }
+
+        const parts = actionValue.split(':');
+        const mainTipo = parts[0];
+        let payload = {};
+
+        if (mainTipo === 'extracao') {
+            const oficio = parts[1];
+            if (oficio === 'mineracao') {
+                payload = { oficio: 'mineracao', raridade: parts[2] || 'comum' };
+            } else if (oficio === 'dendrologia' || oficio === 'herbologia') {
+                payload = { oficio, tier: parseInt(parts[2] || '1', 10) };
+            } else if (oficio === 'geologia_arcana') {
+                payload = { oficio: 'geologia_arcana' };
+            } else if (oficio === 'catalisacao') {
+                if (parts[2] === 'essencia') {
+                    payload = { oficio: 'catalisacao', designio: parts[3] };
+                } else if (parts[2] === 'catalisador') {
+                    payload = { oficio: 'catalisacao', raridade_catalisador: parts[3] };
+                }
+            }
+        } else if (mainTipo === 'roleplay') {
+            payload = { duracao_h: parseInt(parts[1] || '4', 10) };
+        } else if (mainTipo === 'beneficio') {
+            payload = { beneficio: parts[1] };
+        }
+
+        const body = { tipo: mainTipo, slot: freeSlot, payload };
+        const res = await api.postRegistroIniciar(did, body);
+        if (res.error) {
+            return await replyAndDelete(interaction, `Erro ao iniciar registro: ${res.error}`, 8000);
+        }
+
+        api.invalidateCache(did);
+        const rotulo = res.rotulo || 'Tarefa de Registro';
+        const dataFim = res.termina_em
+            ? new Date(res.termina_em).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+            : 'em breve';
+
+        return await replyAndDelete(interaction, `**${rotulo}** iniciado no **Slot ${freeSlot}**!\nConclusão prevista: ${dataFim}`, 12000);
+    } catch (e) {
+        console.error('[iniciarRegistroAutomatico] erro:', e);
+        const msg = e.response?.data?.error || e.message;
+        return await replyAndDelete(interaction, `Erro ao iniciar registro: ${msg}`, 8000);
+    }
+}
+
 async function handleSelect(interaction) {
-    if (!interaction.customId.startsWith('pesq:select_')) return false;
+    if (!interaction.customId.startsWith('pesq:select_') && !interaction.customId.startsWith('reg:select_')) return false;
+
+    if (interaction.customId === 'reg:select_iniciar') {
+        const actionValue = interaction.values[0];
+        if (!actionValue) return false;
+        await iniciarRegistroAutomatico(interaction, actionValue);
+        return true;
+    }
 
     if (interaction.customId === 'pesq:select_iniciar') {
         const slug = interaction.values[0];
@@ -571,11 +853,15 @@ async function handleSelect(interaction) {
         return true;
     }
 
-    if (interaction.customId === 'pesq:select_detalhe') {
+    if (interaction.customId === 'pesq:select_detalhe' || interaction.customId === 'reg:select_detalhe') {
         const slug = interaction.values[0];
         if (!slug) return false;
         await interaction.deferUpdate().catch(() => {});
-        await sendDetalhe(interaction, slug);
+        if (logic.DISCIPLINAS[slug]) {
+            await sendDetalhe(interaction, slug);
+        } else {
+            await sendArvore(interaction, 'reg_extracao');
+        }
         return true;
     }
 

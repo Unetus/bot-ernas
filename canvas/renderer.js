@@ -3328,6 +3328,53 @@ async function gerarBannerPesquisaArvore(status, opts = {}) {
     const DISCIPLINAS = require('../utils/pesquisaLogic');
     const grupoFiltro = opts.grupo || 'oficios';
 
+    if (grupoFiltro.startsWith('reg_')) {
+        const catMap = {
+            reg_extracao: { label: 'Extração', color: '#10B981', slugs: ['mineracao', 'dendrologia', 'geologia_arcana', 'herbologia', 'catalisacao'] },
+            reg_producao: { label: 'Produção', color: '#F59E0B', slugs: ['ferraria', 'forja_magica', 'alquimia', 'sintetizacao', 'runografia'] },
+            reg_treinos:  { label: 'Treinos & RP', color: '#8B5CF6', slugs: ['roleplay', 'estudo_designios', 'metodologia_estudo', 'valoracao_comercial', 'negociacao_mercantil'] },
+        };
+        const cat = catMap[grupoFiltro] || catMap.reg_extracao;
+        const discs = cat.slugs.map(s => DISCIPLINAS.DISCIPLINAS[s]).filter(Boolean);
+        const w = 1000;
+        const h = 460;
+        const canvas = createCanvas(w, h);
+        const ctx = canvas.getContext('2d');
+        await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.5 });
+
+        ctx.strokeStyle = HUD_GOLD;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(24, 24, w - 48, h - 48);
+
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = cat.color;
+        ctx.font = 'bold 16px "Baloo 2"';
+        ctx.fillText(`  ◆   H U B   D E   R E G I S T R O   —   ${cat.label.toUpperCase()}   ◆  `, 50, 46);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 34px "Cinzel"';
+        ctx.fillText(`Execução Idle: ${cat.label}`, 50, 76);
+
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '15px "Nunito"';
+        ctx.fillText('Atividades liberadas conforme suas disciplinas pesquisadas', 50, 114);
+
+        const startY = 154;
+        const colW = 435;
+        const cardH = 72;
+        for (let i = 0; i < discs.length; i++) {
+            const disc = discs[i];
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const cardX = 50 + col * (colW + 20);
+            const cardY = startY + row * (cardH + 12);
+            await drawRegistroCard(ctx, disc, status, opts, cardX, cardY, colW, cardH);
+        }
+
+        return canvas.toBuffer('image/png');
+    }
+
     if (grupoFiltro === 'oficios' || grupoFiltro === 'desenvolvimento' || grupoFiltro === 'beneficios') {
         const discs = DISCIPLINAS.DISCIPLINAS_LIST.filter(d => d.grupo === grupoFiltro);
         const grupoNome = DISCIPLINAS.GRUPO_LABEL[grupoFiltro] || 'Disciplinas';
@@ -3573,6 +3620,58 @@ async function drawPesquisaCard(ctx, disc, status, opts, x, y, w, h) {
     } else {
         ctx.fillText('Pronto para pesquisar', textX, y + 46);
     }
+}
+
+async function drawRegistroCard(ctx, disc, status, opts, x, y, w, h) {
+    const DISCIPLINAS = require('../utils/pesquisaLogic');
+    const node = (status.arvore || []).find((n) => n.slug === disc.slug);
+    const nivel = node?.nivel ?? 0;
+    const isUnlocked = nivel > 0;
+
+    const bg = isUnlocked ? 'rgba(12, 36, 24, 0.85)' : 'rgba(14, 16, 22, 0.65)';
+    const stroke = isUnlocked ? 'rgba(16, 185, 129, 0.5)' : 'rgba(255, 255, 255, 0.08)';
+
+    drawHudBoxCustom(ctx, x, y, w, h, bg, stroke, 10);
+
+    const iconSize = 44;
+    const iconX = x + 10;
+    const iconY = y + 12;
+    const iconBuffer = opts.assets?.[disc.slug] || opts.iconBuffers?.[disc.slug];
+
+    if (iconBuffer) {
+        try {
+            const icon = await loadImage(iconBuffer);
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(iconX, iconY, iconSize, iconSize, 8);
+            else ctx.rect(iconX, iconY, iconSize, iconSize);
+            ctx.closePath();
+            ctx.clip();
+            if (!isUnlocked) ctx.globalAlpha = 0.4;
+            ctx.drawImage(icon, iconX, iconY, iconSize, iconSize);
+            ctx.restore();
+        } catch {
+            drawFallbackIcon(ctx, disc, iconX, iconY, iconSize, !isUnlocked);
+        }
+    } else {
+        drawFallbackIcon(ctx, disc, iconX, iconY, iconSize, !isUnlocked);
+    }
+
+    const textX = x + 64;
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = isUnlocked ? '#FFFFFF' : '#6B7280';
+    ctx.font = 'bold 14px "Cinzel"';
+    ctx.fillText(disc.nome, textX, y + 8);
+
+    ctx.fillStyle = isUnlocked ? '#10B981' : '#6B7280';
+    ctx.font = 'bold 11px "Baloo 2"';
+    ctx.fillText(isUnlocked ? `⚡ Liberado (Nv ${nivel})` : `🔒 Requer Pesquisa`, textX, y + 28);
+
+    ctx.fillStyle = '#9CA3AF';
+    ctx.font = '11px "Nunito"';
+    ctx.fillText(isUnlocked ? 'Pronto para executar no Registro' : 'Bloqueado no Registro', textX, y + 46);
 }
 
 function drawFallbackIcon(ctx, disc, x, y, size, isBloqueado) {
