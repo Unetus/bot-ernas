@@ -147,8 +147,8 @@ async function sendStatus(interaction, ephemeral = false) {
             personagemNome: pesquisa.personagemNome,
         });
         const attachment = new AttachmentBuilder(buffer, { name: 'pesquisa-status.png' });
-        const row = buildStatusRow(pesquisa, registro);
-        return await interaction.editReply({ files: [attachment], components: row ? [row] : [] });
+        const components = buildStatusComponents(pesquisa, registro);
+        return await interaction.editReply({ files: [attachment], components });
     } catch (e) {
         console.error('[pesquisa status] erro:', e);
         return await replyAndDelete(interaction, 'Erro ao carregar o status.', 8000);
@@ -159,45 +159,117 @@ async function renderPesquisaStatusForPainel(interaction) {
     return await sendStatus(interaction, true);
 }
 
-function buildStatusRow(pesquisa, registro) {
+function buildStatusComponents(pesquisa, registro) {
+    const rows = [];
+
+    // 1. Select Menu para Iniciar Pesquisa
+    const availableOptions = [];
+    for (const disc of logic.DISCIPLINAS_LIST) {
+        const node = (pesquisa.arvore || []).find(n => n.slug === disc.slug);
+        const statusDisc = logic.statusDisciplina({ ...pesquisa, arvore: pesquisa.arvore || [] }, disc.slug);
+        if (statusDisc === logic.STATUS.DESBLOQUEADO || statusDisc === logic.STATUS.PRONTO) {
+            const nivelAtual = node?.nivel ?? 0;
+            const proximoNivel = nivelAtual + 1;
+            const custo = node?.proximo?.custo_conhecimento ? `${node.proximo.custo_conhecimento.toLocaleString('pt-BR')} pts` : '';
+            const dur = node?.proximo?.duracao_segundos ? logic.formatDuracao(node.proximo.duracao_segundos) : '';
+            const desc = [custo ? `Custo: ${custo}` : '', dur ? `Duração: ${dur}` : ''].filter(Boolean).join(' | ') || 'Pronto para iniciar';
+            
+            availableOptions.push({
+                label: `${disc.nome} (Nv ${nivelAtual} → ${proximoNivel})`,
+                description: desc.slice(0, 100),
+                value: disc.slug,
+                emoji: '⚡'
+            });
+        }
+    }
+
+    if (availableOptions.length > 0) {
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('pesq:select_iniciar')
+            .setPlaceholder('⚡ Selecione uma disciplina para iniciar pesquisa...')
+            .addOptions(availableOptions.slice(0, 25));
+        rows.push(new ActionRowBuilder().addComponents(selectMenu));
+    } else {
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('pesq:select_iniciar_empty')
+            .setPlaceholder('🔒 Nenhuma disciplina disponível para iniciar')
+            .setDisabled(true)
+            .addOptions([{ label: 'Vazio', value: 'vazio' }]);
+        rows.push(new ActionRowBuilder().addComponents(selectMenu));
+    }
+
+    // 2. Select Menu para Ver Detalhes
+    const detailOptions = logic.DISCIPLINAS_LIST.map(disc => {
+        const node = (pesquisa.arvore || []).find(n => n.slug === disc.slug);
+        const nivelAtual = node?.nivel ?? 0;
+        return {
+            label: `${disc.nome} (Nv ${nivelAtual}/${disc.nivelMax})`,
+            description: logic.GRUPO_LABEL[disc.grupo] || 'Disciplina',
+            value: disc.slug,
+            emoji: '📖'
+        };
+    });
+
+    const detailSelect = new StringSelectMenuBuilder()
+        .setCustomId('pesq:select_detalhe')
+        .setPlaceholder('📖 Ver detalhes de uma disciplina...')
+        .addOptions(detailOptions.slice(0, 25));
+    rows.push(new ActionRowBuilder().addComponents(detailSelect));
+
+    // 3. Botões de ação (Coletar Pesquisa, Coletar Registro, Árvore, Status)
     const buttons = [];
     for (const ativa of pesquisa.slots?.ativas || []) {
         const terminou = new Date(ativa.termina_em).getTime() <= Date.now();
         if (terminou) {
             buttons.push(new ButtonBuilder()
                 .setCustomId(`pesq:coletar:${ativa.id}`)
-                .setLabel(`Coletar Nv ${ativa.nivel_alvo}`)
+                .setLabel(`✨ Coletar Pesquisa (Nv ${ativa.nivel_alvo})`)
                 .setStyle(ButtonStyle.Success));
         }
     }
-    for (const ativa of registro.slots?.ativas || []) {
+    for (const ativa of (registro?.slots?.ativas || [])) {
         const terminou = new Date(ativa.termina_em).getTime() <= Date.now();
         if (terminou) {
             buttons.push(new ButtonBuilder()
                 .setCustomId(`reg:coletar:${ativa.id}`)
-                .setLabel(`Coletar Registro`)
+                .setLabel(`✨ Coletar Registro (${ativa.tipo?.toUpperCase()})`)
                 .setStyle(ButtonStyle.Success));
         }
     }
+
     buttons.push(new ButtonBuilder()
         .setCustomId('pesq:show:arvore')
-        .setLabel('Ver Arvore')
+        .setLabel('🌳 Ver Árvore')
+        .setStyle(ButtonStyle.Primary));
+
+    buttons.push(new ButtonBuilder()
+        .setCustomId('pesq:show:status')
+        .setLabel('📊 Ver Painel')
         .setStyle(ButtonStyle.Secondary));
-    if (buttons.length === 0) return null;
-    return new ActionRowBuilder().addComponents(...buttons.slice(0, 5));
+
+    rows.push(new ActionRowBuilder().addComponents(...buttons.slice(0, 5)));
+
+    return rows;
 }
 
 async function sendArvore(interaction) {
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: true });
+    }
     const did = discordId(interaction);
     try {
-        const status = await api.getPesquisaCached(did);
+        const [status, registro] = await Promise.all([
+            api.getPesquisaCached(did),
+            api.getRegistroCached(did).catch(() => null),
+        ]);
         if (status.error) {
             return await replyAndDelete(interaction, `Erro: ${status.error}`, 8000);
         }
         const icons = await loadAllIcons();
         const buffer = await gerarBannerPesquisaArvore(status, { assets: icons });
         const attachment = new AttachmentBuilder(buffer, { name: 'pesquisa-arvore.png' });
-        return await interaction.editReply({ files: [attachment] });
+        const components = buildStatusComponents(status, registro || {});
+        return await interaction.editReply({ files: [attachment], components });
     } catch (e) {
         console.error('[pesquisa arvore] erro:', e);
         return await replyAndDelete(interaction, 'Erro ao carregar a arvore.', 8000);
@@ -205,13 +277,19 @@ async function sendArvore(interaction) {
 }
 
 async function sendDetalhe(interaction, slug) {
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: true });
+    }
     const did = discordId(interaction);
     const disc = logic.DISCIPLINAS[slug];
     if (!disc) {
         return await replyAndDelete(interaction, `Disciplina desconhecida: ${slug}`, 6000);
     }
     try {
-        const status = await api.getPesquisaCached(did);
+        const [status, registro] = await Promise.all([
+            api.getPesquisaCached(did),
+            api.getRegistroCached(did).catch(() => null),
+        ]);
         if (status.error) {
             return await replyAndDelete(interaction, `Erro: ${status.error}`, 8000);
         }
@@ -219,28 +297,8 @@ async function sendDetalhe(interaction, slug) {
         const buffer = await gerarBannerPesquisaDetalhe(disc, status, { iconBuffer });
         const attachment = new AttachmentBuilder(buffer, { name: `pesquisa-${slug}.png` });
 
-        const node = (status.arvore || []).find((n) => n.slug === slug);
-        const statusDisc = logic.statusDisciplina({ ...status, arvore: status.arvore || [] }, slug);
-        const podeIniciar = statusDisc === logic.STATUS.DESBLOQUEADO || statusDisc === logic.STATUS.PRONTO;
-        const buttons = [];
-        if (podeIniciar) {
-            buttons.push(new ButtonBuilder()
-                .setCustomId(`pesq:iniciar:${slug}`)
-                .setLabel('Pesquisar aqui')
-                .setStyle(ButtonStyle.Success));
-        }
-        const ativa = (status.slots?.ativas || []).find((a) => a.disciplina === slug);
-        if (ativa && new Date(ativa.termina_em).getTime() <= Date.now()) {
-            buttons.push(new ButtonBuilder()
-                .setCustomId(`pesq:coletar:${ativa.id}`)
-                .setLabel('Coletar')
-                .setStyle(ButtonStyle.Primary));
-        }
-        buttons.push(new ButtonBuilder()
-            .setCustomId('pesq:show:arvore')
-            .setLabel('Voltar a Arvore')
-            .setStyle(ButtonStyle.Secondary));
-        return await interaction.editReply({ files: [attachment], components: [new ActionRowBuilder().addComponents(...buttons.slice(0, 5))] });
+        const components = buildStatusComponents(status, registro || {});
+        return await interaction.editReply({ files: [attachment], components });
     } catch (e) {
         console.error('[pesquisa detalhe] erro:', e);
         return await replyAndDelete(interaction, 'Erro ao carregar o detalhe.', 8000);
@@ -412,6 +470,11 @@ async function handleButton(interaction) {
         await sendArvore(interaction);
         return true;
     }
+    if (action === 'show' && rest[0] === 'status') {
+        await interaction.deferUpdate().catch(() => {});
+        await sendStatus(interaction, true);
+        return true;
+    }
     if (action === 'coletar' && cat === 'pesq') {
         const id = rest[0];
         if (!id) return false;
@@ -441,6 +504,38 @@ async function handleButton(interaction) {
         await interaction.showModal(buildIniciarModal(slug));
         return true;
     }
+    return false;
+}
+
+async function handleSelect(interaction) {
+    if (!interaction.customId.startsWith('pesq:select_')) return false;
+
+    if (interaction.customId === 'pesq:select_iniciar') {
+        const slug = interaction.values[0];
+        if (!slug) return false;
+        const did = discordId(interaction);
+        const status = await api.getPesquisaCached(did).catch(() => null);
+        if (!status || status.error) {
+            await interaction.reply({ content: 'Erro ao consultar seu status.', ephemeral: true });
+            return true;
+        }
+        const statusDisc = logic.statusDisciplina({ ...status, arvore: status.arvore || [] }, slug);
+        if (statusDisc === logic.STATUS.BLOQUEADO || statusDisc === logic.STATUS.MAXIMO || statusDisc === logic.STATUS.EM_ANDAMENTO) {
+            await interaction.reply({ content: 'Esta disciplina não pode ser pesquisada agora.', ephemeral: true });
+            return true;
+        }
+        await interaction.showModal(buildIniciarModal(slug));
+        return true;
+    }
+
+    if (interaction.customId === 'pesq:select_detalhe') {
+        const slug = interaction.values[0];
+        if (!slug) return false;
+        await interaction.deferUpdate().catch(() => {});
+        await sendDetalhe(interaction, slug);
+        return true;
+    }
+
     return false;
 }
 
@@ -494,4 +589,4 @@ async function handleModal(interaction) {
     return false;
 }
 
-module.exports = { data, execute, handleButton, handleModal, renderPesquisaStatusForPainel };
+module.exports = { data, execute, handleButton, handleSelect, handleModal, renderPesquisaStatusForPainel };

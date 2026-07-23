@@ -3326,8 +3326,8 @@ function drawRegSlotContent(ctx, registro, slotNum, x, y, maxW) {
  */
 async function gerarBannerPesquisaArvore(status, opts = {}) {
     const DISCIPLINAS = require('../utils/pesquisaLogic');
-    const w = 1000;
-    const h = 980;
+    const w = 1100;
+    const h = 780;
     const canvas = createCanvas(w, h);
     const ctx = canvas.getContext('2d');
     await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.5 });
@@ -3338,163 +3338,221 @@ async function gerarBannerPesquisaArvore(status, opts = {}) {
     ctx.strokeRect(24, 24, w - 48, h - 48);
     ctx.globalAlpha = 0.55;
     ctx.beginPath();
-    ctx.moveTo(60, 44);
-    ctx.lineTo(w - 60, 44);
-    ctx.moveTo(60, h - 44);
-    ctx.lineTo(w - 60, h - 44);
+    ctx.moveTo(50, 44);
+    ctx.lineTo(w - 50, 44);
+    ctx.moveTo(50, h - 44);
+    ctx.lineTo(w - 50, h - 44);
     ctx.stroke();
     ctx.globalAlpha = 1;
 
-    // Header
+    // Header Topo
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillStyle = HUD_GOLD;
-    ctx.font = 'bold 18px "Baloo 2"';
-    ctx.fillText('  A R V O R E   D E   P E S Q U I S A  ', 60, 50);
+    ctx.font = 'bold 16px "Baloo 2"';
+    ctx.fillText('  ◆   Á R V O R E   D E   P E S Q U I S A   ◆  ', 50, 48);
 
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 40px "Cinzel"';
-    ctx.fillText('16 Disciplinas', 60, 86);
+    ctx.font = 'bold 36px "Cinzel"';
+    ctx.fillText('Disciplinas & Especializações', 50, 80);
 
-    // Saldo compacto
+    // Sub-bar com saldos
     ctx.fillStyle = HUD_MUTED;
     ctx.font = '15px "Nunito"';
-    ctx.fillText(`Conhecimento: ${(status.conhecimento ?? 0).toLocaleString('pt-BR')}   |   +${(status.taxa_hora ?? 0).toLocaleString('pt-BR')}/h`, 60, 138);
+    const conhTxt = (status.conhecimento ?? 0).toLocaleString('pt-BR');
+    const taxaTxt = (status.taxa_hora ?? 0).toLocaleString('pt-BR');
+    const buffTxt = status.buff_metodologia ? `   |   Buff: +${status.buff_metodologia.pct}%` : '';
+    ctx.fillText(`Conhecimento: ${conhTxt} pts   |   Ganho: +${taxaTxt}/h${buffTxt}`, 50, 126);
 
-    // 3 colunas
-    const colW = (w - 140 - 32) / 3;
-    const colX = [60, 60 + colW + 16, 60 + (colW + 16) * 2];
-    const startY = 176;
-    const nodeH = 84;
-    const nodeGapY = 10;
-    const grupos = DISCIPLINAS.GRUPO_ORDER;
-    const labelGrupo = DISCIPLINAS.GRUPO_LABEL;
-    const colorGrupo = DISCIPLINAS.GRUPO_COLOR;
+    const startY = 168;
+    const colW = 320;
+    const cardH = 68;
+    const cardGapY = 10;
 
-    let cursorY = startY;
-    for (const grupo of grupos) {
-        // Label do grupo
-        ctx.fillStyle = colorGrupo[grupo];
-        ctx.font = 'bold 14px "Baloo 2"';
-        ctx.fillText(labelGrupo[grupo].toUpperCase(), 60, cursorY);
-        cursorY += 26;
-        const discs = DISCIPLINAS.DISCIPLINAS_LIST.filter((d) => d.grupo === grupo);
-        for (const disc of discs) {
-            const node = (status.arvore || []).find((n) => n.slug === disc.slug);
-            const nivel = node?.nivel ?? 0;
-            const statusDisc = DISCIPLINAS.statusDisciplina({ ...status, arvore: status.arvore || [] }, disc.slug);
-            // Layout: 2 colunas de cards por linha (mais compacto)
-            // Vou colocar 2 por linha
-            for (let i = 0; i < discs.length; i += 2) {
-                // Renderiza dois nos por linha
-            }
-            // Para simplicidade: 1 por linha, 3 colunas
-            break;
-        }
+    const oficios = DISCIPLINAS.DISCIPLINAS_LIST.filter(d => d.grupo === DISCIPLINAS.GRUPOS.OFICIOS);
+    const desenvolvimento = DISCIPLINAS.DISCIPLINAS_LIST.filter(d => d.grupo === DISCIPLINAS.GRUPOS.DESENVOLVIMENTO);
+    const beneficios = DISCIPLINAS.DISCIPLINAS_LIST.filter(d => d.grupo === DISCIPLINAS.GRUPOS.BENEFICIOS);
+
+    // COLUNA 1: OFÍCIOS (Parte 1: 5 itens)
+    const col1X = 50;
+    drawGroupHeader(ctx, 'OFÍCIOS (1/2)', DISCIPLINAS.GRUPO_COLOR.oficios, col1X, startY);
+    let y1 = startY + 36;
+    for (const disc of oficios.slice(0, 5)) {
+        await drawPesquisaCard(ctx, disc, status, opts, col1X, y1, colW, cardH);
+        y1 += cardH + cardGapY;
     }
 
-    // Versao simplificada: 3 colunas x 6 linhas = 18 slots (16 usadas)
-    // Vou renderizar todos os 16 em um grid 4x4 (4 colunas x 4 linhas)
-    // Recomeco com grid 4x4
-    cursorY = 176;
-    // Label unico
-    ctx.fillStyle = HUD_GOLD;
-    ctx.font = 'bold 14px "Baloo 2"';
-    ctx.fillText('OFICIOS   |   DESENVOLVIMENTO   |   BENEFICIOS', 60, cursorY);
-    cursorY += 26;
+    // COLUNA 2: OFÍCIOS (Parte 2: 5 itens)
+    const col2X = col1X + colW + 20; // 390
+    drawGroupHeader(ctx, 'OFÍCIOS (2/2)', DISCIPLINAS.GRUPO_COLOR.oficios, col2X, startY);
+    let y2 = startY + 36;
+    for (const disc of oficios.slice(5)) {
+        await drawPesquisaCard(ctx, disc, status, opts, col2X, y2, colW, cardH);
+        y2 += cardH + cardGapY;
+    }
 
-    const nodeW = (w - 140 - 24) / 4; // 4 colunas
-    const colXs = [60, 60 + nodeW + 8, 60 + (nodeW + 8) * 2, 60 + (nodeW + 8) * 3];
-    const all = DISCIPLINAS.DISCIPLINAS_LIST;
-    for (let i = 0; i < all.length; i++) {
-        const disc = all[i];
-        const col = i % 4;
-        const row = Math.floor(i / 4);
-        const nx = colXs[col];
-        const ny = cursorY + row * (nodeH + nodeGapY);
-        await drawPesquisaNode(ctx, disc, status, opts, nx, ny, nodeW, nodeH);
+    // COLUNA 3: DESENVOLVIMENTO + BENEFÍCIOS
+    const col3X = col2X + colW + 20; // 730
+    let y3 = startY;
+
+    // Seção Desenvolvimento
+    drawGroupHeader(ctx, 'DESENVOLVIMENTO', DISCIPLINAS.GRUPO_COLOR.desenvolvimento, col3X, y3);
+    y3 += 36;
+    for (const disc of desenvolvimento) {
+        await drawPesquisaCard(ctx, disc, status, opts, col3X, y3, colW, cardH);
+        y3 += cardH + cardGapY;
+    }
+
+    y3 += 10;
+    // Seção Benefícios
+    drawGroupHeader(ctx, 'BENEFÍCIOS', DISCIPLINAS.GRUPO_COLOR.beneficios, col3X, y3);
+    y3 += 36;
+    for (const disc of beneficios) {
+        await drawPesquisaCard(ctx, disc, status, opts, col3X, y3, colW, cardH);
+        y3 += cardH + cardGapY;
     }
 
     return canvas.toBuffer('image/png');
 }
 
-async function drawPesquisaNode(ctx, disc, status, opts, x, y, w, h) {
+function drawGroupHeader(ctx, title, color, x, y) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y + 4, 4, 18);
+    ctx.fillStyle = color;
+    ctx.font = 'bold 14px "Cinzel"';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(title, x + 12, y + 4);
+}
+
+async function drawPesquisaCard(ctx, disc, status, opts, x, y, w, h) {
     const DISCIPLINAS = require('../utils/pesquisaLogic');
     const node = (status.arvore || []).find((n) => n.slug === disc.slug);
     const nivel = node?.nivel ?? 0;
     const statusDisc = DISCIPLINAS.statusDisciplina({ ...status, arvore: status.arvore || [] }, disc.slug);
 
-    // Caixa
-    const bg = statusDisc === DISCIPLINAS.STATUS.BLOQUEADO ? 'rgba(15, 16, 21, 0.7)' :
-               statusDisc === DISCIPLINAS.STATUS.MAXIMO ? 'rgba(212, 175, 55, 0.18)' :
-               statusDisc === DISCIPLINAS.STATUS.EM_ANDAMENTO ? 'rgba(245, 158, 11, 0.18)' :
-               statusDisc === DISCIPLINAS.STATUS.PRONTO ? 'rgba(16, 185, 129, 0.18)' :
-               'rgba(18, 20, 27, 0.78)';
-    drawHudBoxCustom(ctx, x, y, w, h, bg, statusDisc === DISCIPLINAS.STATUS.BLOQUEADO ? 'rgba(212, 175, 55, 0.1)' : HUD_BORDER, 10);
+    const isBloqueado = statusDisc === DISCIPLINAS.STATUS.BLOQUEADO;
+    const isEmAndamento = statusDisc === DISCIPLINAS.STATUS.EM_ANDAMENTO;
+    const isPronto = statusDisc === DISCIPLINAS.STATUS.PRONTO;
+    const isMaximo = statusDisc === DISCIPLINAS.STATUS.MAXIMO;
 
-    // Icone (se asset pre-carregado)
+    // Fundo e borda do Card
+    const bg = isBloqueado ? 'rgba(14, 16, 22, 0.65)' :
+               isMaximo ? 'rgba(38, 30, 12, 0.85)' :
+               isEmAndamento ? 'rgba(36, 26, 12, 0.85)' :
+               isPronto ? 'rgba(12, 36, 24, 0.85)' :
+               'rgba(20, 26, 36, 0.85)';
+
+    const stroke = isBloqueado ? 'rgba(255, 255, 255, 0.08)' :
+                   isMaximo ? 'rgba(212, 175, 55, 0.6)' :
+                   isEmAndamento ? 'rgba(245, 158, 11, 0.6)' :
+                   isPronto ? 'rgba(16, 185, 129, 0.6)' :
+                   'rgba(16, 185, 129, 0.35)';
+
+    drawHudBoxCustom(ctx, x, y, w, h, bg, stroke, 10);
+
+    // Ícone (esquerda, 44x44)
+    const iconSize = 44;
+    const iconX = x + 10;
+    const iconY = y + 12;
     const iconBuffer = opts.assets?.[disc.slug];
+
     if (iconBuffer) {
         try {
             const icon = await loadImage(iconBuffer);
             ctx.save();
             ctx.beginPath();
-            ctx.arc(x + 28, y + 28, 20, 0, Math.PI * 2);
+            ctx.roundRect(iconX, iconY, iconSize, iconSize, 8);
             ctx.closePath();
             ctx.clip();
-            ctx.drawImage(icon, x + 8, y + 8, 40, 40);
+            if (isBloqueado) ctx.globalAlpha = 0.4;
+            ctx.drawImage(icon, iconX, iconY, iconSize, iconSize);
             ctx.restore();
-        } catch {}
+        } catch {
+            drawFallbackIcon(ctx, disc, iconX, iconY, iconSize, isBloqueado);
+        }
     } else {
-        // Placeholder
-        ctx.fillStyle = 'rgba(212, 175, 55, 0.3)';
-        ctx.beginPath();
-        ctx.arc(x + 28, y + 28, 20, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#D4AF37';
-        ctx.font = 'bold 16px "Cinzel"';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText((disc.nome || '?').charAt(0), x + 28, y + 30);
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
+        drawFallbackIcon(ctx, disc, iconX, iconY, iconSize, isBloqueado);
     }
 
-    // Nome
-    ctx.fillStyle = statusDisc === DISCIPLINAS.STATUS.BLOQUEADO ? '#6B7280' : '#F4E7C8';
-    ctx.font = 'bold 13px "Cinzel"';
-    ctx.fillText(trimToWidth(ctx, disc.nome, w - 60), x + 56, y + 8);
+    // Texto (área à direita do ícone)
+    const textX = x + 64;
+    const textW = w - 74;
 
-    // Nivel
-    ctx.fillStyle = statusDisc === DISCIPLINAS.STATUS.BLOQUEADO ? '#6B7280' : '#D4AF37';
+    // Linha 1: Nome da Disciplina + Nível
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = isBloqueado ? '#6B7280' : '#FFFFFF';
+    ctx.font = 'bold 14px "Cinzel"';
+
+    const m = createCanvas(textW, 1).getContext('2d');
+    const levelStr = `Nv ${nivel}/${disc.nivelMax}`;
+    m.font = 'bold 12px "Baloo 2"';
+    const levelW = m.measureText(levelStr).width;
+
+    m.font = 'bold 14px "Cinzel"';
+    const nameMaxW = textW - levelW - 10;
+    const truncatedName = trimToWidth(m, disc.nome, nameMaxW);
+    ctx.fillText(truncatedName, textX, y + 8);
+
+    // Nível alinhado à direita
+    ctx.fillStyle = isBloqueado ? '#6B7280' : isMaximo ? '#D4AF37' : '#E5E7EB';
     ctx.font = 'bold 12px "Baloo 2"';
-    ctx.fillText(`Nv ${nivel}/${disc.nivelMax}`, x + 56, y + 30);
+    ctx.textAlign = 'right';
+    ctx.fillText(levelStr, x + w - 12, y + 9);
 
-    // Status badge
-    const statusLabel = {
-        [DISCIPLINAS.STATUS.BLOQUEADO]: 'BLOQUEADO',
-        [DISCIPLINAS.STATUS.DESBLOQUEADO]: 'DESBLOQUEADO',
-        [DISCIPLINAS.STATUS.EM_ANDAMENTO]: 'EM ANDAMENTO',
-        [DISCIPLINAS.STATUS.PRONTO]: 'PRONTO',
-        [DISCIPLINAS.STATUS.MAXIMO]: 'MAXIMO',
-    };
+    // Linha 2: Status Tag
+    ctx.textAlign = 'left';
+    const statusText = {
+        [DISCIPLINAS.STATUS.BLOQUEADO]: '🔒 Bloqueado',
+        [DISCIPLINAS.STATUS.DESBLOQUEADO]: '⚡ Desbloqueado',
+        [DISCIPLINAS.STATUS.EM_ANDAMENTO]: '⏳ Em Andamento',
+        [DISCIPLINAS.STATUS.PRONTO]: '✨ Pronto pra Coletar',
+        [DISCIPLINAS.STATUS.MAXIMO]: '👑 Nível Máximo',
+    }[statusDisc] || 'Status';
+
     const statusColor = {
         [DISCIPLINAS.STATUS.BLOQUEADO]: '#6B7280',
         [DISCIPLINAS.STATUS.DESBLOQUEADO]: '#10B981',
         [DISCIPLINAS.STATUS.EM_ANDAMENTO]: '#F59E0B',
-        [DISCIPLINAS.STATUS.PRONTO]: '#10B981',
+        [DISCIPLINAS.STATUS.PRONTO]: '#34D399',
         [DISCIPLINAS.STATUS.MAXIMO]: '#D4AF37',
-    };
-    ctx.fillStyle = statusColor[statusDisc];
-    ctx.font = 'bold 10px "Baloo 2"';
-    ctx.fillText(statusLabel[statusDisc], x + 56, y + 52);
+    }[statusDisc];
 
-    // Custo do proximo nivel (se aplicavel)
-    if (node?.proximo && statusDisc !== DISCIPLINAS.STATUS.MAXIMO) {
-        ctx.fillStyle = '#AEB6C2';
-        ctx.font = '11px "Nunito"';
-        ctx.fillText(`Prox: ${node.proximo.custo_conhecimento.toLocaleString('pt-BR')}`, x + 56, y + 66);
+    ctx.fillStyle = statusColor;
+    ctx.font = 'bold 11px "Baloo 2"';
+    ctx.fillText(statusText, textX, y + 28);
+
+    // Linha 3: Próximo nível ou custo
+    ctx.fillStyle = '#9CA3AF';
+    ctx.font = '11px "Nunito"';
+    if (isMaximo) {
+        ctx.fillText('Especialização máxima atingida', textX, y + 46);
+    } else if (node?.proximo) {
+        const custo = node.proximo.custo_conhecimento.toLocaleString('pt-BR');
+        ctx.fillText(`Próx Nv ${node.proximo.nivel}: ${custo} pts`, textX, y + 46);
+    } else if (isBloqueado) {
+        ctx.fillText('Requer nível de personagem', textX, y + 46);
+    } else {
+        ctx.fillText('Pronto para pesquisar', textX, y + 46);
     }
+}
+
+function drawFallbackIcon(ctx, disc, x, y, size, isBloqueado) {
+    ctx.fillStyle = isBloqueado ? 'rgba(40, 44, 56, 0.6)' : 'rgba(212, 175, 55, 0.2)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, size, size, 8);
+    else ctx.rect(x, y, size, size);
+    ctx.fill();
+    ctx.strokeStyle = isBloqueado ? 'rgba(255, 255, 255, 0.1)' : 'rgba(212, 175, 55, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = isBloqueado ? '#6B7280' : '#D4AF37';
+    ctx.font = 'bold 18px "Cinzel"';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText((disc.nome || '?').charAt(0), x + size / 2, y + size / 2);
 }
 
 function drawHudBoxCustom(ctx, x, y, w, h, fill, stroke, radius = 12) {
