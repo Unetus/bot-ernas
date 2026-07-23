@@ -343,7 +343,9 @@ async function execute(interaction) {
 }
 
 async function coletarPesquisa(interaction, id) {
-    await interaction.deferReply({ ephemeral: true });
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: true });
+    }
     const did = discordId(interaction);
     try {
         const res = await api.postPesquisaColetar(did, id);
@@ -359,7 +361,9 @@ async function coletarPesquisa(interaction, id) {
 }
 
 async function coletarRegistro(interaction, id) {
-    await interaction.deferReply({ ephemeral: true });
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: true });
+    }
     const did = discordId(interaction);
     try {
         const res = await api.postRegistroColetar(did, id);

@@ -83,7 +83,8 @@ const genericButtonRoutes = [
             || customId === 'move_right'
             || customId === 'modal_mover_coord'
             || customId === 'passar_turno'
-    }
+    },
+    { commandName: 'pesquisa', matches: customId => customId.startsWith('pesq:') || customId.startsWith('reg:') }
 ];
 client.once('ready', async () => { 
     console.log(`✓ Bot logado como ${client.user.tag}!`);
