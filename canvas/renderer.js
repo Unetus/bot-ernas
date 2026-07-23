@@ -3613,7 +3613,7 @@ function drawHudBoxCustom(ctx, x, y, w, h, fill, stroke, radius = 12) {
 async function gerarBannerPesquisaDetalhe(disc, status, opts = {}) {
     const DISCIPLINAS = require('../utils/pesquisaLogic');
     const w = 1000;
-    const h = 540;
+    const h = 560;
     const canvas = createCanvas(w, h);
     const ctx = canvas.getContext('2d');
     await drawHudBase(ctx, w, h, { focusX: 0.5, focusY: 0.5 });
@@ -3634,16 +3634,18 @@ async function gerarBannerPesquisaDetalhe(disc, status, opts = {}) {
     ctx.fillStyle = DISCIPLINAS.GRUPO_COLOR[disc.grupo] || HUD_GOLD;
     ctx.font = 'bold 16px "Baloo 2"';
     const grupoLabel = (DISCIPLINAS.GRUPO_LABEL[disc.grupo] || 'DISCIPLINA').toUpperCase();
-    ctx.fillText(`◆   ${grupoLabel}   ◆`, cx, 46);
+    ctx.fillText(`◆   ${grupoLabel}   ◆`, cx, 44);
 
-    // Ícone grande centralizado (80x80)
-    const iconSize = 80;
+    // Ícone grande centralizado (84x84)
+    const iconSize = 84;
     const iconX = cx - iconSize / 2;
-    const iconY = 82;
+    const iconY = 72;
 
-    if (opts.iconBuffer) {
+    const iconSource = opts.iconBuffer || opts.assets?.[disc.slug] || opts.iconBuffers?.[disc.slug];
+
+    if (iconSource) {
         try {
-            const icon = await loadImage(opts.iconBuffer);
+            const icon = await loadImage(iconSource);
             ctx.save();
             ctx.beginPath();
             if (ctx.roundRect) ctx.roundRect(iconX, iconY, iconSize, iconSize, 14);
@@ -3659,17 +3661,18 @@ async function gerarBannerPesquisaDetalhe(disc, status, opts = {}) {
             if (ctx.roundRect) ctx.roundRect(iconX, iconY, iconSize, iconSize, 14);
             else ctx.rect(iconX, iconY, iconSize, iconSize);
             ctx.stroke();
-        } catch {
+        } catch (e) {
+            console.warn('[gerarBannerPesquisaDetalhe] Erro ao renderizar ícone:', e.message);
             drawFallbackIcon(ctx, disc, iconX, iconY, iconSize, false);
         }
     } else {
         drawFallbackIcon(ctx, disc, iconX, iconY, iconSize, false);
     }
 
-    // Título centralizado
+    // Título centralizado (com bom espaço vertical abaixo do ícone)
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 36px "Cinzel"';
-    ctx.fillText(disc.nome, cx, 176);
+    ctx.fillText(disc.nome, cx, 188);
 
     // Nível + Status centralizados
     const statusLabels = {
@@ -3689,18 +3692,18 @@ async function gerarBannerPesquisaDetalhe(disc, status, opts = {}) {
 
     ctx.fillStyle = statusColors[statusDisc] || HUD_GOLD;
     ctx.font = 'bold 16px "Baloo 2"';
-    ctx.fillText(`Nível ${nivel} / ${disc.nivelMax}   •   ${statusLabels[statusDisc] || ''}`, cx, 222);
+    ctx.fillText(`Nível ${nivel} / ${disc.nivelMax}   •   ${statusLabels[statusDisc] || ''}`, cx, 234);
 
     // Linha divisória
     ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(cx - 250, 256);
-    ctx.lineTo(cx + 250, 256);
+    ctx.moveTo(cx - 250, 268);
+    ctx.lineTo(cx + 250, 268);
     ctx.stroke();
 
     // Efeito Atual
-    let cursorY = 276;
+    let cursorY = 288;
     if (nivel > 0 && node?.efeito_atual) {
         ctx.fillStyle = HUD_GOLD;
         ctx.font = 'bold 14px "Cinzel"';

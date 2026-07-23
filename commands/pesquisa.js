@@ -44,16 +44,22 @@ const _iconCache = new Map();
 
 async function getIcon(discSlug) {
     const cached = _iconCache.get(discSlug);
-    if (cached && Date.now() - cached.at < ASSET_TTL_MS) return cached.value;
+    if (cached && cached.value && Date.now() - cached.at < ASSET_TTL_MS) return cached.value;
     const url = await assets.assetUrl(`pesquisa/icon-${discSlug}.png`);
     try {
         const axios = require('axios');
-        const res = await axios.get(url, { responseType: 'arraybuffer', timeout: 6000 });
-        _iconCache.set(discSlug, { at: Date.now(), value: res.data });
-        return res.data;
-    } catch {
-        _iconCache.set(discSlug, { at: Date.now(), value: null });
-        return null;
+        const res = await axios.get(url, {
+            responseType: 'arraybuffer',
+            timeout: 8000,
+            headers: { 'User-Agent': 'rpg-bot/2.0' }
+        });
+        const buf = Buffer.from(res.data);
+        _iconCache.set(discSlug, { at: Date.now(), value: buf });
+        return buf;
+    } catch (e) {
+        console.warn(`[getIcon] Erro ao carregar ícone para ${discSlug} de ${url}:`, e.message);
+        // Fallback: retornar URL direta para o Canvas tentar carregar
+        return url;
     }
 }
 
