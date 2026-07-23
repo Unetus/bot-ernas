@@ -27,6 +27,7 @@ function getMainPainelComponents(activeMenu = null) {
     );
 
     const row2 = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('painel_menu_pesquisa').setLabel(label('pesquisa', 'Pesquisa')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('painel_menu_ranking').setLabel(label('ranking', 'Rankings')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('painel_menu_guilda').setLabel(label('guilda', 'Guilda')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('painel_menu_rp').setLabel(label('rp', 'Cena RP')).setStyle(ButtonStyle.Secondary)
@@ -244,6 +245,11 @@ async function handleButton(interaction) {
             attachments: [],
             components: getPainelComponentsForView('rp')
         });
+    }
+
+    if (menu === 'pesquisa') {
+        const pesquisaCmd = require('./pesquisa');
+        return await pesquisaCmd.renderPesquisaStatusForPainel(interaction);
     }
 
     if (menu === 'enciclopedia') {
