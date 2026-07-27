@@ -2848,9 +2848,9 @@ async function gerarBannerRpUnificado({ titulo, subtitulo, ambientacao, criador,
     m.font = 'bold 18px "Baloo 2"';
     ctx.fillText('  C E N A   D E   R P  ', x, 52);
 
-    m.font = 'bold 50px "Cinzel"';
+    m.font = 'bold 50px "Lilita One"';
     const titleStr = trimToWidth(m, titulo || 'Cena de RP', maxW);
-    ctx.font = 'bold 50px "Cinzel"';
+    ctx.font = 'bold 50px "Lilita One"';
     let cursorY = 100;
     ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
     ctx.shadowBlur = 8;
@@ -3063,8 +3063,8 @@ async function gerarBannerLocalidade({ titulo, descricao, imagemUrl }) {
     ctx.shadowBlur = 8;
     ctx.shadowOffsetY = 3;
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 48px "Cinzel"';
-    m.font = 'bold 48px "Cinzel"';
+    ctx.font = 'bold 48px "Lilita One"';
+    m.font = 'bold 48px "Lilita One"';
     ctx.fillText(trimToWidth(m, titulo || 'Localidade', w - 140), 60, titleY);
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
@@ -3115,7 +3115,7 @@ async function gerarBannerPainelLocalidade({ titulo }) {
     ctx.fillText('  P A I N E L  ', 44, 38);
 
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 28px "Cinzel"';
+    ctx.font = 'bold 28px "Lilita One"';
     ctx.fillText(trimToWidth(ctx, titulo || 'Localidade', w - 100), 44, 60);
 
     ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';

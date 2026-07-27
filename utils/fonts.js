@@ -13,7 +13,7 @@ const { GlobalFonts } = require('@napi-rs/canvas');
 const path = require('path');
 
 const FAMILIES = {
-    header: 'Cinzel',
+    header: 'Lilita One',
     body: 'Nunito',
     ui: 'Baloo 2'
 };
@@ -23,6 +23,7 @@ const FONT_FILES = [
     ['Cinzel-SemiBold.ttf', 'Cinzel'],
     ['Cinzel-Bold.ttf', 'Cinzel'],
     ['Cinzel-Black.ttf', 'Cinzel'],
+    ['LilitaOne-Regular.ttf', 'Lilita One'],
     ['Nunito-Regular.ttf', 'Nunito'],
     ['Nunito-Bold.ttf', 'Nunito'],
     ['Nunito-ExtraBold.ttf', 'Nunito'],
