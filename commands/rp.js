@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, EmbedBuilder, AttachmentBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, UserSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, EmbedBuilder, AttachmentBuilder, MessageFlags, ContainerBuilder, SectionBuilder, TextDisplayBuilder, SeparatorBuilder, ThumbnailBuilder } = require('discord.js');
 const axios = require('axios');
 const { iniciarCenaRp } = require('../utils/rpScene');
 const sessionStore = require('../utils/sessionStore');
@@ -14,6 +14,7 @@ const RP_INVITE_SELECT = 'rp_invite_participants';
 const RP_PROFILE_SELECT = 'rp_profile_participant';
 const RP_TACTICAL_MODAL = 'rp_tactical_modal';
 const RP_REMOVE_SELECT_PREFIX = 'rp_remove_participant_';
+const RP_TACTICAL_CONFIG_PREFIX = 'rp_cena_tatica_config_';
 
 const MAX_PARTICIPANTES = 15;
 
@@ -134,6 +135,27 @@ function buildPanelComponents(sessionId, participantCount, tacticalActive) {
     )];
 }
 
+function buildTacticalV2Panel(session) {
+    const section = new SectionBuilder().addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`## Preparacao de cena tatica\n**${session.title}**\n\nEste e um painel experimental em Components V2. Configure o tabuleiro para abrir a cena dentro desta thread.`)
+    );
+    if (session.scenario_url) {
+        section.setThumbnailAccessory(new ThumbnailBuilder().setURL(session.scenario_url));
+    }
+
+    return new ContainerBuilder()
+        .setAccentColor(0xD4AF37)
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent('# Cena tatica'))
+        .addSectionComponents(section)
+        .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent('**Fluxo de teste**\nO painel usa blocos nativos do Discord, mantendo a identidade dourada do Arkandia e os mesmos nomes de acoes.'))
+        .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+        .addActionRowComponents(new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId(`${RP_TACTICAL_CONFIG_PREFIX}${session.id}`).setLabel('Configurar cena tatica').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId(`rp_participantes_${session.id}`).setLabel('Participantes').setStyle(ButtonStyle.Secondary)
+        ));
+}
+
 async function refreshPanel(interaction, session) {
     try {
         const messages = await interaction.channel.messages.fetch({ limit: 50 });
@@ -151,6 +173,13 @@ async function refreshPanel(interaction, session) {
 }
 
 async function handleButton(interaction) {
+    if (interaction.customId.startsWith(RP_TACTICAL_CONFIG_PREFIX)) {
+        const session = getPanelSession(interaction, interaction.customId.replace(RP_TACTICAL_CONFIG_PREFIX, 'rp_cena_tatica_'));
+        if (!session) return await interaction.reply({ content: 'Esta sessao nao esta mais ativa.', ephemeral: true });
+        if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) return await interaction.reply({ content: 'Somente mestres podem iniciar cenas taticas.', ephemeral: true });
+        return await showTacticalModal(interaction);
+    }
+
     if (interaction.customId.startsWith('rp_participantes_')) {
         const session = getPanelSession(interaction, interaction.customId);
         if (!session) return await interaction.reply({ content: 'Esta sessao nao esta mais ativa.', ephemeral: true });
@@ -195,15 +224,22 @@ async function handleButton(interaction) {
         const session = getPanelSession(interaction, interaction.customId);
         if (!session) return await interaction.reply({ content: 'Esta sessao nao esta mais ativa.', ephemeral: true });
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) return await interaction.reply({ content: 'Somente mestres podem iniciar cenas taticas.', ephemeral: true });
-        const modal = new ModalBuilder().setCustomId(RP_TACTICAL_MODAL).setTitle('Iniciar cena tatica');
-        const cols = new TextInputBuilder().setCustomId('cena_colunas').setLabel('Colunas (3 a 20)').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(2);
-        const rows = new TextInputBuilder().setCustomId('cena_linhas').setLabel('Linhas (3 a 20)').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(2);
-        const name = new TextInputBuilder().setCustomId('cena_nome').setLabel('Nome da cena (opcional)').setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(60);
-        const desc = new TextInputBuilder().setCustomId('cena_descricao').setLabel('Descricao (opcional)').setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(180);
-        const timer = new TextInputBuilder().setCustomId('cena_tempo').setLabel('Turno em segundos (opcional)').setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3);
-        modal.addComponents(...[cols, rows, name, desc, timer].map(input => new ActionRowBuilder().addComponents(input)));
-        return await interaction.showModal(modal);
+        return await interaction.reply({
+            flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
+            components: [buildTacticalV2Panel(session)]
+        });
     }
+}
+
+async function showTacticalModal(interaction) {
+    const modal = new ModalBuilder().setCustomId(RP_TACTICAL_MODAL).setTitle('Iniciar cena tatica');
+    const cols = new TextInputBuilder().setCustomId('cena_colunas').setLabel('Colunas (3 a 20)').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(2);
+    const rows = new TextInputBuilder().setCustomId('cena_linhas').setLabel('Linhas (3 a 20)').setStyle(TextInputStyle.Short).setRequired(true).setMaxLength(2);
+    const name = new TextInputBuilder().setCustomId('cena_nome').setLabel('Nome da cena (opcional)').setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(60);
+    const desc = new TextInputBuilder().setCustomId('cena_descricao').setLabel('Descricao (opcional)').setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(180);
+    const timer = new TextInputBuilder().setCustomId('cena_tempo').setLabel('Turno em segundos (opcional)').setStyle(TextInputStyle.Short).setRequired(false).setMaxLength(3);
+    modal.addComponents(...[cols, rows, name, desc, timer].map(input => new ActionRowBuilder().addComponents(input)));
+    return await interaction.showModal(modal);
 }
 
 async function handleSelect(interaction) {
