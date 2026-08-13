@@ -136,17 +136,10 @@ function buildPanelComponents(sessionId, participantCount, tacticalActive) {
 }
 
 function buildTacticalV2Panel(session) {
-    const section = new SectionBuilder().addTextDisplayComponents(
-        new TextDisplayBuilder().setContent(`## Preparacao de cena tatica\n**${session.title}**\n\nEste e um painel experimental em Components V2. Configure o tabuleiro para abrir a cena dentro desta thread.`)
-    );
-    if (session.scenario_url) {
-        section.setThumbnailAccessory(new ThumbnailBuilder().setURL(session.scenario_url));
-    }
-
-    return new ContainerBuilder()
+    const panel = new ContainerBuilder()
         .setAccentColor(0xD4AF37)
         .addTextDisplayComponents(new TextDisplayBuilder().setContent('# Cena tatica'))
-        .addSectionComponents(section)
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`## Preparacao de cena tatica\n**${session.title}**\n\nEste e um painel experimental em Components V2. Configure o tabuleiro para abrir a cena dentro desta thread.`))
         .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent('**Fluxo de teste**\nO painel usa blocos nativos do Discord, mantendo a identidade dourada do Arkandia e os mesmos nomes de acoes.'))
         .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
@@ -154,6 +147,14 @@ function buildTacticalV2Panel(session) {
             new ButtonBuilder().setCustomId(`${RP_TACTICAL_CONFIG_PREFIX}${session.id}`).setLabel('Configurar cena tatica').setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId(`rp_participantes_${session.id}`).setLabel('Participantes').setStyle(ButtonStyle.Secondary)
         ));
+
+    if (session.scenario_url) {
+        const section = new SectionBuilder()
+            .addTextDisplayComponents(new TextDisplayBuilder().setContent('Imagem de cenario'))
+            .setThumbnailAccessory(new ThumbnailBuilder().setURL(session.scenario_url));
+        panel.addSectionComponents(section);
+    }
+    return panel;
 }
 
 async function refreshPanel(interaction, session) {
@@ -224,10 +225,16 @@ async function handleButton(interaction) {
         const session = getPanelSession(interaction, interaction.customId);
         if (!session) return await interaction.reply({ content: 'Esta sessao nao esta mais ativa.', ephemeral: true });
         if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) return await interaction.reply({ content: 'Somente mestres podem iniciar cenas taticas.', ephemeral: true });
-        return await interaction.reply({
-            flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
-            components: [buildTacticalV2Panel(session)]
-        });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        try {
+            return await interaction.editReply({
+                flags: MessageFlags.IsComponentsV2,
+                components: [buildTacticalV2Panel(session)]
+            });
+        } catch (error) {
+            console.error('[rp components v2] Erro ao abrir painel experimental:', error);
+            return await interaction.editReply({ content: 'Nao foi possivel abrir o painel experimental. O formulario tradicional continua disponivel pelo comando `/cena iniciar`.' });
+        }
     }
 }
 
