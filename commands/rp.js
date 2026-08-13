@@ -6,6 +6,7 @@ const { replyAndDelete } = require('../utils/tempMessage');
 const { gerarBannerPerfil } = require('../canvas/renderer');
 const profileCache = require('../utils/profileCache');
 const cenaCommand = require('./cena');
+const { cenasAtivas } = require('../utils/state');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
@@ -122,6 +123,32 @@ function getPanelSession(interaction, customId) {
     return session;
 }
 
+function buildPanelComponents(sessionId, participantCount, tacticalActive) {
+    return [new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(`rp_participantes_${sessionId}`).setLabel(`Participantes (${participantCount})`).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`rp_convidar_${sessionId}`).setLabel('Convidar jogador').setStyle(ButtonStyle.Primary),
+        new ButtonBuilder().setCustomId(`rp_cena_tatica_${sessionId}`).setLabel(tacticalActive ? 'Cena tatica ativa' : 'Iniciar cena tatica').setStyle(ButtonStyle.Success).setDisabled(tacticalActive),
+        new ButtonBuilder().setCustomId(`rp_ver_ficha_${sessionId}`).setLabel('Ver ficha').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId(`encerrar_sessao_${sessionId}`).setLabel('Encerrar sessao').setStyle(ButtonStyle.Danger)
+    )];
+}
+
+async function refreshPanel(interaction, session) {
+    try {
+        const messages = await interaction.channel.messages.fetch({ limit: 50 });
+        const panel = messages.find(message => message.author.id === interaction.client.user.id && message.content.startsWith('**Painel da sessao**'));
+        if (!panel) return;
+        const count = sessionStore.getSessionParticipants(session.id).length;
+        const tacticalActive = cenasAtivas.has(interaction.channelId);
+        await panel.edit({
+            content: `**Painel da sessao**\nParticipantes: **${count}**\nCena tatica: **${tacticalActive ? 'ativa' : 'nao iniciada'}**\n\nUse os botoes para consultar jogadores, convidar participantes, abrir uma cena tatica ou encerrar o RP.`,
+            components: buildPanelComponents(session.id, count, tacticalActive)
+        });
+    } catch (error) {
+        console.warn('[rp painel] Nao foi possivel atualizar o painel:', error.message);
+    }
+}
+
 async function handleButton(interaction) {
     if (interaction.customId.startsWith('rp_participantes_')) {
         const session = getPanelSession(interaction, interaction.customId);
@@ -176,6 +203,7 @@ async function handleSelect(interaction) {
             sessionStore.addParticipant(session.id, id, member?.displayName || member?.user.username || 'Aventureiro');
             added.push(`<@${id}>`);
         }
+        await refreshPanel(interaction, session);
         return await interaction.reply({ content: added.length ? `Participantes adicionados: ${added.join(', ')}.` : 'Todos os jogadores selecionados ja participavam da sessao.', ephemeral: true });
     }
 
@@ -215,6 +243,10 @@ async function handleModal(interaction) {
         descricao: interaction.fields.getTextInputValue('cena_descricao')?.trim() || null,
         tempoTurno
     });
+    if (result.ok) {
+        const session = sessionStore.findActiveRpSessionByChannel(interaction.channelId);
+        if (session) await refreshPanel(interaction, session);
+    }
     return await interaction.editReply(result.message);
 }
 

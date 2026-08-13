@@ -203,14 +203,14 @@ async function iniciarCenaRp({
         deleteAfterDelay(instrucaoMsg, 15000);
 
         const painelRow = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`rp_participantes_${sessionId}`).setLabel('Participantes').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`rp_participantes_${sessionId}`).setLabel(`Participantes (${sessionParticipants.length})`).setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId(`rp_convidar_${sessionId}`).setLabel('Convidar jogador').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId(`rp_cena_tatica_${sessionId}`).setLabel('Iniciar cena tatica').setStyle(ButtonStyle.Success),
             new ButtonBuilder().setCustomId(`rp_ver_ficha_${sessionId}`).setLabel('Ver ficha').setStyle(ButtonStyle.Secondary),
             new ButtonBuilder().setCustomId(`encerrar_sessao_${sessionId}`).setLabel('Encerrar sessao').setStyle(ButtonStyle.Danger)
         );
         await thread.send({
-            content: '**Painel da sessao**\nUse os botoes para consultar jogadores, convidar participantes, abrir uma cena tatica ou encerrar o RP.',
+            content: `**Painel da sessao**\nParticipantes: **${sessionParticipants.length}**\nCena tatica: **nao iniciada**\n\nUse os botoes para consultar jogadores, convidar participantes, abrir uma cena tatica ou encerrar o RP.`,
             components: [painelRow]
         });
     } catch (sessionErr) {
