@@ -1,6 +1,6 @@
 const path = require('path');
 require('dotenv').config();
-const { Client, GatewayIntentBits, REST, Routes, Collection, PermissionFlagsBits } = require('discord.js');
+const { Client, GatewayIntentBits, REST, Routes, Collection, PermissionFlagsBits, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 
 const { mestresNarrando, cenasAtivas, timersTurno, renderTimers } = require('./utils/state');
@@ -136,6 +136,30 @@ client.on('interactionCreate', async interaction => {
     if (interaction.isButton()) {
         if (interaction.customId.startsWith('encerrar_sessao_')) {
             const sessionId = interaction.customId.replace('encerrar_sessao_', '');
+            const session = sessionStore.getSession(sessionId);
+            if (!session || session.status !== 'ativa') {
+                return interaction.reply({ content: 'Esta sessao ja foi encerrada ou nao existe.', ephemeral: true });
+            }
+            const canFinish = session.creator_discord_id === interaction.user.id || interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+            if (!canFinish) {
+                return interaction.reply({ content: 'Apenas o criador da sessao ou um administrador pode encerra-la.', ephemeral: true });
+            }
+            const row = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId(`confirmar_encerrar_sessao_${sessionId}`).setLabel('Confirmar encerramento').setStyle(ButtonStyle.Danger),
+                new ButtonBuilder().setCustomId(`cancelar_encerrar_sessao_${sessionId}`).setLabel('Cancelar').setStyle(ButtonStyle.Secondary)
+            );
+            return interaction.reply({ content: 'Tem certeza que deseja encerrar esta sessao? O RP sera finalizado e, no caso do RP, a thread sera removida.', components: [row], ephemeral: true });
+        }
+
+        if (interaction.customId.startsWith('cancelar_encerrar_sessao_')) {
+            return interaction.update({ content: 'Encerramento cancelado.', components: [] });
+        }
+
+        const confirmedEncerramento = interaction.customId.startsWith('confirmar_encerrar_sessao_');
+        if (interaction.customId.startsWith('encerrar_sessao_') || confirmedEncerramento) {
+            const sessionId = confirmedEncerramento
+                ? interaction.customId.replace('confirmar_encerrar_sessao_', '')
+                : interaction.customId.replace('encerrar_sessao_', '');
             const session = sessionStore.getSession(sessionId);
             if (!session || session.status !== 'ativa') {
                 return interaction.reply({ content: 'Esta sessão já foi encerrada ou não existe.', ephemeral: true });

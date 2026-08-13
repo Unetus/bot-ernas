@@ -13,6 +13,7 @@ const API_KEY = process.env.ARKANDIA_API_KEY;
 const RP_INVITE_SELECT = 'rp_invite_participants';
 const RP_PROFILE_SELECT = 'rp_profile_participant';
 const RP_TACTICAL_MODAL = 'rp_tactical_modal';
+const RP_REMOVE_SELECT_PREFIX = 'rp_remove_participant_';
 
 const MAX_PARTICIPANTES = 15;
 
@@ -157,7 +158,12 @@ async function handleButton(interaction) {
         const text = participants.length
             ? participants.map((p, i) => `${i + 1}. <@${p.discord_id}> — ${p.display_name}`).join('\n')
             : 'Nenhum participante registrado.';
-        return await interaction.reply({ content: `**Participantes de ${session.title}**\n\n${text}`, ephemeral: true });
+        const removeButton = new ButtonBuilder()
+            .setCustomId(`rp_remover_participante_${session.id}`)
+            .setLabel('Remover participante')
+            .setStyle(ButtonStyle.Danger)
+            .setDisabled(participants.length <= 1);
+        return await interaction.reply({ content: `**Participantes de ${session.title}**\n\n${text}`, components: [new ActionRowBuilder().addComponents(removeButton)], ephemeral: true });
     }
 
     if (interaction.customId.startsWith('rp_convidar_')) {
@@ -168,6 +174,15 @@ async function handleButton(interaction) {
             .setMinValues(1)
             .setMaxValues(15);
         return await interaction.reply({ content: 'Selecione um ou mais jogadores para adicionar a sessao.', components: [new ActionRowBuilder().addComponents(select)], ephemeral: true });
+    }
+
+    if (interaction.customId.startsWith('rp_remover_participante_')) {
+        const sessionId = interaction.customId.replace('rp_remover_participante_', '');
+        const session = sessionStore.getSession(sessionId);
+        if (!session || session.status !== 'ativa' || session.type !== 'rp' || session.discord_thread_id !== interaction.channelId) return await interaction.reply({ content: 'Esta sessao nao esta mais ativa.', ephemeral: true });
+        if (session.creator_discord_id !== interaction.user.id && !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) && !interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) return await interaction.reply({ content: 'Apenas o criador, mestres ou administradores podem remover participantes.', ephemeral: true });
+        const select = new UserSelectMenuBuilder().setCustomId(`${RP_REMOVE_SELECT_PREFIX}${session.id}`).setPlaceholder('Selecione quem remover').setMinValues(1).setMaxValues(1);
+        return await interaction.reply({ content: 'Selecione o participante que deseja remover.', components: [new ActionRowBuilder().addComponents(select)], ephemeral: true });
     }
 
     if (interaction.customId.startsWith('rp_ver_ficha_')) {
@@ -196,15 +211,44 @@ async function handleSelect(interaction) {
         const session = sessionStore.findActiveRpSessionByChannel(interaction.channelId);
         if (!session) return await interaction.reply({ content: 'Esta sessao nao esta mais ativa.', ephemeral: true });
         const existing = new Set(sessionStore.getSessionParticipants(session.id).map(p => p.discord_id));
+        const available = MAX_PARTICIPANTES - existing.size;
+        if (available <= 0) return await interaction.reply({ content: `A sessao ja atingiu o limite de ${MAX_PARTICIPANTES} participantes.`, ephemeral: true });
         const added = [];
+        const skipped = [];
         for (const id of interaction.values) {
             if (existing.has(id)) continue;
+            if (added.length >= available) {
+                skipped.push(id);
+                continue;
+            }
             const member = await interaction.guild.members.fetch(id).catch(() => null);
             sessionStore.addParticipant(session.id, id, member?.displayName || member?.user.username || 'Aventureiro');
             added.push(`<@${id}>`);
+            try {
+                const invitedUser = await interaction.client.users.fetch(id);
+                await invitedUser.send(`Voce foi convidado por **${interaction.user.tag}** para participar da sessao de RP **${session.title}** em <#${session.discord_thread_id}>.`);
+            } catch (error) {
+                console.warn(`[rp convite] Nao foi possivel enviar DM para ${id}:`, error.message);
+            }
         }
         await refreshPanel(interaction, session);
-        return await interaction.reply({ content: added.length ? `Participantes adicionados: ${added.join(', ')}.` : 'Todos os jogadores selecionados ja participavam da sessao.', ephemeral: true });
+        let result = added.length ? `Participantes adicionados: ${added.join(', ')}.\nConvite enviado em mensagem privada por **${interaction.user.tag}**.` : 'Todos os jogadores selecionados ja participavam da sessao.';
+        if (skipped.length) result += `\nLimite de ${MAX_PARTICIPANTES} atingido; ${skipped.length} convite(s) nao foram adicionados.`;
+        return await interaction.reply({ content: result, ephemeral: true });
+    }
+
+    if (interaction.customId.startsWith(RP_REMOVE_SELECT_PREFIX)) {
+        const sessionId = interaction.customId.replace(RP_REMOVE_SELECT_PREFIX, '');
+        const session = sessionStore.getSession(sessionId);
+        if (!session || session.status !== 'ativa' || session.type !== 'rp' || session.discord_thread_id !== interaction.channelId) return await interaction.reply({ content: 'Esta sessao nao esta mais ativa.', ephemeral: true });
+        if (session.creator_discord_id !== interaction.user.id && !interaction.memberPermissions?.has(PermissionFlagsBits.Administrator) && !interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages)) return await interaction.reply({ content: 'Apenas o criador, mestres ou administradores podem remover participantes.', ephemeral: true });
+        const targetId = interaction.values[0];
+        if (targetId === session.creator_discord_id) return await interaction.reply({ content: 'O criador da sessao nao pode ser removido.', ephemeral: true });
+        const participant = sessionStore.getSessionParticipants(session.id).find(p => p.discord_id === targetId);
+        if (!participant) return await interaction.reply({ content: 'Esse jogador nao participa da sessao.', ephemeral: true });
+        sessionStore.removeParticipant(session.id, targetId);
+        await refreshPanel(interaction, session);
+        return await interaction.reply({ content: `**${participant.display_name}** foi removido da sessao por **${interaction.user.tag}**.`, ephemeral: true });
     }
 
     if (interaction.customId === RP_PROFILE_SELECT) {

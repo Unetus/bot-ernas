@@ -238,6 +238,12 @@ function addParticipant(sessionId, discordId, displayName) {
     insert.run({ sessionId, discordId, displayName: displayName || 'Aventureiro' });
 }
 
+function removeParticipant(sessionId, discordId) {
+    if (!db) init();
+    db.prepare(`DELETE FROM session_participants WHERE session_id = @sessionId AND discord_id = @discordId`)
+        .run({ sessionId, discordId });
+}
+
 function findActiveSessionByChannel(discordThreadId) {
     if (!db) init();
 
@@ -434,6 +440,7 @@ module.exports = {
     createSession,
     addMessage,
     addParticipant,
+    removeParticipant,
     finishSession,
     deleteSession,
     deleteSessionByThreadId,
