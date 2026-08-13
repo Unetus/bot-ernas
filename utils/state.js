@@ -10,6 +10,7 @@ module.exports = {
     arenasDraft: new Map(),
     timersTurno: new Map(),
     mestresNarrando: new Map(),
+    rpParticipantsSelection: new Map(),
     lootsEmProcessamento: new Set(),
     lootsColetados: new Set()
 };

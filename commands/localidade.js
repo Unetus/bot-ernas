@@ -1,8 +1,24 @@
-const { SlashCommandBuilder, PermissionFlagsBits, AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const {
+    SlashCommandBuilder,
+    PermissionFlagsBits,
+    AttachmentBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    UserSelectMenuBuilder
+} = require('discord.js');
 const { gerarBannerLocalidade, gerarBannerPainelLocalidade } = require('../canvas/renderer');
 const sessionStore = require('../utils/sessionStore');
 const { replyAndDelete } = require('../utils/tempMessage');
 const { iniciarCenaRp } = require('../utils/rpScene');
+const { rpParticipantsSelection } = require('../utils/state');
+
+const RP_SELECT_ID = 'localidade_rp_participantes';
+const RP_MODAL_ID = 'localidade_modal_iniciar_rp';
+const SELECTION_TTL_MS = 10 * 60 * 1000;
 
 const data = new SlashCommandBuilder()
     .setName('localidade')
@@ -33,6 +49,20 @@ function hasMasterAccess(interaction) {
         || interaction.memberPermissions?.has(PermissionFlagsBits.Administrator);
 }
 
+function selectionKey(interaction) {
+    return `${interaction.guildId}:${interaction.channelId}:${interaction.user.id}`;
+}
+
+function saveParticipantSelection(interaction, userIds) {
+    const key = selectionKey(interaction);
+    const expiresAt = Date.now() + SELECTION_TTL_MS;
+    rpParticipantsSelection.set(key, { userIds, expiresAt });
+    setTimeout(() => {
+        const current = rpParticipantsSelection.get(key);
+        if (current?.expiresAt === expiresAt) rpParticipantsSelection.delete(key);
+    }, SELECTION_TTL_MS);
+}
+
 async function execute(interaction) {
     const sub = interaction.options.getSubcommand();
 
@@ -59,12 +89,9 @@ async function execute(interaction) {
         }
 
         const attachment = new AttachmentBuilder(buffer, { name: 'localidade-card.png' });
-
         let sentMessage = null;
         try {
-            sentMessage = await interaction.channel.send({
-                files: [attachment]
-            });
+            sentMessage = await interaction.channel.send({ files: [attachment] });
         } catch (e) {
             console.error('[localidade configurar] Erro ao enviar:', e);
             return await replyAndDelete(interaction, 'Erro ao publicar o card no canal.');
@@ -110,7 +137,6 @@ async function execute(interaction) {
         }
 
         const attachment = new AttachmentBuilder(buffer, { name: 'localidade-painel.png' });
-
         const row = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId('localidade_iniciar_rp')
@@ -124,10 +150,7 @@ async function execute(interaction) {
 
         let sentMessage = null;
         try {
-            sentMessage = await interaction.channel.send({
-                files: [attachment],
-                components: [row]
-            });
+            sentMessage = await interaction.channel.send({ files: [attachment], components: [row] });
             if (sentMessage?.pin) await sentMessage.pin();
         } catch (e) {
             console.error('[localidade painel] Erro ao enviar:', e);
@@ -150,58 +173,83 @@ async function handleButton(interaction) {
     }
 
     if (interaction.customId === 'localidade_iniciar_rp') {
-        const modal = new ModalBuilder()
-            .setCustomId('localidade_modal_iniciar_rp')
-            .setTitle('Iniciar Cena de RP');
+        const select = new UserSelectMenuBuilder()
+            .setCustomId(RP_SELECT_ID)
+            .setPlaceholder('Selecione os participantes do RP')
+            .setMinValues(1)
+            .setMaxValues(15);
+        const row = new ActionRowBuilder().addComponents(select);
 
-        const tituloInput = new TextInputBuilder()
-            .setCustomId('rp_titulo')
-            .setLabel('Titulo da cena')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true)
-            .setMaxLength(80);
-
-        const participantesInput = new TextInputBuilder()
-            .setCustomId('rp_participantes')
-            .setLabel('Participantes (ex: @user1 @user2)')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(true);
-
-        const subtituloInput = new TextInputBuilder()
-            .setCustomId('rp_subtitulo')
-            .setLabel('Subtitulo ou contexto (opcional)')
-            .setStyle(TextInputStyle.Short)
-            .setRequired(false)
-            .setMaxLength(120);
-
-        const ambientacaoInput = new TextInputBuilder()
-            .setCustomId('rp_ambientacao')
-            .setLabel('Ambientacao do local (opcional)')
-            .setStyle(TextInputStyle.Paragraph)
-            .setRequired(false)
-            .setMaxLength(800);
-
-        modal.addComponents(
-            new ActionRowBuilder().addComponents(tituloInput),
-            new ActionRowBuilder().addComponents(participantesInput),
-            new ActionRowBuilder().addComponents(subtituloInput),
-            new ActionRowBuilder().addComponents(ambientacaoInput)
-        );
-
-        return await interaction.showModal(modal);
+        return await interaction.reply({
+            ephemeral: true,
+            content: '**Selecione os participantes do RP.**\n\nEscolha de 1 a 15 jogadores no campo abaixo. Depois da selecao, o formulario da cena sera aberto automaticamente.',
+            components: [row]
+        });
     }
 }
 
-async function handleModal(interaction) {
-    if (interaction.customId !== 'localidade_modal_iniciar_rp') return false;
+async function handleSelect(interaction) {
+    if (interaction.customId !== RP_SELECT_ID) return false;
 
-    await interaction.deferReply();
+    const userIds = [...new Set(interaction.values || [])];
+    if (userIds.length < 1 || userIds.length > 15) {
+        await interaction.reply({ content: 'Selecione entre 1 e 15 participantes.', ephemeral: true });
+        return true;
+    }
+
+    saveParticipantSelection(interaction, userIds);
+
+    const modal = new ModalBuilder()
+        .setCustomId(RP_MODAL_ID)
+        .setTitle('Iniciar Cena de RP');
+
+    const tituloInput = new TextInputBuilder()
+        .setCustomId('rp_titulo')
+        .setLabel('Titulo da cena')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setMaxLength(80);
+
+    const subtituloInput = new TextInputBuilder()
+        .setCustomId('rp_subtitulo')
+        .setLabel('Subtitulo ou contexto (opcional)')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(false)
+        .setMaxLength(120);
+
+    const ambientacaoInput = new TextInputBuilder()
+        .setCustomId('rp_ambientacao')
+        .setLabel('Ambientacao do local (opcional)')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(false)
+        .setMaxLength(800);
+
+    modal.addComponents(
+        new ActionRowBuilder().addComponents(tituloInput),
+        new ActionRowBuilder().addComponents(subtituloInput),
+        new ActionRowBuilder().addComponents(ambientacaoInput)
+    );
+
+    await interaction.showModal(modal);
+    return true;
+}
+
+async function handleModal(interaction) {
+    if (interaction.customId !== RP_MODAL_ID) return false;
+
+    await interaction.deferReply({ ephemeral: true });
+
+    const selection = rpParticipantsSelection.get(selectionKey(interaction));
+    rpParticipantsSelection.delete(selectionKey(interaction));
+    if (!selection || selection.expiresAt < Date.now()) {
+        await interaction.editReply('A selecao de participantes expirou. Clique em **Iniciar RP** novamente.');
+        return true;
+    }
 
     const titulo = interaction.fields.getTextInputValue('rp_titulo')?.trim();
-    const participantesRaw = interaction.fields.getTextInputValue('rp_participantes')?.trim();
     const subtitulo = interaction.fields.getTextInputValue('rp_subtitulo')?.trim() || null;
     const ambientacao = interaction.fields.getTextInputValue('rp_ambientacao')?.trim() || null;
-
+    const participantesRaw = selection.userIds.map(id => `<@${id}>`).join(' ');
     const isMestre = interaction.memberPermissions?.has(PermissionFlagsBits.ManageMessages) || false;
 
     const result = await iniciarCenaRp({
@@ -221,12 +269,12 @@ async function handleModal(interaction) {
     });
 
     if (!result.ok) {
-        await replyAndDelete(interaction, `✗ ${result.error}`, 5000);
+        await interaction.editReply(`✗ ${result.error}`);
         return true;
     }
 
-    await replyAndDelete(interaction, `✓ **Cena Iniciada:** <#${result.threadId}>`, 5000);
+    await interaction.editReply(`✓ **Cena Iniciada:** <#${result.threadId}>`);
     return true;
 }
 
-module.exports = { data, execute, handleButton, handleModal };
+module.exports = { data, execute, handleButton, handleSelect, handleModal };

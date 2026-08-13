@@ -202,7 +202,7 @@ client.on('interactionCreate', async interaction => {
         }
     }
 
-    if (interaction.isStringSelectMenu()) {
+    if (interaction.isStringSelectMenu() || interaction.isUserSelectMenu()) {
         for (const [name, command] of client.commands) {
             if (command.handleSelect) {
                 const handled = await runInteractionHandler(command, 'handleSelect', interaction);
