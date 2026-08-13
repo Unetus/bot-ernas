@@ -201,6 +201,18 @@ async function iniciarCenaRp({
         // A mensagem de instrucao some apos 15s para manter o topico limpo.
         // (Os banners fixados e o registro da sessao continuam normalmente.)
         deleteAfterDelay(instrucaoMsg, 15000);
+
+        const painelRow = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId(`rp_participantes_${sessionId}`).setLabel('Participantes').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`rp_convidar_${sessionId}`).setLabel('Convidar jogador').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId(`rp_cena_tatica_${sessionId}`).setLabel('Iniciar cena tatica').setStyle(ButtonStyle.Success),
+            new ButtonBuilder().setCustomId(`rp_ver_ficha_${sessionId}`).setLabel('Ver ficha').setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId(`encerrar_sessao_${sessionId}`).setLabel('Encerrar sessao').setStyle(ButtonStyle.Danger)
+        );
+        await thread.send({
+            content: '**Painel da sessao**\nUse os botoes para consultar jogadores, convidar participantes, abrir uma cena tatica ou encerrar o RP.',
+            components: [painelRow]
+        });
     } catch (sessionErr) {
         console.error('[rpScene] Erro ao criar sessao no banco:', sessionErr);
     }

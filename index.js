@@ -203,6 +203,14 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.isStringSelectMenu() || interaction.isUserSelectMenu()) {
+        if (interaction.customId.startsWith('rp_')) {
+            const command = client.commands.get('rp');
+            if (command?.handleSelect) {
+                await runInteractionHandler(command, 'handleSelect', interaction);
+                return;
+            }
+        }
+
         for (const [name, command] of client.commands) {
             if (command.handleSelect) {
                 const handled = await runInteractionHandler(command, 'handleSelect', interaction);
@@ -219,6 +227,14 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.isModalSubmit()) {
+        if (interaction.customId.startsWith('rp_')) {
+            const command = client.commands.get('rp');
+            if (command?.handleModal) {
+                await runInteractionHandler(command, 'handleModal', interaction);
+                return;
+            }
+        }
+
         for (const [name, command] of client.commands) {
             if (command.handleModal) {
                 const handled = await runInteractionHandler(command, 'handleModal', interaction);

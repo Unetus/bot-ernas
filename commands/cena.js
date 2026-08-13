@@ -225,6 +225,56 @@ async function resolveNpcOrCreature(nomeInput) {
     }
 }
 
+async function iniciarCenaTaticaPeloPainel(interaction, { colunas, linhas, nome, descricao, tempoTurno }) {
+    if (!hasMasterAccess(interaction)) return { ok: false, message: 'Somente mestres podem iniciar cenas.' };
+    const cid = interaction.channelId;
+    if (cenasAtivas.has(cid)) return { ok: false, message: 'Ja existe uma cena ativa neste canal. Encerre a cena atual antes de abrir outra.' };
+
+    const rpSession = sessionStore.findActiveRpSessionByChannel(cid);
+    if (!rpSession) return { ok: false, message: 'Nao ha uma sessao de RP ativa neste canal.' };
+
+    const cena = createScene({
+        colunas,
+        linhas,
+        fundoUrl: null,
+        nome,
+        descricao,
+        tempoTurnoMs: tempoTurno ? tempoTurno * 1000 : null,
+        mestreId: interaction.user.id
+    });
+    cenasAtivas.set(cid, cena);
+
+    try {
+        const parentChannelId = interaction.channel.parentId || cid;
+        const sessionId = sessionStore.createSession({
+            type: 'cena',
+            parentSessionId: rpSession.id,
+            discordThreadId: cid,
+            discordChannelId: parentChannelId,
+            discordGuildId: interaction.guild.id,
+            title: cena.nome,
+            subtitle: descricao || null,
+            ambiance: descricao || null,
+            scenarioUrl: null,
+            creatorDiscordId: interaction.user.id,
+            creatorIsMaster: true,
+            participants: [{ discordId: interaction.user.id, displayName: interaction.member.displayName || interaction.user.username }]
+        });
+        const row = new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId(`encerrar_sessao_${sessionId}`).setLabel('Encerrar cena').setStyle(ButtonStyle.Danger)
+        );
+        await interaction.channel.send({
+            content: 'Cena tatica iniciada dentro da sessao de RP. Jogadores podem usar `/cena entrar`.',
+            components: [row]
+        });
+    } catch (sessionErr) {
+        console.error('[cena painel] Erro ao criar sessao da cena:', sessionErr);
+    }
+
+    await repintarMapaNovo(interaction.channel, cena);
+    return { ok: true, message: `Cena aberta: **${cena.nome}**. Jogadores podem usar \`/cena entrar\`.` };
+}
+
 async function execute(interaction) {
     const isMaster = hasMasterAccess(interaction);
     const sub = interaction.options.getSubcommand();
@@ -693,4 +743,4 @@ async function handleModal(interaction) {
     }
 }
 
-module.exports = { data, execute, handleButton, handleModal };
+module.exports = { data, execute, handleButton, handleModal, iniciarCenaTaticaPeloPainel };
