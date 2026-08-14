@@ -11,13 +11,15 @@ const {
     MediaGalleryItemBuilder,
     SeparatorBuilder,
     TextDisplayBuilder,
+    StringSelectMenuBuilder,
 } = require('discord.js');
 const axios = require('axios');
 const { gerarBannerRanking, gerarBannerPerfil, gerarBannerPainelJogador, renderInventarioPage } = require('../canvas/renderer');
 const { buildProfileSkillRow } = require('./perfil');
 const enciclopediaCmd = require('./enciclopedia');
-const { embedErro } = require('../utils/helpers');
+const { embedErro, formatarTexto } = require('../utils/helpers');
 const { skillsCache } = require('../utils/state');
+const catalogCache = require('../catalogCache');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
@@ -198,7 +200,7 @@ function buildPainelV2Buttons(activeView = 'inicio') {
             new ButtonBuilder().setCustomId('painel_v2_menu_rp').setLabel(label('rp', 'Cena RP')).setStyle(ButtonStyle.Secondary)
         ),
         new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('painel_v2_atualizar').setLabel('Atualizar painel').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId(`painel_v2_atualizar_${activeView}`).setLabel('Atualizar painel').setStyle(ButtonStyle.Primary),
             new ButtonBuilder().setCustomId('painel_v2_fechar').setLabel('Fechar teste').setStyle(ButtonStyle.Secondary)
         )
     ];
@@ -248,7 +250,38 @@ function buildPainelV2View(context, view) {
     ].join('\n');
 }
 
-async function renderPainelJogadorV2(interaction, view = 'inicio') {
+function buildPainelV2ProfileSkillRow(personagem) {
+    const skills = personagem?.build_skills || [];
+    if (!skills.length) return null;
+    return new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId(`painel_v2_skill_${personagem.id}`)
+            .setPlaceholder('Ver habilidade equipada')
+            .addOptions(skills.slice(0, 25).map(skill => ({
+                label: `${formatarTexto(skill.nome || 'Habilidade')} (Grau ${skill.grau || 1})`.substring(0, 100),
+                description: (formatarTexto(skill.tipo) || 'Habilidade equipada').substring(0, 100),
+                value: String(skill.id)
+            })))
+    );
+}
+
+function buildPainelV2SkillDetail(skill) {
+    if (!skill) return null;
+    const details = [
+        `### ${formatarTexto(skill.nome || 'Habilidade')}`,
+        skill.descricao || '*Sem descrição disponível.*',
+        '',
+        `**Tipo** · ${formatarTexto(skill.tipo) || '-'}`,
+        `**Origem** · ${formatarTexto(skill.origem) || '-'}`
+    ];
+    if (skill.classe) details.push(`**Classe** · ${formatarTexto(skill.classe)}`);
+    if (skill.nivel_min) details.push(`**Nível mínimo** · ${skill.nivel_min}`);
+    if (skill.grau) details.push(`**Grau máximo** · ${skill.grau}`);
+    if (skill.custo_runas) details.push(`**Custo de runas** · ${skill.custo_runas}`);
+    return details.join('\n').substring(0, 4000);
+}
+
+async function renderPainelJogadorV2Legacy(interaction, view = 'inicio') {
     const context = await getPainelContext(interaction.user.id).catch(() => ({}));
     const displayName = interaction.user.globalName || interaction.user.username || 'Aventureiro';
     context.displayName = displayName;
@@ -288,6 +321,64 @@ async function renderPainelJogadorV2(interaction, view = 'inicio') {
     };
 }
 
+async function renderPainelJogadorV2(interaction, view = 'inicio', options = {}) {
+    const context = await getPainelContext(interaction.user.id).catch(() => ({}));
+    const displayName = interaction.user.globalName || interaction.user.username || 'Aventureiro';
+    context.displayName = displayName;
+
+    let title = 'Painel do jogador';
+    let subtitle = `Central privada de ${displayName}`;
+    let fileName = 'painel-jogador.png';
+    let imageDescription = `Painel do jogador ${displayName}`;
+    let buffer;
+    let supplementalText = buildPainelV2View(context, view);
+    const localComponents = [];
+
+    if (view === 'perfil' && context.personagem) {
+        title = `Perfil · ${formatarTexto(context.personagem.nome || displayName)}`;
+        subtitle = 'Ficha personalizada do personagem ativo';
+        fileName = 'perfil.png';
+        imageDescription = `Ficha de ${formatarTexto(context.personagem.nome || displayName)}`;
+        buffer = await gerarBannerPerfil(context.personagem);
+        const skillRow = buildPainelV2ProfileSkillRow(context.personagem);
+        if (skillRow) localComponents.push(skillRow);
+        const selectedSkill = options.selectedSkillId ? catalogCache.findSkill(options.selectedSkillId) : null;
+        supplementalText = selectedSkill
+            ? buildPainelV2SkillDetail(selectedSkill)
+            : 'Selecione uma habilidade equipada para consultar os detalhes sem sair da ficha.';
+    } else {
+        buffer = await gerarBannerPainelJogador(interaction.user, context);
+        if (view !== 'inicio') {
+            subtitle = 'Esta seção será migrada mantendo sua imagem original';
+        }
+    }
+
+    const attachment = new AttachmentBuilder(buffer, { name: fileName });
+    const panel = new ContainerBuilder()
+        .setAccentColor(0xD4AF37)
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(`# ${title}\n${subtitle}`))
+        .addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
+            new MediaGalleryItemBuilder()
+                .setURL(`attachment://${fileName}`)
+                .setDescription(imageDescription)
+        ))
+        .addActionRowComponents(...buildPainelV2Buttons(view))
+        .addSeparatorComponents(new SeparatorBuilder().setDivider(true));
+
+    if (localComponents.length) panel.addActionRowComponents(...localComponents);
+    if (supplementalText) {
+        panel.addTextDisplayComponents(new TextDisplayBuilder().setContent(supplementalText));
+    }
+    panel.addTextDisplayComponents(new TextDisplayBuilder().setContent('-# Painel privado · dados atualizados pela API de Arkandia'));
+
+    return {
+        flags: MessageFlags.IsComponentsV2,
+        components: [panel],
+        files: [attachment],
+        attachments: []
+    };
+}
+
 async function renderPainelRanking(interaction, tipo = 'poder') {
     const rankingData = await getRankingData(tipo);
     const buffer = await gerarBannerRanking(tipo, rankingData);
@@ -323,9 +414,10 @@ async function handleButton(interaction) {
         return await interaction.editReply(await renderPainelJogadorV2(interaction));
     }
 
-    if (interaction.customId === 'painel_v2_atualizar') {
+    if (interaction.customId.startsWith('painel_v2_atualizar_')) {
         await interaction.deferUpdate();
-        return await interaction.editReply(await renderPainelJogadorV2(interaction));
+        const view = interaction.customId.replace('painel_v2_atualizar_', '') || 'inicio';
+        return await interaction.editReply(await renderPainelJogadorV2(interaction, view));
     }
 
     if (interaction.customId.startsWith('painel_v2_menu_')) {
@@ -541,4 +633,13 @@ async function handleButton(interaction) {
     }
 }
 
-module.exports = { data, execute, handleButton };
+async function handleSelect(interaction) {
+    if (!interaction.customId.startsWith('painel_v2_skill_')) return;
+    await interaction.deferUpdate();
+    await interaction.editReply(await renderPainelJogadorV2(interaction, 'perfil', {
+        selectedSkillId: interaction.values[0]
+    }));
+    return true;
+}
+
+module.exports = { data, execute, handleButton, handleSelect };
