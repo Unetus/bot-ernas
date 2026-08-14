@@ -11,7 +11,6 @@ const {
     MediaGalleryItemBuilder,
     SeparatorBuilder,
     TextDisplayBuilder,
-    StringSelectMenuBuilder
 } = require('discord.js');
 const axios = require('axios');
 const { gerarBannerRanking, gerarBannerPerfil, gerarBannerPainelJogador, renderInventarioPage } = require('../canvas/renderer');
@@ -182,18 +181,27 @@ function formatResource(currentKeys, maxKeys, source) {
     return `${current ?? 0}/${maximum}`;
 }
 
-function buildPainelV2Navigation(view) {
-    return new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder()
-            .setCustomId('painel_v2_view')
-            .setPlaceholder('Navegar pelo painel')
-            .addOptions([
-                { label: 'Início', value: 'inicio', description: 'Resumo do aventureiro', default: view === 'inicio' },
-                { label: 'Perfil', value: 'perfil', description: 'Dados e recursos do personagem', default: view === 'perfil' },
-                { label: 'Inventário', value: 'inventario', description: 'Itens carregados', default: view === 'inventario' },
-                { label: 'Missões', value: 'missoes', description: 'Missões disponíveis', default: view === 'missoes' }
-            ])
-    );
+function buildPainelV2Buttons(activeView = 'inicio') {
+    const label = (view, text) => `${activeView === view ? '◆' : '◇'} ${text}`;
+    return [
+        new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('painel_v2_menu_inicio').setLabel(label('inicio', 'Início')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('painel_v2_menu_perfil').setLabel(label('perfil', 'Perfil')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('painel_v2_menu_inventario').setLabel(label('inventario', 'Inventário')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('painel_v2_menu_missoes').setLabel(label('missoes', 'Missões')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('painel_v2_menu_enciclopedia').setLabel(label('enciclopedia', 'Enciclopédia')).setStyle(ButtonStyle.Secondary)
+        ),
+        new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('painel_v2_menu_pesquisa').setLabel(label('pesquisa', 'Pesquisa')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('painel_v2_menu_ranking').setLabel(label('ranking', 'Rankings')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('painel_v2_menu_guilda').setLabel(label('guilda', 'Guilda')).setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder().setCustomId('painel_v2_menu_rp').setLabel(label('rp', 'Cena RP')).setStyle(ButtonStyle.Secondary)
+        ),
+        new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('painel_v2_atualizar').setLabel('Atualizar painel').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('painel_v2_fechar').setLabel('Fechar teste').setStyle(ButtonStyle.Secondary)
+        )
+    ];
 }
 
 function buildPainelV2View(context, view) {
@@ -269,7 +277,7 @@ async function renderPainelJogadorV2(interaction, view = 'inicio') {
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(summary))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(buildPainelV2View(context, view)))
         .addSeparatorComponents(new SeparatorBuilder().setDivider(false))
-        .addActionRowComponents(buildPainelV2Navigation(view))
+        .addActionRowComponents(...buildPainelV2Buttons(view))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent('Este é um teste isolado. O painel tradicional continua disponível pelo comando `/painel` novamente.'))
         .addActionRowComponents(new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('painel_v2_atualizar').setLabel('Atualizar painel').setStyle(ButtonStyle.Primary),
@@ -321,6 +329,13 @@ async function handleButton(interaction) {
     if (interaction.customId === 'painel_v2_atualizar') {
         await interaction.deferUpdate();
         return await interaction.editReply(await renderPainelJogadorV2(interaction));
+    }
+
+    if (interaction.customId.startsWith('painel_v2_menu_')) {
+        await interaction.deferUpdate();
+        const view = interaction.customId.replace('painel_v2_menu_', '');
+        const validViews = new Set(['inicio', 'perfil', 'inventario', 'missoes', 'enciclopedia', 'pesquisa', 'ranking', 'guilda', 'rp']);
+        return await interaction.editReply(await renderPainelJogadorV2(interaction, validViews.has(view) ? view : 'inicio'));
     }
 
     if (interaction.customId === 'painel_v2_fechar') {
@@ -529,11 +544,4 @@ async function handleButton(interaction) {
     }
 }
 
-async function handleSelect(interaction) {
-    if (interaction.customId !== 'painel_v2_view') return false;
-    await interaction.deferUpdate();
-    await interaction.editReply(await renderPainelJogadorV2(interaction, interaction.values[0] || 'inicio'));
-    return true;
-}
-
-module.exports = { data, execute, handleButton, handleSelect };
+module.exports = { data, execute, handleButton };
