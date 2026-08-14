@@ -9,6 +9,8 @@ const cooldown = require('./cooldown');
 const { startSceneCleanup } = require('./utils/sceneCleanup');
 const sessionStore = require('./utils/sessionStore');
 const { deleteAfterDelay } = require('./utils/tempMessage');
+const { deleteThreadCreationNotice } = require('./utils/threadNotice');
+const { deleteSceneV2Panel } = require('./utils/cenaPanelV2');
 
 const client = new Client({
     intents: [
@@ -170,6 +172,7 @@ client.on('interactionCreate', async interaction => {
             }
             try {
                 if (session.type === 'rp') {
+                    await deleteThreadCreationNotice(interaction.channel?.parent, interaction.channelId, session.title);
                     sessionStore.deleteSession(sessionId);
                     await interaction.reply({ content: 'Sessão encerrada e registros removidos com sucesso!', ephemeral: true });
 
@@ -193,8 +196,10 @@ client.on('interactionCreate', async interaction => {
                             if (renderTimers.has(cena.msgId)) { clearTimeout(renderTimers.get(cena.msgId)); renderTimers.delete(cena.msgId); }
                             if (cena.msgId) {
                                 try { await (await interaction.channel.messages.fetch(cena.msgId)).delete(); } catch {}
-                            }
-                            cenasAtivas.delete(session.discord_thread_id);
+                        }
+                        if (cena) await deleteSceneV2Panel(interaction.channel, cena);
+                        cenasAtivas.delete(session.discord_thread_id);
+                        await deleteThreadCreationNotice(interaction.channel?.parent, interaction.channelId, interaction.channel?.name);
                         }
                         const cenaFimMsg = await interaction.channel.send('🛑 **Cena encerrada.** O histórico foi salvo e pode ser consultado com `/sessao historico`.');
                         deleteAfterDelay(cenaFimMsg, 10000);

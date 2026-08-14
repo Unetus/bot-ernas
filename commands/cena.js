@@ -4,6 +4,7 @@ const { cenasAtivas, timersTurno, renderTimers } = require('../utils/state');
 const { repintarMapaNovo, atualizarMapaDebounced } = require('../canvas/renderer');
 const { parsePosicao } = require('../utils/helpers');
 const sessionStore = require('../utils/sessionStore');
+const { deleteSceneV2Panel } = require('../utils/cenaPanelV2');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
@@ -170,6 +171,8 @@ function createScene({ colunas, linhas, fundoUrl, nome, descricao, tempoTurnoMs,
         turnoAtual: 0,
         players: [],
         msgId: null,
+        panelMsgId: null,
+        sessionId: null,
         mestreId: mestreId || null,
         tempoTurnoMs: tempoTurnoMs || null,
         logs: ['Cena aberta para entrada dos jogadores.'],
@@ -260,13 +263,7 @@ async function iniciarCenaTaticaPeloPainel(interaction, { colunas, linhas, nome,
             creatorIsMaster: true,
             participants: [{ discordId: interaction.user.id, displayName: interaction.member.displayName || interaction.user.username }]
         });
-        const row = new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId(`encerrar_sessao_${sessionId}`).setLabel('Encerrar cena').setStyle(ButtonStyle.Danger)
-        );
-        await interaction.channel.send({
-            content: 'Cena tatica iniciada dentro da sessao de RP. Jogadores podem usar `/cena entrar`.',
-            components: [row]
-        });
+        cena.sessionId = sessionId;
     } catch (sessionErr) {
         console.error('[cena painel] Erro ao criar sessao da cena:', sessionErr);
     }
@@ -331,6 +328,7 @@ async function execute(interaction) {
                     displayName: interaction.member.displayName || interaction.user.username
                 }]
             });
+            cena.sessionId = sessionId;
 
             const row = new ActionRowBuilder().addComponents(
                 new ButtonBuilder()
@@ -446,6 +444,7 @@ async function execute(interaction) {
         if (cena.msgId) {
             try { await (await interaction.channel.messages.fetch(cena.msgId)).delete(); } catch(e) {}
         }
+        await deleteSceneV2Panel(interaction.channel, cena);
         finishActiveCenaSession(cid, interaction.user.id);
         cenasAtivas.delete(cid);
         return await interaction.editReply(`Cena **${cena.nome || 'Tatica'}** encerrada.`);
@@ -604,6 +603,7 @@ async function handleButton(interaction) {
             }
             cenasAtivas.delete(interaction.channelId);
             finishActiveCenaSession(interaction.channelId, interaction.user.id);
+            await deleteSceneV2Panel(interaction.channel, cena);
             await interaction.deferUpdate();
             await interaction.channel.send(`**A cena ${cena.nome} foi encerrada pelo mestre.**`);
             try {

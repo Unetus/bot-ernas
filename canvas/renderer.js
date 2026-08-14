@@ -6,6 +6,7 @@ const path = require('path');
 const { cenasAtivas, missoesPreparacao, renderTimers, arenasDraft, timersTurno, mestresNarrando } = require('../utils/state');
 const { AttachmentBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const fonts = require('../utils/fonts');
+const { refreshSceneV2Panel } = require('../utils/cenaPanelV2');
 fonts.registerFonts();
 
 const TRUSTED_IMAGE_HOSTS = new Set([
@@ -2340,6 +2341,7 @@ async function atualizarMapaDebounced(channel, cena) {
             const buffer = await renderMap(cena);
             const attachment = new AttachmentBuilder(buffer, { name: 'mapa.png' });
             await msg.edit({ content: '', files: [attachment], components: getCenaBotoes(cena) });
+            await refreshSceneV2Panel(channel, cena);
         } catch (e) {
             console.error('Erro debounce', e);
         }
@@ -2388,6 +2390,8 @@ async function repintarMapaNovo(channel, cena) {
     
     cena.msgId = msg.id;
     cena.msgRodada = cena.rodada;
+
+    await refreshSceneV2Panel(channel, cena);
     
     if (cena.estado === 'COMBATE' && cena.tempoTurnoMs) {
         iniciarTimerTurno(channel, cena);

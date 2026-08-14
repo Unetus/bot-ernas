@@ -7,6 +7,7 @@ const { gerarBannerPerfil } = require('../canvas/renderer');
 const profileCache = require('../utils/profileCache');
 const cenaCommand = require('./cena');
 const { cenasAtivas } = require('../utils/state');
+const { deleteThreadCreationNotice } = require('../utils/threadNotice');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
@@ -76,6 +77,7 @@ async function execute(interaction) {
         try {
             const channel = interaction.channel;
             if (channel?.isThread?.() && channel?.delete) {
+                await deleteThreadCreationNotice(channel.parent, channel.id, channel.name);
                 await channel.delete(`Sessao de RP encerrada por ${interaction.user.tag}`);
             }
         } catch (e) {

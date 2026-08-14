@@ -18,6 +18,7 @@ const { AttachmentBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = requ
 const { gerarBannerRpUnificado } = require('../canvas/renderer');
 const sessionStore = require('./sessionStore');
 const { deleteAfterDelay } = require('./tempMessage');
+const { deleteThreadCreationNotice } = require('./threadNotice');
 
 const MENTION_REGEX = /<@!?(\d+)>/g;
 const FALLBACK_AVATAR = 'https://i.imgur.com/vHqB3q0.png';
@@ -132,15 +133,12 @@ async function iniciarCenaRp({
     // Deleta a mensagem automatica do Discord "X started a thread: ... See all threads"
     // para manter o canal limpo.
     try {
-        const recent = await targetChannel.messages.fetch({ limit: 3 });
-        const startedMsg = recent.find(m =>
-            m.author.id === targetChannel.client.user.id
-            && m.type === 0
-            && /started a thread|iniciou um t\u00f3pico/i.test(m.content || '')
+        const recent = await targetChannel.messages.fetch({ limit: 10 });
+        const startedMessages = recent.filter(m =>
+            (m.type === 0 || m.type === 18 || m.type === 21)
+            && /started a thread|iniciou um t\u00f3pico|iniciou um topico/i.test(m.content || '')
         );
-        if (startedMsg) {
-            deleteAfterDelay(startedMsg, 5000);
-        }
+        for (const startedMsg of startedMessages) deleteAfterDelay(startedMsg, 5000);
     } catch (e) {
         console.warn('[rpScene] Nao foi possivel deletar a mensagem de thread criada:', e.message);
     }
