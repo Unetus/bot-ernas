@@ -279,10 +279,7 @@ async function renderPainelJogadorV2(interaction, view = 'inicio') {
         .addSeparatorComponents(new SeparatorBuilder().setDivider(false))
         .addActionRowComponents(...buildPainelV2Buttons(view))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent('Este é um teste isolado. O painel tradicional continua disponível pelo comando `/painel` novamente.'))
-        .addActionRowComponents(new ActionRowBuilder().addComponents(
-            new ButtonBuilder().setCustomId('painel_v2_atualizar').setLabel('Atualizar painel').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('painel_v2_fechar').setLabel('Fechar teste').setStyle(ButtonStyle.Secondary)
-        ));
+        ;
 
     return {
         flags: MessageFlags.IsComponentsV2,
