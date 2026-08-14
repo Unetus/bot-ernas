@@ -1,4 +1,17 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, AttachmentBuilder } = require('discord.js');
+const {
+    SlashCommandBuilder,
+    EmbedBuilder,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    AttachmentBuilder,
+    ContainerBuilder,
+    MessageFlags,
+    MediaGalleryBuilder,
+    MediaGalleryItemBuilder,
+    SeparatorBuilder,
+    TextDisplayBuilder
+} = require('discord.js');
 const axios = require('axios');
 const { gerarBannerRanking, gerarBannerPerfil, gerarBannerPainelJogador, renderInventarioPage } = require('../canvas/renderer');
 const { buildProfileSkillRow } = require('./perfil');
@@ -30,7 +43,8 @@ function getMainPainelComponents(activeMenu = null) {
         new ButtonBuilder().setCustomId('painel_menu_pesquisa').setLabel(label('pesquisa', 'Pesquisa')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('painel_menu_ranking').setLabel(label('ranking', 'Rankings')).setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('painel_menu_guilda').setLabel(label('guilda', 'Guilda')).setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId('painel_menu_rp').setLabel(label('rp', 'Cena RP')).setStyle(ButtonStyle.Secondary)
+        new ButtonBuilder().setCustomId('painel_menu_rp').setLabel(label('rp', 'Cena RP')).setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('painel_v2_teste').setLabel('✦ Painel V2 (teste)').setStyle(ButtonStyle.Success)
     );
 
     return [row1, row2];
@@ -149,6 +163,46 @@ async function renderPainelHome(interaction) {
     return { embeds: [embed], files: [attachment], components: getPainelComponentsForView('inicio'), ephemeral: true };
 }
 
+async function renderPainelJogadorV2(interaction) {
+    const context = await getPainelContext(interaction.user.id).catch(() => ({}));
+    const displayName = interaction.user.globalName || interaction.user.username || 'Aventureiro';
+    const buffer = await gerarBannerPainelJogador(interaction.user, context);
+    const attachment = new AttachmentBuilder(buffer, { name: 'painel-jogador.png' });
+    const summary = [
+        `**Aventureiro** · ${displayName}`,
+        `**Personagem** · ${context.personagemNome || 'Nenhum personagem ativo'}`,
+        `**Inventário** · ${Number.isFinite(context.inventarioQtd) ? `${context.inventarioQtd} item(ns)` : 'Indisponível'}`,
+        `**Missões abertas** · ${Number.isFinite(context.missoesAbertas) ? context.missoesAbertas : 'Indisponível'}`
+    ].join('\n');
+
+    const panel = new ContainerBuilder()
+        .setAccentColor(0xD4AF37)
+        .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent('# Painel do jogador'),
+            new TextDisplayBuilder().setContent(`## ${displayName}\nCentral experimental em Components V2.`)
+        )
+        .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+        .addMediaGalleryComponents(new MediaGalleryBuilder().addItems(
+            new MediaGalleryItemBuilder()
+                .setURL('attachment://painel-jogador.png')
+                .setDescription('HUD do painel do jogador')
+        ))
+        .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(summary))
+        .addSeparatorComponents(new SeparatorBuilder().setDivider(false))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent('Este é um teste isolado. O painel tradicional continua disponível pelo comando `/painel` novamente.'))
+        .addActionRowComponents(new ActionRowBuilder().addComponents(
+            new ButtonBuilder().setCustomId('painel_v2_atualizar').setLabel('Atualizar painel').setStyle(ButtonStyle.Primary),
+            new ButtonBuilder().setCustomId('painel_v2_fechar').setLabel('Fechar teste').setStyle(ButtonStyle.Secondary)
+        ));
+
+    return {
+        flags: MessageFlags.IsComponentsV2,
+        components: [panel],
+        files: [attachment]
+    };
+}
+
 async function renderPainelRanking(interaction, tipo = 'poder') {
     const rankingData = await getRankingData(tipo);
     const buffer = await gerarBannerRanking(tipo, rankingData);
@@ -179,6 +233,21 @@ async function execute(interaction) {
 }
 
 async function handleButton(interaction) {
+    if (interaction.customId === 'painel_v2_teste') {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        return await interaction.editReply(await renderPainelJogadorV2(interaction));
+    }
+
+    if (interaction.customId === 'painel_v2_atualizar') {
+        await interaction.deferUpdate();
+        return await interaction.editReply(await renderPainelJogadorV2(interaction));
+    }
+
+    if (interaction.customId === 'painel_v2_fechar') {
+        await interaction.deferUpdate();
+        return await interaction.deleteReply();
+    }
+
     if (interaction.customId.startsWith('painel_rank_switch_')) {
         await interaction.deferUpdate();
         const tipo = interaction.customId.replace('painel_rank_switch_', '');
