@@ -40,6 +40,30 @@ const commands = client.commands.map(cmd => cmd.data.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
+async function registerApplicationCommands(applicationId) {
+    // Ao habilitar Activities, o Discord cria um PRIMARY_ENTRY_POINT (tipo 4).
+    // O bulk overwrite antigo removia qualquer comando que nao estivesse no
+    // array local, inclusive esse entry point. Preservamos apenas esse tipo e
+    // continuamos substituindo os slash commands normalmente.
+    // Se a consulta falhar, abortamos o overwrite. Continuar sem conhecer os
+    // comandos atuais poderia apagar o Entry Point criado pelo Discord.
+    const existing = await rest.get(Routes.applicationCommands(applicationId));
+    const entryPoints = existing
+        .filter(command => command.type === 4)
+        .map(command => ({
+            name: command.name,
+            description: command.description,
+            type: command.type,
+            handler: command.handler,
+            integration_types: command.integration_types,
+            contexts: command.contexts
+        }));
+
+    await rest.put(Routes.applicationCommands(applicationId), {
+        body: [...commands, ...entryPoints]
+    });
+}
+
 function isAcked(interaction) {
     return interaction.replied || interaction.deferred;
 }
@@ -103,7 +127,12 @@ client.once('ready', async () => {
         console.error('Erro ao inicializar o catalogCache:', err);
     }
     startSceneCleanup();
-    await rest.put(Routes.applicationCommands(client.user.id), { body: commands }); 
+    try {
+        await registerApplicationCommands(client.user.id);
+        console.log('✓ Comandos globais registrados.');
+    } catch (error) {
+        console.error('Erro ao registrar comandos globais:', error);
+    }
 });
 
 client.on('interactionCreate', async interaction => {
