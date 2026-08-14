@@ -10,7 +10,8 @@ const {
     MediaGalleryBuilder,
     MediaGalleryItemBuilder,
     SeparatorBuilder,
-    TextDisplayBuilder
+    TextDisplayBuilder,
+    StringSelectMenuBuilder
 } = require('discord.js');
 const axios = require('axios');
 const { gerarBannerRanking, gerarBannerPerfil, gerarBannerPainelJogador, renderInventarioPage } = require('../canvas/renderer');
@@ -134,6 +135,8 @@ async function getPainelContext(userId) {
     const missoes = missoesResult.status === 'fulfilled' ? missoesResult.value : [];
 
     return {
+        personagem,
+        missoes,
         personagemNome: personagem?.nome || null,
         inventarioQtd: (personagem?.inventario || personagem?.itens || []).length,
         missoesAbertas: missoes.length
@@ -163,9 +166,84 @@ async function renderPainelHome(interaction) {
     return { embeds: [embed], files: [attachment], components: getPainelComponentsForView('inicio'), ephemeral: true };
 }
 
-async function renderPainelJogadorV2(interaction) {
+function getValue(source, keys) {
+    for (const key of keys) {
+        const value = source?.[key];
+        if (value !== undefined && value !== null && value !== '') return value;
+    }
+    return null;
+}
+
+function formatResource(currentKeys, maxKeys, source) {
+    const current = getValue(source, currentKeys);
+    const maximum = getValue(source, maxKeys);
+    if (current === null && maximum === null) return null;
+    if (maximum === null) return `${current}`;
+    return `${current ?? 0}/${maximum}`;
+}
+
+function buildPainelV2Navigation(view) {
+    return new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId('painel_v2_view')
+            .setPlaceholder('Navegar pelo painel')
+            .addOptions([
+                { label: 'Início', value: 'inicio', description: 'Resumo do aventureiro', default: view === 'inicio' },
+                { label: 'Perfil', value: 'perfil', description: 'Dados e recursos do personagem', default: view === 'perfil' },
+                { label: 'Inventário', value: 'inventario', description: 'Itens carregados', default: view === 'inventario' },
+                { label: 'Missões', value: 'missoes', description: 'Missões disponíveis', default: view === 'missoes' }
+            ])
+    );
+}
+
+function buildPainelV2View(context, view) {
+    const personagem = context.personagem || {};
+    if (view === 'perfil') {
+        const vida = formatResource(['vida_atual', 'vidaAtual', 'hp_atual', 'hp'], ['vida_maxima', 'vidaMaxima', 'hp_maximo', 'hpMax'], personagem);
+        const energia = formatResource(['energia_atual', 'energiaAtual', 'mana_atual', 'mana'], ['energia_maxima', 'energiaMaxima', 'mana_maxima', 'manaMax'], personagem);
+        return [
+            '**Perfil do personagem**',
+            `**Nome** · ${personagem.nome || 'Não definido'}`,
+            `**Nível** · ${getValue(personagem, ['nivel', 'level']) ?? 'Não informado'}`,
+            `**Classe** · ${getValue(personagem, ['classe', 'className', 'arquetipo']) || 'Não informada'}`,
+            `**Vida** · ${vida || 'Não informada'}`,
+            `**Energia** · ${energia || 'Não informada'}`,
+            `**Guilda** · ${getValue(personagem, ['guilda_nome', 'guildaNome', 'guilda']) || 'Sem guilda'}`
+        ].join('\n');
+    }
+
+    if (view === 'inventario') {
+        const itens = personagem.inventario || personagem.itens || [];
+        if (!itens.length) return '**Inventário**\nNenhum item encontrado no personagem ativo.';
+        return `**Inventário · ${itens.length} item(ns)**\n` + itens.slice(0, 12).map((item, index) => {
+            const nome = typeof item === 'string' ? item : (item.nome || item.name || 'Item sem nome');
+            return `${index + 1}. ${nome}`;
+        }).join('\n') + (itens.length > 12 ? '\n\nMostrando os 12 primeiros itens.' : '');
+    }
+
+    if (view === 'missoes') {
+        if (!context.missoes?.length) return '**Missões abertas**\nNenhuma missão aberta encontrada.';
+        return `**Missões abertas · ${context.missoes.length}**\n` + context.missoes.slice(0, 8).map((missao, index) => {
+            const nome = missao.nome || missao.titulo || 'Missão sem nome';
+            const rank = missao.ranque || missao.rank;
+            return `${index + 1}. ${rank ? `[${rank}] ` : ''}${nome}`;
+        }).join('\n');
+    }
+
+    return [
+        `**Aventureiro** · ${context.displayName}`,
+        `**Personagem** · ${context.personagemNome || 'Nenhum personagem ativo'}`,
+        `**Inventário** · ${Number.isFinite(context.inventarioQtd) ? `${context.inventarioQtd} item(ns)` : 'Indisponível'}`,
+        `**Missões abertas** · ${Number.isFinite(context.missoesAbertas) ? context.missoesAbertas : 'Indisponível'}`,
+        '',
+        'Selecione uma seção acima para consultar mais detalhes.'
+    ].join('\n');
+}
+
+async function renderPainelJogadorV2(interaction, view = 'inicio') {
     const context = await getPainelContext(interaction.user.id).catch(() => ({}));
     const displayName = interaction.user.globalName || interaction.user.username || 'Aventureiro';
+    context.displayName = displayName;
     const buffer = await gerarBannerPainelJogador(interaction.user, context);
     const attachment = new AttachmentBuilder(buffer, { name: 'painel-jogador.png' });
     const summary = [
@@ -189,7 +267,9 @@ async function renderPainelJogadorV2(interaction) {
         ))
         .addSeparatorComponents(new SeparatorBuilder().setDivider(true))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent(summary))
+        .addTextDisplayComponents(new TextDisplayBuilder().setContent(buildPainelV2View(context, view)))
         .addSeparatorComponents(new SeparatorBuilder().setDivider(false))
+        .addActionRowComponents(buildPainelV2Navigation(view))
         .addTextDisplayComponents(new TextDisplayBuilder().setContent('Este é um teste isolado. O painel tradicional continua disponível pelo comando `/painel` novamente.'))
         .addActionRowComponents(new ActionRowBuilder().addComponents(
             new ButtonBuilder().setCustomId('painel_v2_atualizar').setLabel('Atualizar painel').setStyle(ButtonStyle.Primary),
@@ -449,4 +529,11 @@ async function handleButton(interaction) {
     }
 }
 
-module.exports = { data, execute, handleButton };
+async function handleSelect(interaction) {
+    if (interaction.customId !== 'painel_v2_view') return false;
+    await interaction.deferUpdate();
+    await interaction.editReply(await renderPainelJogadorV2(interaction, interaction.values[0] || 'inicio'));
+    return true;
+}
+
+module.exports = { data, execute, handleButton, handleSelect };
