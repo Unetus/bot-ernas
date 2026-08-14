@@ -55,11 +55,12 @@ normal do site nao e afetada.
 
 ## Limitacoes intencionais
 
-- A escolha de qual usuario controlar e manual, pois a prova de conceito ainda
-  nao faz OAuth da Activity.
+- O OAuth da Activity e o vinculo com o personagem ativo já estão validados.
+- A seleção manual de token permanece apenas como contingência do protótipo.
 - O papel de mestre nao e autenticado nesta fase.
 - A sincronizacao usa polling e armazenamento em memoria.
 - Nao ha ligacao com o banco de sessoes nem com `cenasAtivas`.
 
-Se a experiencia for aprovada, a etapa seguinte sera autenticar o usuario,
-persistir a sala e conectar o tabuleiro a cena tatica real.
+A etapa seguinte é consolidar identidade e permissões do mestre, persistir a
+sala e conectar o tabuleiro à cena tática real. Assets do site usados dentro
+da Activity devem preferir caminhos relativos para atravessar o URL Mapping.
