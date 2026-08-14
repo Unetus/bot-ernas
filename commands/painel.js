@@ -20,6 +20,7 @@ const enciclopediaCmd = require('./enciclopedia');
 const { embedErro, formatarTexto } = require('../utils/helpers');
 const { skillsCache } = require('../utils/state');
 const catalogCache = require('../catalogCache');
+const playerPanelV2 = require('../utils/playerPanelV2');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
@@ -399,16 +400,20 @@ async function renderPainelRanking(interaction, tipo = 'poder') {
 
 async function execute(interaction) {
     try {
-        await interaction.reply(await renderPainelHome(interaction));
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.editReply(await playerPanelV2.renderView(interaction, 'inicio'));
     } catch (e) {
-        if (interaction.deferred) {
-            const payload = await renderPainelHome(interaction);
-            await interaction.editReply(payload);
-        }
+        console.error('[painel v2] Erro ao abrir painel:', e);
+        if (interaction.deferred) await interaction.editReply({ content: 'Não foi possível abrir o painel agora. Tente novamente em instantes.' });
     }
 }
 
 async function handleButton(interaction) {
+    if (interaction.customId.startsWith('painel_v2_')) {
+        const handled = await playerPanelV2.handleButton(interaction);
+        if (handled) return handled;
+    }
+
     if (interaction.customId === 'painel_v2_teste') {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         return await interaction.editReply(await renderPainelJogadorV2(interaction));
@@ -634,6 +639,8 @@ async function handleButton(interaction) {
 }
 
 async function handleSelect(interaction) {
+    const handled = await playerPanelV2.handleSelect(interaction);
+    if (handled) return handled;
     if (!interaction.customId.startsWith('painel_v2_skill_')) return;
     await interaction.deferUpdate();
     await interaction.editReply(await renderPainelJogadorV2(interaction, 'perfil', {
@@ -642,4 +649,9 @@ async function handleSelect(interaction) {
     return true;
 }
 
-module.exports = { data, execute, handleButton, handleSelect };
+async function handleModal(interaction) {
+    if (!interaction.customId.startsWith('painel_v2_')) return;
+    return playerPanelV2.handleModal(interaction);
+}
+
+module.exports = { data, execute, handleButton, handleSelect, handleModal };

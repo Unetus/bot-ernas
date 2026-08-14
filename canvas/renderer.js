@@ -292,7 +292,7 @@ async function gerarBannerPerfilLegacy(p) {
 
     ctx.fillStyle = '#A0AAB5';
     ctx.font = '22px "Nunito"';
-    ctx.fillText(`${raca} â€¢ ${classe}`, 340, 170);
+    ctx.fillText(`${raca} • ${classe}`, 340, 170);
 
     // Status boxes (Rank & Nível, Tier & Poder)
     const drawConsolidatedStat = (label, mainVal, subVal, x, y, w) => {
@@ -557,7 +557,7 @@ async function gerarBannerPerfilLegacy(p) {
             ctx.fillStyle = b.color;
             ctx.font = 'bold 11px "Baloo 2"';
             ctx.textAlign = 'center';
-            ctx.fillText('â˜…', bx + 22, by + 17);
+            ctx.fillText('★', bx + 22, by + 17);
 
             ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 14px "Baloo 2"';
@@ -820,7 +820,7 @@ async function gerarBannerLoot(item, qtd) {
 
     ctx.fillStyle = '#A0AAB5';
     ctx.font = '18px "Nunito"';
-    ctx.fillText(`${formatarTexto(item.categoria || '')}${item.grau ? ' â€¢ Grau ' + item.grau : ''}`, 200, 162);
+    ctx.fillText(`${formatarTexto(item.categoria || '')}${item.grau ? ' • Grau ' + item.grau : ''}`, 200, 162);
 
     // Quantidade (badge no canto superior direito)
     if (qtd > 1) {
@@ -999,7 +999,7 @@ async function gerarBannerInventario(p, sliceItens, categoria, pag, totalPaginas
 
     const categoriaLabel = formatarTexto(categoria === 'todos' ? 'Tudo' : categoria);
     const libras = p.libras || p.saldo || 0;
-    drawHudHeader(ctx, `Inventário de ${formatarTexto(p.nome || 'Aventureiro')}`, `${categoriaLabel} â€¢ ${libras.toLocaleString('pt-BR')} Libras`, 82, 100, 836);
+    drawHudHeader(ctx, `Inventário de ${formatarTexto(p.nome || 'Aventureiro')}`, `${categoriaLabel} • ${libras.toLocaleString('pt-BR')} Libras`, 82, 100, 836);
 
     const raridades = {
         comum: '#8B949E',
@@ -1222,7 +1222,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
         // Detalhes menores (classe/raça se personagem)
         let subText = '';
         if (item.classe && item.raca) {
-            subText = ` (${formatarTexto(item.raca)} â€¢ ${formatarTexto(item.classe)})`;
+            subText = ` (${formatarTexto(item.raca)} • ${formatarTexto(item.classe)})`;
         }
 
         ctx.fillText(nomeStr + subText, 130, y + rowHeight / 2 + 5);
@@ -1238,7 +1238,7 @@ async function gerarBannerRankingLegacy(tipo, dados) {
         } else if (tipo === 'nivel') {
             valorText = `Nível ${item.nivel || 1}`;
         } else if (tipo === 'guildas') {
-            valorText = `${(item.xp_total_guilda || 0).toLocaleString('pt-BR')} XP â€¢ ${(item.banco_libras || item.libras || 0).toLocaleString('pt-BR')} L`;
+            valorText = `${(item.xp_total_guilda || 0).toLocaleString('pt-BR')} XP • ${(item.banco_libras || item.libras || 0).toLocaleString('pt-BR')} L`;
         } else if (tipo === 'arena') {
             valorText = `${item.rating || item.pontos_arena || item.arena_pontos || 0} pts`;
         }
@@ -1304,7 +1304,7 @@ async function gerarBannerRanking(tipo, dados) {
 
         let subText = '';
         if (item.classe && item.raca) {
-            subText = ` â€¢ ${formatarTexto(item.raca)} / ${formatarTexto(item.classe)}`;
+            subText = ` • ${formatarTexto(item.raca)} / ${formatarTexto(item.classe)}`;
         }
 
         ctx.fillText(trimToWidth(ctx, nomeStr + subText, 410), 146, y + 22);
@@ -1462,7 +1462,7 @@ async function gerarBannerGuilda(guilda) {
     if (perks.length === 0) {
         ctx.fillStyle = '#4F5660';
         ctx.font = 'italic 15px "Nunito"';
-        ctx.fillText('Nenhum bÃ´nus ativo no momento.', 50, 370);
+        ctx.fillText('Nenhum bônus ativo no momento.', 50, 370);
     } else {
         perks.slice(0, 3).forEach((p, idx) => {
             const px = 50 + idx * 240;
@@ -1482,7 +1482,7 @@ async function gerarBannerGuilda(guilda) {
             };
 
             const info = traducoes[perkKey.toLowerCase()] || {
-                nome: p.nome || formatarTexto(perkKey.replace(/_/g, ' ')) || 'BÃ´nus Ativo',
+                nome: p.nome || formatarTexto(perkKey.replace(/_/g, ' ')) || 'Bônus Ativo',
                 efeito: p.efeito || 'Efeito ativo na guilda'
             };
 
@@ -1555,6 +1555,62 @@ async function renderInventarioPage(interaction, p, itens, categoria, pagina, op
     } else {
         return await interaction.update({ embeds: [embed], files: [attachment], attachments: [], components, content: null });
     }
+}
+
+async function gerarBannerMissoesPainel(missoes = [], options = {}) {
+    const w = 1000;
+    const h = 560;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+    await drawHudBase(ctx, w, h, { focusY: 0.38 });
+
+    const page = Number(options.page || 0);
+    const totalPages = Math.max(1, Number(options.totalPages || 1));
+    const personagemNome = options.personagemNome ? ` · ${formatarTexto(options.personagemNome)}` : '';
+    drawHudHeader(ctx, 'Quadro de Missões', `Expedições disponíveis${personagemNome}`, 82, 98, 836);
+
+    const visible = missoes.slice(0, 4);
+    if (!visible.length) {
+        drawHudBox(ctx, 82, 210, 836, 190, 16);
+        ctx.fillStyle = HUD_GOLD;
+        ctx.font = 'bold 30px "Cinzel"';
+        ctx.textAlign = 'center';
+        ctx.fillText('Nenhuma missão aberta', w / 2, 285);
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = '18px "Nunito"';
+        ctx.fillText('Novas oportunidades aparecerão aqui quando forem publicadas.', w / 2, 330);
+        ctx.textAlign = 'left';
+    } else {
+        visible.forEach((missao, index) => {
+            const y = 188 + (index * 80);
+            drawHudBox(ctx, 82, y, 836, 66, 12);
+            ctx.fillStyle = missao.morte_permanente ? '#C65A4A' : HUD_GOLD;
+            ctx.fillRect(100, y + 14, 4, 38);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 19px "Cinzel"';
+            const rank = missao.ranque || missao.rank_minimo || missao.rank || 'D';
+            ctx.fillText(trimToWidth(ctx, `[${rank}] ${missao.nome || missao.titulo || 'Missão sem nome'}`, 520), 122, y + 28);
+            ctx.fillStyle = HUD_MUTED;
+            ctx.font = '14px "Nunito"';
+            const nivel = missao.nivel_minimo || missao.nivel_min || 1;
+            const vagas = missao.vagas_restantes ?? missao.limite_jogadores ?? '-';
+            const risco = missao.morte_permanente ? 'Risco extremo' : 'Risco controlado';
+            ctx.fillText(`Nível ${nivel} · ${risco}`, 122, y + 49);
+            ctx.textAlign = 'right';
+            ctx.fillStyle = HUD_TEXT;
+            ctx.font = 'bold 15px "Baloo 2"';
+            ctx.fillText(`Vagas: ${vagas}`, 892, y + 39);
+            ctx.textAlign = 'left';
+        });
+    }
+
+    drawHudBox(ctx, 82, 516, 836, 28, 9);
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = '14px "Nunito"';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Página ${page + 1}/${totalPages} · selecione uma missão abaixo para ver detalhes`, w / 2, 535);
+    ctx.textAlign = 'left';
+    return canvas.toBuffer('image/png');
 }
 
 async function gerarBannerPainelJogador(user = {}, context = {}) {
@@ -1639,7 +1695,7 @@ async function gerarBannerPainelJogador(user = {}, context = {}) {
     if (contextParts.length > 0) {
         ctx.fillStyle = '#D4AF37';
         ctx.font = 'bold 13px "Baloo 2"';
-        ctx.fillText(contextParts.join('  â€¢  '), 84, 188);
+        ctx.fillText(contextParts.join('  •  '), 84, 188);
     }
 
     ctx.strokeStyle = 'rgba(212, 175, 55, 0.35)';
@@ -2113,7 +2169,7 @@ async function renderDraft(draft) {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 36px "Cinzel"';
     ctx.textAlign = 'center';
-    ctx.fillText('â– Arena - Picks & Bans', canvasWidth / 2, 50);
+    ctx.fillText('❖ Arena - Picks & Bans', canvasWidth / 2, 50);
 
     const cols = 3;
     const mapW = 300;
@@ -3851,4 +3907,4 @@ async function gerarBannerPesquisaDetalhe(disc, status, opts = {}) {
     return canvas.toBuffer('image/png');
 }
 
-module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerEnciclopedia, gerarBannerPainelMestreModern, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponentsModern,     gerarBannerRpTitulo, gerarBannerRpParticipantes, gerarBannerRpAmbientacao, gerarBannerRpUnificado, gerarBannerLocalidade, gerarBannerPainelLocalidade, gerarBannerPesquisaStatus, gerarBannerPesquisaArvore, gerarBannerPesquisaDetalhe };
+module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerMissoesPainel, gerarBannerEnciclopedia, gerarBannerPainelMestreModern, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponentsModern,     gerarBannerRpTitulo, gerarBannerRpParticipantes, gerarBannerRpAmbientacao, gerarBannerRpUnificado, gerarBannerLocalidade, gerarBannerPainelLocalidade, gerarBannerPesquisaStatus, gerarBannerPesquisaArvore, gerarBannerPesquisaDetalhe };

@@ -918,4 +918,14 @@ async function handleModal(interaction) {
     return false;
 }
 
-module.exports = { data, execute, handleButton, handleSelect, handleModal, renderPesquisaStatusForPainel, getIcon, loadAllIcons };
+module.exports = {
+    data,
+    execute,
+    handleButton,
+    handleSelect,
+    handleModal,
+    renderPesquisaStatusForPainel,
+    buildRegistroUnlockedOptions,
+    getIcon,
+    loadAllIcons
+};
