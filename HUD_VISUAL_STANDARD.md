@@ -8,21 +8,21 @@ Este guia define o padrao visual para comandos que retornam HUDs em Canvas no Di
 - Fundo: usar o asset `assets/ui/painel-hud-medieval.png` via helper compartilhado do renderer.
 - Paleta base: fundo escuro, texto claro, detalhes em dourado antigo `#D4AF37`.
 - Evitar: excesso de descricoes, tags decorativas redundantes, cores muito saturadas e layouts poluidos.
-- **Evitar emojis em todos os textos renderizados** (cards, banners, botoes, transcripts). Usar simbolos discretos ou espacamento quando necessario.
+- Evitar emojis em todos os textos renderizados (cards, banners, botoes, transcripts). Usar simbolos discretos ou espacamento quando necessario.
 
 ## Padrao Tipografico
 
-O bot registra tres familias via `GlobalFonts` em `utils/fonts.js` (arquivos em `assets/fonts/`). **Sempre use o nome da familia entre aspas** no `ctx.font`:
+O bot registra tres familias via `GlobalFonts` em `utils/fonts.js` (arquivos em `assets/fonts/`). Sempre use o nome da familia entre aspas no `ctx.font`:
 
 | Papel | Fonte | Quando usar | Exemplo |
 | :--- | :--- | :--- | :--- |
-| **Header / Display** | **Cinzel** | Titulos, banners, numeros grandes (>=24px), eyebrow labels | `ctx.font = 'bold 50px "Cinzel"'` |
-| **Body** | **Nunito** | Textos, paragrafos, descricoes, subtitulos (12-23px, sem bold) | `ctx.font = '20px "Nunito"'` |
-| **UI** | **Baloo 2** | Menus, chrome, labels, numeros, botoes (bold <24px ou <=11px) | `ctx.font = 'bold 12px "Baloo 2"'` |
+| Header / Display | Cinzel | Titulos, banners, numeros grandes (>=24px), eyebrow labels | `ctx.font = 'bold 50px "Cinzel"'` |
+| Body | Nunito | Textos, paragrafos, descricoes, subtitulos (12-23px, sem bold) | `ctx.font = '20px "Nunito"'` |
+| UI | Baloo 2 | Menus, chrome, labels, numeros, botoes (bold <24px ou <=11px) | `ctx.font = 'bold 12px "Baloo 2"'` |
 
-Nunca use `sans-serif` ou `serif` cru — sao fontes do sistema e podem quebrar caracteres acentuados ou glifos especiais (causando mojibake como `Humano â€¢ Bardo` em vez de `Humano · Bardo`).
+Nunca use `sans-serif` ou `serif` cru, que sao fontes do sistema e podem quebrar caracteres acentuados ou glifos especiais (causando mojibake como `Humano â€¢ Bardo` em vez de `Humano · Bardo`).
 
-Para peso no Cinzel: use `bold` direto. Para Nunito/Baloo 2: use `bold` ou `italic` (italic gera faux-italic se nao houver arquivo italic registrado — aceitavel para Nunito body).
+Para peso no Cinzel: use `bold` direto. Para Nunito/Baloo 2: use `bold` ou `italic` (italic gera faux-italic se nao houver arquivo italic registrado, aceitavel para Nunito body).
 
 ## Estrutura de Canvas
 
@@ -38,17 +38,17 @@ Para peso no Cinzel: use `bold` direto. Para Nunito/Baloo 2: use `bold` ou `ital
 Banners de localidade e de cena de RP (`gerarBannerLocalidade`, `gerarBannerRpUnificado`) ajustam o canvas a proporcao da imagem enviada:
 
 - Largura fixa: 1000px (evita re-escala pelo Discord).
-- Altura: `h = max(altura_referencia, min(max, round(1000 * aspect))`).
+- Altura: `h = max(altura_referencia, min(max, round(1000 * aspect))`.
   - Localidade: H_REF=620, max=1200.
   - RP: H_REF=780, max=1500.
 - Imagem: cover-fit (preenche todo o canvas).
 - Sem imagem: `drawHudBase` (fundo cinza do HUD com painel medieval).
 - Texto, fontes e molduras escalam proporcionalmente via `ctx.scale(1, s)`.
-- Se a imagem fornecida falha no `loadImage` (URL expirada, >8MB, host nao confiavel), o `loadImage` retorna um canvas 1x1 — os banners tratam isso como falha e usam `drawHudBase` em vez de desenhar a imagem invalida. Sempre cheque `bgImage.width > 16` antes de usar.
+- Se a imagem fornecida falha no `loadImage` (URL expirada, >8MB, host nao confiavel), o `loadImage` retorna um canvas 1x1, e os banners tratam isso como falha e usam `drawHudBase` em vez de desenhar a imagem invalida. Sempre cheque `bgImage.width > 16` antes de usar.
 
 ### Banner unificado (padrao de RP e Localidade)
 
-Tanto `/localidade configurar` quanto `/rp iniciar` produzem **uma unica imagem** com layout consistente (eyebrow no topo, titulo, secao opcional, moldura dourada, gradiente de legibilidade, credito no rodape). Nao use mais banners separados para titulo/participantes/ambientacao — isso foi descontinuado em favor do unificado.
+Tanto `/localidade configurar` quanto `/rp iniciar` produzem uma unica imagem com layout consistente (eyebrow no topo, titulo, secao opcional, moldura dourada, gradiente de legibilidade, credito no rodape). Nao use mais banners separados para titulo/participantes/ambientacao; isso foi descontinuado em favor do unificado.
 
 ## Componentes do Discord
 
@@ -93,14 +93,18 @@ Tanto `/localidade configurar` quanto `/rp iniciar` produzem **uma unica imagem*
 
 ## Comandos Ja Padronizados
 
-- `/painel`
-- `/perfil`
-- `/inventario`
-- `/ranking`
-- `/enciclopedia`
-- `/catalogo`
-- `/bestiario`
-- `/missoes` (ajuste visual; detalhes continuam efemeros para nao alterar uma mensagem publica compartilhada)
+- /painel
+- /perfil
+- /inventario
+- /ranking
+- /enciclopedia
+- /catalogo
+- /bestiario
+- /missoes (detalhes continuam efemeros para nao alterar uma mensagem publica compartilhada)
+- /pesquisa (banner de progresso, slots e arvore de habilidades)
+- /sessao (exporta transcricao .txt de sessoes de RP/Cena)
+- /localidade (banner fixo de RP por regiao)
+- /rp (banner unificado de cena de RP)
 
 ## Checklist Para Novas HUDs
 
@@ -109,4 +113,3 @@ Tanto `/localidade configurar` quanto `/rp iniciar` produzem **uma unica imagem*
 3. Testar renderizacao local do Canvas antes do deploy.
 4. Rodar `node test_commands.js`.
 5. Conferir se assets novos estao incluidos no workflow de deploy.
-- /pesquisa (Renderiza pain�is de progress�o de habilidades, slots e �rvore de conhecimentos)
