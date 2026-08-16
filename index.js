@@ -11,6 +11,7 @@ const sessionStore = require('./utils/sessionStore');
 const { deleteAfterDelay } = require('./utils/tempMessage');
 const { deleteThreadCreationNotice } = require('./utils/threadNotice');
 const { deleteSceneV2Panel } = require('./utils/cenaPanelV2');
+const { startActivityBridge } = require('./utils/activityBridge');
 
 const client = new Client({
     intents: [
@@ -114,6 +115,7 @@ const genericButtonRoutes = [
 ];
 client.once('ready', async () => { 
     console.log(`✓ Bot logado como ${client.user.tag}!`);
+    startActivityBridge(client);
     try {
         sessionStore.init();
         console.log('✓ sessionStore inicializado.');
