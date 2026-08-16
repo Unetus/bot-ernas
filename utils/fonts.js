@@ -1,19 +1,21 @@
 /**
- * fonts.js — Registro e padronização de fontes para o Canvas (@napi-rs/canvas).
+ * fonts.js — Registro e padronizacao de fontes para o Canvas (@napi-rs/canvas).
  *
- * Padrão tipográfico do bot (alinhado ao site Arkandia):
- *   - Header / Display (títulos, banners, números grandes): Cinzel
- *   - Body (textos, parágrafos, descrições):                Nunito
- *   - UI (menus, chrome, labels, números, botões):          Baloo 2
+ * Padrao tipografico do bot (alinhado ao site Arkandia):
+ *   - Header / Display (titulos, banners, numeros grandes): Cinzel
+ *   - Body (textos, paragrafos, descricoes):                  Nunito
+ *   - UI (menus, chrome, labels, numeros, botoes):            Baloo 2
  *
- * As fontes vivem em assets/fonts/ e são registradas via GlobalFonts.
+ * As fontes vivem em assets/fonts/ e sao registradas via GlobalFonts.
+ * Os pesos cobrem o que o site usa em next/font/google (Cinzel 400/600/700/900,
+ * Nunito 400/700/800, Baloo 2 500/600/700/800). Mantemos os principais.
  */
 
 const { GlobalFonts } = require('@napi-rs/canvas');
 const path = require('path');
 
 const FAMILIES = {
-    header: 'Lilita One',
+    header: 'Cinzel',
     body: 'Nunito',
     ui: 'Baloo 2'
 };
@@ -23,7 +25,6 @@ const FONT_FILES = [
     ['Cinzel-SemiBold.ttf', 'Cinzel'],
     ['Cinzel-Bold.ttf', 'Cinzel'],
     ['Cinzel-Black.ttf', 'Cinzel'],
-    ['LilitaOne-Regular.ttf', 'Lilita One'],
     ['Nunito-Regular.ttf', 'Nunito'],
     ['Nunito-Bold.ttf', 'Nunito'],
     ['Nunito-ExtraBold.ttf', 'Nunito'],
