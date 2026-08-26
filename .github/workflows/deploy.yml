@@ -15,7 +15,7 @@ jobs:
       - name: Copy files via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: 179.61.185.170
+          host: 16.5.7.21
           username: dev
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
@@ -26,7 +26,7 @@ jobs:
       - name: SSH and Restart Bot
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: 179.61.185.170
+          host: 16.5.7.21
           username: dev
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22

@@ -45,10 +45,10 @@ async function readBody(request) {
 function notificationCopy(type, session) {
     const title = String(session?.title || 'Sessão de Tales of Ernas').slice(0, 100);
     const copies = {
-        session_invite: { heading: 'Você recebeu um convite', color: 0xe2be65, text: `Você foi convidado para a sessão privada **${title}**.` },
+        session_invite: { heading: 'Convite para uma sessão privada', color: 0xe2be65, text: `O Mestre convidou você para participar de **${title}**.` },
         session_opened: { heading: 'A sessão foi aberta', color: 0x74c7ec, text: `A sessão **${title}** está aberta para entrada.` },
-        session_reopened: { heading: 'A sessão foi reaberta', color: 0xa6e3a1, text: `A sessão **${title}** foi reaberta pelo mestre. O histórico anterior foi preservado.` },
-        session_closed: { heading: 'A sessão foi encerrada', color: 0xf38ba8, text: `A sessão **${title}** foi encerrada pelo mestre e já está disponível no Histórico da Activity.` }
+        session_reopened: { heading: 'A sessão foi reaberta', color: 0xa6e3a1, text: `A sessão **${title}** foi reaberta pelo Mestre. O histórico anterior foi preservado.` },
+        session_closed: { heading: 'A sessão foi encerrada', color: 0xf38ba8, text: `A sessão **${title}** foi encerrada pelo Mestre e já está disponível no Histórico da Activity.` }
     };
     return copies[type] || null;
 }
@@ -78,10 +78,10 @@ async function sendNotifications(client, body) {
     const userIds = [...new Set(Array.isArray(body.userIds) ? body.userIds.filter(id => /^\d{15,22}$/.test(id)) : [])].slice(0, 15);
     const session = body.session || {};
     const details = [
-        session.regionId ? `**Localidade:** ${String(session.regionId).slice(0, 64)}` : null,
-        session.scheduledAt ? `**Agendamento:** <t:${Math.floor(new Date(session.scheduledAt).getTime() / 1000)}:F>` : null,
-        session.description ? String(session.description).slice(0, 500) : null,
-        'Abra Tales of Ernas no servidor para entrar ou consultar o histórico.'
+        session.regionId ? `**Localidade**\n${String(session.regionId).slice(0, 64)}` : null,
+        session.scheduledAt ? `**Quando**\n<t:${Math.floor(new Date(session.scheduledAt).getTime() / 1000)}:F>` : null,
+        session.description ? `**Sobre a sessão**\n${String(session.description).slice(0, 500)}` : null,
+        'Abra a Activity **Tales of Ernas** no servidor para entrar na sessão.'
     ].filter(Boolean).join('\n\n');
     const embed = new EmbedBuilder().setColor(copy.color).setTitle(copy.heading).setDescription(`${copy.text}\n\n${details}`).setFooter({ text: 'Tales of Ernas · Discord Activity' }).setTimestamp();
     const directoryUrl = client.application?.id ? `https://discord.com/application-directory/${client.application.id}` : null;
