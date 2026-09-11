@@ -138,7 +138,7 @@ function roleSocial(guild, rank) {
 function membroPodeProgressao(member) {
     const configuredId = String(process.env.GAIA_PLAYER_ROLE_ID || '').trim();
     if (configuredId) return member.roles.cache.has(configuredId);
-    return member.roles.cache.some(role => normalizarNomeCargo(role.name) === 'jogador');
+    return member.roles.cache.some(role => ['jogador', 'jogadores', 'player'].includes(normalizarNomeCargo(role.name)));
 }
 
 async function sincronizarCargoSocial(member, rank) {
@@ -169,15 +169,18 @@ async function sincronizarCargoSocial(member, rank) {
 }
 
 async function registrarXpSocial(message) {
-    if (!message.guild || !message.member || message.author.bot || message.webhookId || message.system) return;
-    if (!membroPodeProgressao(message.member)) return;
+    if (!message.guild || message.author.bot || message.webhookId || message.system) return;
+    // Mensagens de membros recém-chegados podem chegar antes de o cache local
+    // conter o GuildMember. Buscamos o membro para não bloquear o XP/cargo.
+    const member = message.member || await message.guild.members.fetch(message.author.id).catch(() => null);
+    if (!member || !membroPodeProgressao(member)) return;
     const resultado = socialProgression.recordMessage({
         guildId: message.guild.id,
         discordUserId: message.author.id,
         content: message.content,
     });
     if (!resultado.granted) return;
-    const sincronizado = await sincronizarCargoSocial(message.member, resultado.progression.rank);
+    const sincronizado = await sincronizarCargoSocial(member, resultado.progression.rank);
     if (resultado.levelUp && sincronizado) {
         await message.author.send(`✨ Você alcançou o **nível ${resultado.progression.level}** e recebeu o cargo **${resultado.progression.rank.name}** na Tales of Ernas.`).catch(() => null);
     }
