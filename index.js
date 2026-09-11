@@ -185,7 +185,9 @@ async function registrarXpSocial(message) {
     });
     if (!resultado.granted) return;
     const sincronizado = await sincronizarCargoSocial(member, resultado.progression.rank);
-    if (resultado.levelUp && sincronizado) {
+    const tierMudou = resultado.levelUp
+        && socialProgression.rankForLevel(resultado.previousLevel).key !== resultado.progression.rank.key;
+    if (tierMudou && sincronizado) {
         await message.author.send(`✨ Você alcançou o **nível ${resultado.progression.level}** e recebeu o cargo **${resultado.progression.rank.name}** na Tales of Ernas.`).catch(() => null);
     }
 }
