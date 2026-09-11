@@ -98,11 +98,16 @@ async function sendNotifications(client, body) {
         'Abra a Activity **Tales of Ernas** no servidor para entrar na sessão.'
     ].filter(Boolean).join('\n\n');
     const embed = new EmbedBuilder().setColor(copy.color).setTitle(copy.heading).setDescription(`${copy.text}\n\n${details}`).setFooter({ text: 'Tales of Ernas · Discord Activity' }).setTimestamp();
-    const activityUrl = client.application?.id ? `https://discord.com/activities/${client.application.id}` : null;
+    const sessionId = typeof session.id === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(session.id)
+        ? session.id
+        : null;
+    const activityUrl = client.application?.id
+        ? `https://discord.com/activities/${client.application.id}${sessionId ? `?session_id=${encodeURIComponent(sessionId)}` : ''}`
+        : null;
     const channelUrl = activityChannelUrl(body.guildId);
     const buttons = [];
     if (activityUrl) {
-        buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Abrir no Discord').setURL(activityUrl));
+        buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Abrir Tales of Ernas').setURL(activityUrl));
     }
     if (channelUrl) {
         buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Abrir canal do Tabletop').setURL(channelUrl));
