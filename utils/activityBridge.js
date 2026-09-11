@@ -6,6 +6,20 @@ const HOST = '127.0.0.1';
 const MAX_BODY_BYTES = 24_000;
 const requestTimes = [];
 
+// O diretório de aplicativos (`/application-directory/...`) apenas mostra a
+// vitrine do Discord e, dependendo do cliente, abre uma aba vazia. A rota de
+// Activity é o atalho direto; o canal continua como fallback explícito para
+// clientes que não suportam o deep-link.
+const DEFAULT_ACTIVITY_CHANNEL_ID = '1547242590758510592';
+
+function activityChannelUrl(guildId) {
+    const customUrl = String(process.env.DISCORD_ACTIVITY_CHANNEL_URL || '').trim();
+    if (/^https:\/\/discord\.com\/channels\/\d{15,22}\/\d{15,22}$/.test(customUrl)) return customUrl;
+    const channelId = String(process.env.DISCORD_ACTIVITY_CHANNEL_ID || DEFAULT_ACTIVITY_CHANNEL_ID).trim();
+    if (!/^\d{15,22}$/.test(channelId) || !/^\d{15,22}$/.test(String(guildId || ''))) return null;
+    return `https://discord.com/channels/${guildId}/${channelId}`;
+}
+
 function bridgeSecret() {
     if (process.env.DISCORD_ACTIVITY_BOT_SECRET) return process.env.DISCORD_ACTIVITY_BOT_SECRET.trim();
     try { return require('fs').readFileSync('/var/tmp/ernas-activity-bot.secret', 'utf8').trim(); } catch { return ''; }
@@ -84,8 +98,16 @@ async function sendNotifications(client, body) {
         'Abra a Activity **Tales of Ernas** no servidor para entrar na sessão.'
     ].filter(Boolean).join('\n\n');
     const embed = new EmbedBuilder().setColor(copy.color).setTitle(copy.heading).setDescription(`${copy.text}\n\n${details}`).setFooter({ text: 'Tales of Ernas · Discord Activity' }).setTimestamp();
-    const directoryUrl = client.application?.id ? `https://discord.com/application-directory/${client.application.id}` : null;
-    const components = directoryUrl ? [new ActionRowBuilder().addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Abrir Tales of Ernas').setURL(directoryUrl))] : [];
+    const activityUrl = client.application?.id ? `https://discord.com/activities/${client.application.id}` : null;
+    const channelUrl = activityChannelUrl(body.guildId);
+    const buttons = [];
+    if (activityUrl) {
+        buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Abrir no Discord').setURL(activityUrl));
+    }
+    if (channelUrl) {
+        buttons.push(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel('Abrir canal do Tabletop').setURL(channelUrl));
+    }
+    const components = buttons.length ? [new ActionRowBuilder().addComponents(...buttons)] : [];
     let sent = 0;
     let failed = 0;
     await Promise.all(userIds.map(async id => {
