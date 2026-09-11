@@ -1,12 +1,12 @@
-const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, StringSelectMenuBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, StringSelectMenuBuilder, PermissionFlagsBits } = require('discord.js');
 const axios = require('axios');
-const { gerarBannerPerfil } = require('../canvas/renderer');
-const profileCache = require('../utils/profileCache');
+const { gerarBannerPerfilSocial } = require('../canvas/renderer');
 const { formatarTexto, embedErro } = require('../utils/helpers');
 const socialProgression = require('../utils/socialProgression');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
+const PROFILE_WEBHOOK_NAME = 'Tales of Ernas · Perfis';
 
 function getUrlRequisicao(interaction) {
     const usuarioMencionado = interaction.options.getUser('jogador');
@@ -57,12 +57,54 @@ function buildSkillDetailEmbed(skill) {
     return embed;
 }
 
-function barraSocial(progression) {
-    if (progression.level >= progression.maxLevel) return '██████████';
-    const inicio = progression.xpTotal - socialProgression.xpForLevel(progression.level);
-    const total = Math.max(1, progression.nextLevelXp - socialProgression.xpForLevel(progression.level));
-    const preenchido = Math.max(0, Math.min(10, Math.floor((inicio / total) * 10)));
-    return `${'█'.repeat(preenchido)}${'░'.repeat(10 - preenchido)}`;
+function avatarDoDiscord(user) {
+    if (!user || typeof user.displayAvatarURL !== 'function') return null;
+    return user.displayAvatarURL({ extension: 'png', size: 256, forceStatic: true });
+}
+
+async function buscarUsuarioPerfil(interaction, personagem) {
+    const mencionado = interaction.options.getUser('jogador');
+    const idPersonagem = personagem?.discord_id;
+    const id = mencionado?.id || idPersonagem || interaction.user.id;
+    if (id === interaction.user.id) return interaction.user;
+    return interaction.client.users.fetch(id).catch(() => mencionado || interaction.user);
+}
+
+async function obterWebhookPerfil(channel) {
+    if (!channel?.guild || typeof channel.fetchWebhooks !== 'function') return null;
+    const botMember = channel.guild.members.me;
+    const permissions = botMember ? channel.permissionsFor(botMember) : null;
+    if (!permissions?.has(PermissionFlagsBits.ManageWebhooks)) return null;
+
+    const webhooks = await channel.fetchWebhooks();
+    const proprio = webhooks.find(webhook => webhook.name === PROFILE_WEBHOOK_NAME && webhook.token);
+    if (proprio) return proprio;
+    return channel.createWebhook({ name: PROFILE_WEBHOOK_NAME, reason: 'Perfil visual da Gaia' });
+}
+
+async function enviarPerfilPorWebhook(interaction, personagem, social, buffer, avatarUrl) {
+    try {
+        const webhook = await obterWebhookPerfil(interaction.channel);
+        if (!webhook) return false;
+
+        const nome = formatarTexto(personagem.nome || 'Aventureiro');
+        const embed = new EmbedBuilder()
+            .setColor(0xD4AF37)
+            .setImage('attachment://perfil-social.png')
+            .setFooter({ text: `Gaia · ${social.rank.name} · nível ${social.level}/${social.maxLevel}` });
+
+        await webhook.send({
+            username: `${nome} · Perfil`.slice(0, 80),
+            avatarURL: avatarUrl || undefined,
+            embeds: [embed],
+            files: [new AttachmentBuilder(buffer, { name: 'perfil-social.png' })],
+            allowedMentions: { parse: [] }
+        });
+        return true;
+    } catch (error) {
+        console.warn('[Perfil] Webhook visual indisponível, usando resposta padrão:', error.message);
+        return false;
+    }
 }
 
 async function execute(interaction) {
@@ -72,7 +114,6 @@ async function execute(interaction) {
         const apiUrl = getUrlRequisicao(interaction);
         const res = await axios.get(apiUrl, { headers: { 'X-API-Key': API_KEY } });
         const p = res.data;
-        const personagemId = p.id; // Supondo que a API retorne o ID unico
 
         const usuarioMencionado = interaction.options.getUser('jogador');
         const nomeFornecido = interaction.options.getString('nome');
@@ -81,34 +122,32 @@ async function execute(interaction) {
             ? socialProgression.getProgression(interaction.guildId, discordId)
             : null;
 
-        let buffer = profileCache.getProfile(personagemId);
-        
-        if (!buffer) {
-            buffer = await gerarBannerPerfil(p);
-            profileCache.setProfile(personagemId, buffer, 5 * 60 * 1000); // Cache de 5 min
-        }
+        const usuarioPerfil = await buscarUsuarioPerfil(interaction, p);
+        const fallbackAvatarUrl = avatarDoDiscord(usuarioPerfil);
+        const personagemComAvatar = {
+            ...p,
+            avatar_url: p.avatar_url || p.imagem_url || p.retrato_url || fallbackAvatarUrl
+        };
+        const progression = social || socialProgression.getProgression(interaction.guildId, interaction.user.id);
+        const buffer = await gerarBannerPerfilSocial(personagemComAvatar, progression, fallbackAvatarUrl);
 
-        const attachment = new AttachmentBuilder(buffer, { name: 'perfil.png' });
-        
+        // O deck/seleção de habilidades não faz mais parte da resposta do /perfil.
         const embed = new EmbedBuilder()
             .setColor(0xD4AF37)
-            .setImage('attachment://perfil.png');
+            .setImage('attachment://perfil-social.png')
+            .setFooter({ text: 'Perfil visual · Tales of Ernas' });
 
-        if (social) {
-            const progresso = social.level >= social.maxLevel
-                ? `**Patamar máximo** · ${social.xpTotal.toLocaleString('pt-BR')} XP`
-                : `${social.xpTotal.toLocaleString('pt-BR')} / ${social.nextLevelXp.toLocaleString('pt-BR')} XP`;
-            embed.addFields({
-                name: 'Progressão social · Gaia',
-                value: `**${social.rank.name}** · Nível **${social.level}/${social.maxLevel}**\n${barraSocial(social)}\n${progresso}${social.xpToNext ? ` · faltam ${social.xpToNext.toLocaleString('pt-BR')} XP` : ''}`,
-                inline: false,
-            });
+        const publicado = await enviarPerfilPorWebhook(interaction, personagemComAvatar, progression, buffer, personagemComAvatar.avatar_url);
+        if (publicado) {
+            await interaction.deleteReply().catch(() => null);
+            return;
         }
-        
-        const skillRow = buildProfileSkillRow(p);
-        const components = skillRow ? [skillRow] : [];
 
-        await interaction.editReply({ embeds: [embed], files: [attachment], components });
+        await interaction.editReply({
+            embeds: [embed],
+            files: [new AttachmentBuilder(buffer, { name: 'perfil-social.png' })],
+            components: []
+        });
     } catch (e) {
         console.error('[Perfil] Erro ao buscar perfil:', e.message);
         if (interaction.deferred) {

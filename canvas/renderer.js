@@ -1613,6 +1613,141 @@ async function gerarBannerMissoesPainel(missoes = [], options = {}) {
     return canvas.toBuffer('image/png');
 }
 
+/**
+ * Banner compacto do perfil social da Gaia.
+ * Mantém o perfil focado no personagem e na progressão, sem o deck de skills.
+ */
+async function gerarBannerPerfilSocial(p, social = {}, fallbackAvatarUrl = null) {
+    const w = 1200;
+    const h = 520;
+    const canvas = createCanvas(w, h);
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#0F1015';
+    ctx.fillRect(0, 0, w, h);
+    try {
+        const bg = await loadImage('./assets/ui/banner-perfil-social.png');
+        const scale = Math.max(w / bg.width, h / bg.height);
+        const sw = w / scale;
+        const sh = h / scale;
+        ctx.drawImage(bg, (bg.width - sw) / 2, (bg.height - sh) / 2, sw, sh, 0, 0, w, h);
+    } catch (e) {
+        const gradient = ctx.createLinearGradient(0, 0, w, h);
+        gradient.addColorStop(0, '#1B2430');
+        gradient.addColorStop(1, '#0F1015');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    const overlay = ctx.createLinearGradient(0, 0, w, 0);
+    overlay.addColorStop(0, 'rgba(8, 10, 16, 0.92)');
+    overlay.addColorStop(0.48, 'rgba(8, 10, 16, 0.70)');
+    overlay.addColorStop(1, 'rgba(8, 10, 16, 0.32)');
+    ctx.fillStyle = overlay;
+    ctx.fillRect(0, 0, w, h);
+
+    const nome = formatarTexto(p.nome || 'Aventureiro');
+    const subtitulo = formatarTexto(p.titulo || [p.raca, p.classe].filter(Boolean).join(' · ') || 'Perfil do personagem');
+    const avatarUrl = p.avatar_url || p.imagem_url || p.retrato_url || fallbackAvatarUrl;
+
+    // Avatar e identificação
+    const avatarSize = 190;
+    const avatarX = 70;
+    const avatarY = 120;
+    drawHudBox(ctx, 44, 94, 242, 242, 18);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.clip();
+    try {
+        const avatar = await loadImage(avatarUrl || 'https://i.imgur.com/vHqB3q0.png');
+        ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
+    } catch (e) {
+        ctx.fillStyle = '#20222B';
+        ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
+    }
+    ctx.restore();
+    ctx.strokeStyle = HUD_GOLD;
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2 + 2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 14px "Baloo 2"';
+    ctx.fillText('PERFIL · GAIA', 330, 92);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 42px "Cinzel"';
+    ctx.fillText(trimToWidth(ctx, nome, 650), 330, 142);
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = '19px "Nunito"';
+    ctx.fillText(trimToWidth(ctx, subtitulo, 650), 332, 177);
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.38)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(330, 202);
+    ctx.lineTo(1118, 202);
+    ctx.stroke();
+
+    const rankName = formatarTexto(social.rank?.name || 'Bronze');
+    const level = Number(social.level) || 1;
+    const maxLevel = Number(social.maxLevel) || 100;
+    const xpTotal = Number(social.xpTotal) || 0;
+    const nextXp = Number(social.nextLevelXp) || 0;
+    const xpToNext = Number(social.xpToNext) || 0;
+
+    drawHudBox(ctx, 330, 228, 365, 116, 14);
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = 'bold 12px "Baloo 2"';
+    ctx.fillText('RANK SOCIAL', 354, 257);
+    ctx.fillStyle = HUD_TEXT;
+    ctx.font = 'bold 30px "Cinzel"';
+    ctx.fillText(rankName, 354, 296);
+    ctx.fillStyle = HUD_GOLD;
+    ctx.font = 'bold 18px "Nunito"';
+    ctx.fillText(`Nível ${level}/${maxLevel}`, 354, 326);
+
+    drawHudBox(ctx, 716, 228, 402, 116, 14);
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = 'bold 12px "Baloo 2"';
+    ctx.fillText('EXPERIÊNCIA', 740, 257);
+    ctx.fillStyle = HUD_TEXT;
+    ctx.font = 'bold 20px "Nunito"';
+    ctx.fillText(level >= maxLevel ? `${xpTotal.toLocaleString('pt-BR')} XP · patamar máximo` : `${xpTotal.toLocaleString('pt-BR')} / ${nextXp.toLocaleString('pt-BR')} XP`, 740, 292);
+    const currentFloor = level >= maxLevel ? xpTotal : Math.max(0, xpTotal - (nextXp - xpToNext));
+    const span = level >= maxLevel ? 1 : Math.max(1, nextXp - (nextXp - xpToNext));
+    const progress = level >= maxLevel ? 1 : Math.max(0, Math.min(1, currentFloor / span));
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillRect(740, 310, 350, 10);
+    ctx.fillStyle = HUD_GOLD;
+    ctx.fillRect(740, 310, 350 * progress, 10);
+    ctx.fillStyle = HUD_MUTED;
+    ctx.font = '13px "Nunito"';
+    ctx.fillText(level >= maxLevel ? 'Você alcançou o topo da progressão.' : `Faltam ${xpToNext.toLocaleString('pt-BR')} XP para o próximo nível`, 740, 336);
+
+    const stats = [
+        ['CLASSE', p.classe || '—'],
+        ['RAÇA', p.raca || '—'],
+        ['PODER', Number(p.indice_poder || 0).toLocaleString('pt-BR')],
+        ['GUILDA', p.guilda_nome || p.guilda || 'Sem guilda']
+    ];
+    stats.forEach((stat, index) => {
+        const x = 330 + index * 197;
+        drawHudBox(ctx, x, 378, 178, 76, 12);
+        ctx.fillStyle = HUD_MUTED;
+        ctx.font = 'bold 11px "Baloo 2"';
+        ctx.fillText(stat[0], x + 16, 403);
+        ctx.fillStyle = HUD_TEXT;
+        ctx.font = 'bold 16px "Nunito"';
+        ctx.fillText(trimToWidth(ctx, formatarTexto(stat[1]), 145), x + 16, 430);
+    });
+
+    ctx.fillStyle = 'rgba(244, 231, 200, 0.75)';
+    ctx.font = '12px "Nunito"';
+    ctx.fillText('Tales of Ernas · Progressão social da Gaia', 70, 478);
+    return canvas.toBuffer('image/png');
+}
+
 async function gerarBannerPainelJogador(user = {}, context = {}) {
     const w = 1000;
     const h = 560;
@@ -3907,4 +4042,4 @@ async function gerarBannerPesquisaDetalhe(disc, status, opts = {}) {
     return canvas.toBuffer('image/png');
 }
 
-module.exports = { loadImage, gerarBannerPerfil, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerMissoesPainel, gerarBannerEnciclopedia, gerarBannerPainelMestreModern, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponentsModern,     gerarBannerRpTitulo, gerarBannerRpParticipantes, gerarBannerRpAmbientacao, gerarBannerRpUnificado, gerarBannerLocalidade, gerarBannerPainelLocalidade, gerarBannerPesquisaStatus, gerarBannerPesquisaArvore, gerarBannerPesquisaDetalhe };
+module.exports = { loadImage, gerarBannerPerfil, gerarBannerPerfilSocial, gerarBannerLoot, gerarBannerInventario, gerarBannerRanking, gerarBannerGuilda, gerarBannerPainelJogador, gerarBannerMissoesPainel, gerarBannerEnciclopedia, gerarBannerPainelMestreModern, renderInventarioPage, renderMap, atualizarMapaDebounced, repintarMapaNovo, iniciarTimerTurno, getCenaBotoes, getCabecalhoCena, getMestrePainelComponentsModern,     gerarBannerRpTitulo, gerarBannerRpParticipantes, gerarBannerRpAmbientacao, gerarBannerRpUnificado, gerarBannerLocalidade, gerarBannerPainelLocalidade, gerarBannerPesquisaStatus, gerarBannerPesquisaArvore, gerarBannerPesquisaDetalhe };
