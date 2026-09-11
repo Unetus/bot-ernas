@@ -136,6 +136,10 @@ function roleSocial(guild, rank) {
 }
 
 function membroPodeProgressao(member) {
+    // A progressão social acompanha a participação de qualquer membro humano.
+    // O servidor pode optar por restringir aos jogadores via variável de ambiente.
+    const exigirJogador = ['1', 'true', 'sim', 'yes'].includes(String(process.env.GAIA_SOCIAL_REQUIRE_PLAYER_ROLE || '').trim().toLowerCase());
+    if (!exigirJogador) return true;
     const configuredId = String(process.env.GAIA_PLAYER_ROLE_ID || '').trim();
     if (configuredId) return member.roles.cache.has(configuredId);
     return member.roles.cache.some(role => ['jogador', 'jogadores', 'player'].includes(normalizarNomeCargo(role.name)));
