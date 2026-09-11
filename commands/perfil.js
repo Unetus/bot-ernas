@@ -3,6 +3,7 @@ const axios = require('axios');
 const { gerarBannerPerfil } = require('../canvas/renderer');
 const profileCache = require('../utils/profileCache');
 const { formatarTexto, embedErro } = require('../utils/helpers');
+const socialProgression = require('../utils/socialProgression');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
@@ -56,6 +57,14 @@ function buildSkillDetailEmbed(skill) {
     return embed;
 }
 
+function barraSocial(progression) {
+    if (progression.level >= progression.maxLevel) return '██████████';
+    const inicio = progression.xpTotal - socialProgression.xpForLevel(progression.level);
+    const total = Math.max(1, progression.nextLevelXp - socialProgression.xpForLevel(progression.level));
+    const preenchido = Math.max(0, Math.min(10, Math.floor((inicio / total) * 10)));
+    return `${'█'.repeat(preenchido)}${'░'.repeat(10 - preenchido)}`;
+}
+
 async function execute(interaction) {
     try {
         await interaction.deferReply();
@@ -64,6 +73,13 @@ async function execute(interaction) {
         const res = await axios.get(apiUrl, { headers: { 'X-API-Key': API_KEY } });
         const p = res.data;
         const personagemId = p.id; // Supondo que a API retorne o ID unico
+
+        const usuarioMencionado = interaction.options.getUser('jogador');
+        const nomeFornecido = interaction.options.getString('nome');
+        const discordId = usuarioMencionado?.id || (nomeFornecido ? p.discord_id : interaction.user.id);
+        const social = interaction.guildId && /^\d{15,22}$/.test(String(discordId || ''))
+            ? socialProgression.getProgression(interaction.guildId, discordId)
+            : null;
 
         let buffer = profileCache.getProfile(personagemId);
         
@@ -77,6 +93,17 @@ async function execute(interaction) {
         const embed = new EmbedBuilder()
             .setColor(0xD4AF37)
             .setImage('attachment://perfil.png');
+
+        if (social) {
+            const progresso = social.level >= social.maxLevel
+                ? `**Patamar máximo** · ${social.xpTotal.toLocaleString('pt-BR')} XP`
+                : `${social.xpTotal.toLocaleString('pt-BR')} / ${social.nextLevelXp.toLocaleString('pt-BR')} XP`;
+            embed.addFields({
+                name: 'Progressão social · Gaia',
+                value: `**${social.rank.name}** · Nível **${social.level}/${social.maxLevel}**\n${barraSocial(social)}\n${progresso}${social.xpToNext ? ` · faltam ${social.xpToNext.toLocaleString('pt-BR')} XP` : ''}`,
+                inline: false,
+            });
+        }
         
         const skillRow = buildProfileSkillRow(p);
         const components = skillRow ? [skillRow] : [];

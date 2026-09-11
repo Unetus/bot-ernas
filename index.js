@@ -12,6 +12,7 @@ const { deleteAfterDelay } = require('./utils/tempMessage');
 const { deleteThreadCreationNotice } = require('./utils/threadNotice');
 const { deleteSceneV2Panel } = require('./utils/cenaPanelV2');
 const { startActivityBridge } = require('./utils/activityBridge');
+const socialProgression = require('./utils/socialProgression');
 
 const client = new Client({
     intents: [
@@ -113,6 +114,75 @@ const genericButtonRoutes = [
     },
     { commandName: 'pesquisa', matches: customId => customId.startsWith('pesq:') || customId.startsWith('reg:') }
 ];
+
+const SOCIAL_ROLE_ENV = {
+    bronze: 'GAIA_XP_ROLE_BRONZE',
+    silver: 'GAIA_XP_ROLE_SILVER',
+    gold: 'GAIA_XP_ROLE_GOLD',
+    platinum: 'GAIA_XP_ROLE_PLATINUM',
+    mithril: 'GAIA_XP_ROLE_MITHRIL',
+    obsidian: 'GAIA_XP_ROLE_OBSIDIAN',
+    adamantite: 'GAIA_XP_ROLE_ADAMANTITE',
+};
+
+function normalizarNomeCargo(name) {
+    return String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+}
+
+function roleSocial(guild, rank) {
+    const configuredId = String(process.env[SOCIAL_ROLE_ENV[rank.key]] || '').trim();
+    if (configuredId) return guild.roles.cache.get(configuredId) || null;
+    return guild.roles.cache.find(role => normalizarNomeCargo(role.name) === normalizarNomeCargo(rank.name)) || null;
+}
+
+function membroPodeProgressao(member) {
+    const configuredId = String(process.env.GAIA_PLAYER_ROLE_ID || '').trim();
+    if (configuredId) return member.roles.cache.has(configuredId);
+    return member.roles.cache.some(role => normalizarNomeCargo(role.name) === 'jogador');
+}
+
+async function sincronizarCargoSocial(member, rank) {
+    const roles = socialProgression.RANKS.map(item => roleSocial(member.guild, item)).filter(Boolean);
+    const target = roleSocial(member.guild, rank);
+    if (!target) {
+        console.warn(`[social-xp] cargo ${rank.name} não encontrado no servidor ${member.guild.id}.`);
+        return false;
+    }
+    if (target.managed) {
+        console.warn(`[social-xp] cargo ${rank.name} é gerenciado e não pode ser atribuído.`);
+        return false;
+    }
+    const botMember = member.guild.members.me;
+    if (!botMember || botMember.roles.highest.comparePositionTo(target) <= 0) {
+        console.warn(`[social-xp] Gaia precisa estar acima de ${target.name} (${member.guild.id}).`);
+        return false;
+    }
+    const antigos = roles.filter(role => role.id !== target.id && member.roles.cache.has(role.id));
+    try {
+        if (antigos.length) await member.roles.remove(antigos, 'Atualização do nível social da Gaia');
+        if (!member.roles.cache.has(target.id)) await member.roles.add(target, 'Progressão social da Gaia');
+        return true;
+    } catch (error) {
+        console.warn(`[social-xp] não foi possível atualizar ${member.user.tag}: ${error.message}`);
+        return false;
+    }
+}
+
+async function registrarXpSocial(message) {
+    if (!message.guild || !message.member || message.author.bot || message.webhookId || message.system) return;
+    if (!membroPodeProgressao(message.member)) return;
+    const resultado = socialProgression.recordMessage({
+        guildId: message.guild.id,
+        discordUserId: message.author.id,
+        content: message.content,
+    });
+    if (!resultado.granted) return;
+    const sincronizado = await sincronizarCargoSocial(message.member, resultado.progression.rank);
+    if (resultado.levelUp && sincronizado) {
+        await message.author.send(`✨ Você alcançou o **nível ${resultado.progression.level}** e recebeu o cargo **${resultado.progression.rank.name}** na Tales of Ernas.`).catch(() => null);
+    }
+}
+
 client.once('ready', async () => { 
     console.log(`✓ Bot logado como ${client.user.tag}!`);
     startActivityBridge(client);
@@ -134,6 +204,12 @@ client.once('ready', async () => {
         console.log('✓ Comandos globais registrados.');
     } catch (error) {
         console.error('Erro ao registrar comandos globais:', error);
+    }
+    try {
+        socialProgression.getProgression(client.guilds.cache.first()?.id || '', client.user.id);
+        console.log('✓ socialProgression inicializado.');
+    } catch (err) {
+        console.error('Erro ao inicializar o socialProgression:', err);
     }
 });
 
@@ -388,6 +464,13 @@ client.on('messageCreate', async message => {
         }
     } catch (e) {
         console.error('[session] Erro ao persistir mensagem:', e);
+    }
+
+    // XP social da Gaia: sem cooldown global, com filtros e teto diário.
+    try {
+        await registrarXpSocial(message);
+    } catch (e) {
+        console.error('[social-xp] Erro ao registrar experiência:', e);
     }
 });
 

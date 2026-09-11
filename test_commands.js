@@ -32,6 +32,7 @@ const coreFiles = [
     './canvas/renderer.js',
     './utils/helpers.js',
     './utils/profileCache.js',
+    './utils/socialProgression.js',
     './utils/state.js'
 ];
 
