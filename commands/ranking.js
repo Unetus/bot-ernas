@@ -2,12 +2,14 @@ const { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder, ActionRowBuilder, 
 const axios = require('axios');
 const { gerarBannerRanking } = require('../canvas/renderer');
 const { embedErro } = require('../utils/helpers');
+const socialProgression = require('../utils/socialProgression');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
 
 function getRankingButtons(tipo) {
     const options = [
+        ['social', 'XP Social'],
         ['poder', 'Poder'],
         ['nivel', 'Nível'],
         ['guildas', 'Guildas'],
@@ -24,14 +26,50 @@ function getRankingButtons(tipo) {
 
 const data = new SlashCommandBuilder()
     .setName('ranking')
-    .setDescription('Visualiza o ranking global de Arkandia');
+    .setDescription('Visualiza o ranking social e os rankings de Tales of Ernas');
+
+async function getSocialRanking(interaction, limit = 10) {
+    const rows = socialProgression.listProgression(interaction.guildId, limit);
+    return Promise.all(rows.map(async (row) => {
+        const member = interaction.guild
+            ? await interaction.guild.members.fetch(row.discordUserId).catch(() => null)
+            : null;
+        const discordUsername = member?.displayName || member?.user?.username || row.discordUserId;
+        let personagem = null;
+        try {
+            const response = await axios.get(`${ARKANDIA_API}/personagens/discord/${encodeURIComponent(row.discordUserId)}`, {
+                headers: { 'X-API-Key': API_KEY },
+                timeout: 8000
+            });
+            personagem = response.data || null;
+        } catch (_) {
+            // O ranking social continua disponível para membros sem ficha
+            // ativa ou quando a API pública estiver temporariamente indisponível.
+        }
+        return {
+            ...row,
+            nome: personagem?.nome || 'Sem personagem',
+            discordUsername,
+            discordUserId: row.discordUserId,
+            xp_total: row.xpTotal,
+            nivel: row.level,
+            rank_social: row.rank?.name || 'Bronze'
+        };
+    }));
+}
+
+async function getRankingData(interaction, tipo) {
+    if (tipo === 'social') return getSocialRanking(interaction);
+    const res = await axios.get(`${ARKANDIA_API}/rankings/${tipo}`, { headers: { 'X-API-Key': API_KEY } });
+    return res.data;
+}
 
 async function execute(interaction) {
-    const tipo = interaction.options.getString('tipo') || 'poder';
+    const tipo = interaction.options.getString('tipo') || 'social';
     try {
         await interaction.deferReply();
-        const res = await axios.get(`${ARKANDIA_API}/rankings/${tipo}`, { headers: { 'X-API-Key': API_KEY } });
-        const buffer = await gerarBannerRanking(tipo, res.data);
+        const rankingData = await getRankingData(interaction, tipo);
+        const buffer = await gerarBannerRanking(tipo, rankingData);
         const attachment = new AttachmentBuilder(buffer, { name: 'ranking.png' });
 
         const embed = new EmbedBuilder()
@@ -58,8 +96,8 @@ async function handleButton(interaction) {
     await interaction.deferUpdate();
     const tipo = interaction.customId.replace('ranking_switch_', '');
     try {
-        const res = await axios.get(`${ARKANDIA_API}/rankings/${tipo}`, { headers: { 'X-API-Key': API_KEY } });
-        const buffer = await gerarBannerRanking(tipo, res.data);
+        const rankingData = await getRankingData(interaction, tipo);
+        const buffer = await gerarBannerRanking(tipo, rankingData);
         const attachment = new AttachmentBuilder(buffer, { name: 'ranking.png' });
 
         const embed = new EmbedBuilder()

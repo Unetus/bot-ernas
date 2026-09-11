@@ -1261,7 +1261,8 @@ async function gerarBannerRanking(tipo, dados) {
         poder: 'Índice de Poder',
         nivel: 'Nível e Experiência',
         guildas: 'Guildas de Vermécia',
-        arena: 'Pontos de Arena'
+        arena: 'Pontos de Arena',
+        social: 'XP Social'
     }[String(tipo).toLowerCase()] || formatarTexto(tipo);
 
     drawHudHeader(ctx, 'Ranking', tipoTraduzido, 62, 92, 676);
@@ -1301,6 +1302,9 @@ async function gerarBannerRanking(tipo, dados) {
 
         let nomeStr = item.nome || 'Desconhecido';
         if (item.sigla) nomeStr = `${nomeStr} [${item.sigla}]`;
+        if (tipo === 'social' && item.discordUsername) {
+            nomeStr = `${nomeStr} · @${String(item.discordUsername).replace(/^@/, '')}`;
+        }
 
         let subText = '';
         if (item.classe && item.raca) {
@@ -1318,6 +1322,8 @@ async function gerarBannerRanking(tipo, dados) {
             valorText = `${(item.xp_total_guilda || 0).toLocaleString('pt-BR')} XP`;
         } else if (tipo === 'arena') {
             valorText = `${item.rating || item.pontos_arena || item.arena_pontos || 0} pts`;
+        } else if (tipo === 'social') {
+            valorText = `${(item.xp_total || item.xpTotal || 0).toLocaleString('pt-BR')} XP · Nv ${item.nivel || item.level || 1} · ${item.rank_social || item.rank?.name || 'Bronze'}`;
         }
 
         ctx.textAlign = 'right';

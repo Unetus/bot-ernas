@@ -127,7 +127,9 @@ function rollMessageXp() {
 function recordMessage({ guildId, discordUserId, content, now = Date.now(), xp = rollMessageXp() }) {
     if (!/^\d{15,22}$/.test(String(guildId || '')) || !/^\d{15,22}$/.test(String(discordUserId || ''))) return { granted: false, reason: 'invalid_identity' };
     const text = String(content || '').trim();
-    if (text.length < 8 || text.startsWith('/')) return { granted: false, reason: 'ineligible_message' };
+    // Toda mensagem textual não vazia conta; não há mais corte mínimo de
+    // caracteres. Comandos continuam fora da progressão social.
+    if (!text || text.startsWith('/')) return { granted: false, reason: 'ineligible_message' };
 
     const database = init();
     const timestamp = new Date(now).toISOString();
