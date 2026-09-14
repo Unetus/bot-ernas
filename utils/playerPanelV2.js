@@ -34,6 +34,7 @@ const pesquisaApi = require('./pesquisaApi');
 const pesquisaLogic = require('./pesquisaLogic');
 const pesquisaCommand = require('../commands/pesquisa');
 const sessionStore = require('./sessionStore');
+const { tryAcquire: tryAcquireLock, release: releaseLock } = require('./asyncLock');
 
 const ARKANDIA_API = process.env.ARKANDIA_API_URL || 'https://www.ernas.com.br/api/public/v1';
 const API_KEY = process.env.ARKANDIA_API_KEY;
@@ -775,10 +776,15 @@ async function handleButton(interaction) {
     if (id.startsWith('painel_v2_pesq_tree_')) return update(interaction, 'pesquisa', { mode: `tree_${id.replace('painel_v2_pesq_tree_', '')}` });
     if (id.startsWith('painel_v2_pesq_reg_')) return update(interaction, 'pesquisa', { mode: `reg_${id.replace('painel_v2_pesq_reg_', '')}` });
     if (id.startsWith('painel_v2_pesq_collect_')) {
-        await interaction.deferUpdate();
         const match = id.match(/^painel_v2_pesq_collect_([pr])_(.+)$/);
+        if (!match) return false;
+        const lockKey = `pesq:collect:${interaction.user.id}:${match[1]}:${match[2]}`;
+        if (!tryAcquireLock(lockKey, 15000)) {
+            await interaction.reply({ content: '⏳ Coleta em andamento. Aguarde a operação anterior terminar.', ephemeral: true });
+            return true;
+        }
         try {
-            if (!match) throw new Error('A atividade selecionada não é válida.');
+            await interaction.deferUpdate();
             const result = match[1] === 'p'
                 ? await pesquisaApi.postPesquisaColetar(interaction.user.id, match[2])
                 : await pesquisaApi.postRegistroColetar(interaction.user.id, match[2]);
@@ -787,6 +793,8 @@ async function handleButton(interaction) {
             return interaction.editReply(await renderView(interaction, 'pesquisa', { mode: 'status', notice: '✅ **Coleta concluída.** Saldo, slots e progresso foram sincronizados.' }, true));
         } catch (error) {
             return interaction.editReply(await renderView(interaction, 'pesquisa', { mode: 'status', notice: `⚠️ **Não foi possível coletar:** ${operationErrorMessage(error)}` }, true));
+        } finally {
+            releaseLock(lockKey);
         }
     }
     return undefined;

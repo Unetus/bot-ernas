@@ -11,6 +11,11 @@ const requestTimes = [];
 // Activity é o atalho direto; o canal continua como fallback explícito para
 // clientes que não suportam o deep-link.
 const DEFAULT_ACTIVITY_CHANNEL_ID = '1547242590758510592';
+const ANNOUNCEMENT_CHANNELS = Object.freeze({
+    missoes: '1524529872322564196',
+    arena: '1524529638590775588'
+});
+const REGISTRATION_CUSTOM_ID = /^toe_reg:v1:(join|leave):(mission|arc|tournament):[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function activityChannelUrl(guildId) {
     const customUrl = String(process.env.DISCORD_ACTIVITY_CHANNEL_URL || '').trim();
@@ -128,6 +133,44 @@ async function sendNotifications(client, body) {
     return { sent, failed };
 }
 
+async function sendAnnouncement(client, body) {
+    const channelId = ANNOUNCEMENT_CHANNELS[body.channel];
+    if (!channelId) throw Object.assign(new Error('Canal de aviso inválido.'), { status: 400 });
+    const embeds = Array.isArray(body.embeds) ? body.embeds.slice(0, 10) : [];
+    const rawButtons = Array.isArray(body.buttons) ? body.buttons.slice(0, 5) : [];
+    if (!embeds.length || !rawButtons.length) throw Object.assign(new Error('Aviso interativo inválido.'), { status: 400 });
+
+    const styles = {
+        primary: ButtonStyle.Primary,
+        secondary: ButtonStyle.Secondary,
+        success: ButtonStyle.Success,
+        danger: ButtonStyle.Danger
+    };
+    const buttons = rawButtons.map(raw => {
+        const customId = String(raw?.customId || '');
+        const label = String(raw?.label || '').trim().slice(0, 80);
+        const style = styles[String(raw?.style || '')];
+        if (!REGISTRATION_CUSTOM_ID.test(customId) || !label || !style) {
+            throw Object.assign(new Error('Botão de aviso inválido.'), { status: 400 });
+        }
+        return new ButtonBuilder().setCustomId(customId).setLabel(label).setStyle(style);
+    });
+
+    const channel = await client.channels.fetch(channelId);
+    if (!channel?.isTextBased() || typeof channel.send !== 'function') {
+        throw Object.assign(new Error('Canal de aviso indisponível.'), { status: 503 });
+    }
+    const rawContent = String(body.content || '');
+    const content = (body.everyone === true ? `@everyone${rawContent ? ` ${rawContent}` : ''}` : rawContent).slice(0, 2000) || undefined;
+    const message = await channel.send({
+        content,
+        embeds,
+        components: [new ActionRowBuilder().addComponents(...buttons)],
+        allowedMentions: { parse: body.everyone === true ? ['everyone'] : [] }
+    });
+    return { sent: true, messageId: message.id };
+}
+
 function startActivityBridge(client) {
     const secret = bridgeSecret();
     if (secret.length < 24) {
@@ -141,6 +184,7 @@ function startActivityBridge(client) {
             const url = new URL(request.url, `http://${HOST}:${PORT}`);
             if (request.method === 'GET' && url.pathname === '/activity/members') return json(response, 200, { members: await searchMembers(client, url) });
             if (request.method === 'POST' && url.pathname === '/activity/notifications') return json(response, 200, await sendNotifications(client, await readBody(request)));
+            if (request.method === 'POST' && url.pathname === '/activity/announcements') return json(response, 200, await sendAnnouncement(client, await readBody(request)));
             if (request.method === 'GET' && url.pathname === '/activity/health') return json(response, 200, { ok: true, ready: client.isReady() });
             return json(response, 404, { error: 'Rota não encontrada.' });
         } catch (error) {

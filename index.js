@@ -13,7 +13,8 @@ const { deleteThreadCreationNotice } = require('./utils/threadNotice');
 const { deleteSceneV2Panel } = require('./utils/cenaPanelV2');
 const { startActivityBridge } = require('./utils/activityBridge');
 const socialProgression = require('./utils/socialProgression');
-const { handleBoostMemberUpdate, runIsolatedBoostRewardTest } = require('./utils/boostRewards');
+const { processBoostMessage, scanBoostLog } = require('./utils/boostRewards');
+const { handleRegistrationInteraction } = require('./utils/registrationInteractions');
 
 const client = new Client({
     intents: [
@@ -218,18 +219,18 @@ client.once('ready', async () => {
     try {
         socialProgression.getProgression(client.guilds.cache.first()?.id || '', client.user.id);
         console.log('✓ socialProgression inicializado.');
-        // Homologação isolada: só consulta/premia o booster de teste explicitamente
-        // permitido em utils/boostRewards.js. Não há varredura dos demais membros.
-        await runIsolatedBoostRewardTest(client);
+        // Reprocessa somente o histórico recente do canal privado de boosts.
+        // A deduplicação financeira é feita no banco, então reinícios são seguros.
+        await scanBoostLog(client);
+        const boostReconciliation = setInterval(() => {
+            scanBoostLog(client).catch((error) => {
+                console.error('[boost-rewards] erro na reconciliação do canal:', error.message);
+            });
+        }, 5 * 60 * 1000);
+        boostReconciliation.unref?.();
     } catch (err) {
         console.error('Erro ao inicializar o socialProgression:', err);
     }
-});
-
-client.on('guildMemberUpdate', async (oldMember, newMember) => {
-    await handleBoostMemberUpdate(oldMember, newMember).catch((error) => {
-        console.error('[boost-rewards] Erro ao processar atualização de boost:', error.message);
-    });
 });
 
 client.on('interactionCreate', async interaction => {
@@ -262,6 +263,10 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (interaction.isButton()) {
+        if (interaction.customId.startsWith('toe_reg:')) {
+            await handleRegistrationInteraction(interaction);
+            return;
+        }
         if (interaction.customId.startsWith('encerrar_sessao_')) {
             const sessionId = interaction.customId.replace('encerrar_sessao_', '');
             const session = sessionStore.getSession(sessionId);
@@ -418,6 +423,10 @@ client.on('threadDelete', async thread => {
 });
 
 client.on('messageCreate', async message => {
+    await processBoostMessage(client, message).catch((error) => {
+        console.error('[boost-rewards] Erro ao processar mensagem do canal de boosts:', error.message);
+    });
+
     // Deleta notificacoes automaticas de pin do Discord
     // ("X fixou uma mensagem", MessageType.ChannelPinnedMessage = 6)
     // para manter canais (especialmente de localidade) limpos.

@@ -126,6 +126,17 @@ const HUD_TEXT = '#F4E7C8';
 const HUD_MUTED = '#AEB6C2';
 const HUD_PANEL = 'rgba(18, 20, 27, 0.78)';
 const HUD_BORDER = 'rgba(212, 175, 55, 0.28)';
+const SITE_PROFILE_BACKGROUND = 'https://www.ernas.com.br/assets/static/profile/bg-ficha.b50f2c6045.webp';
+const SITE_RANKING_BACKGROUND = 'https://www.ernas.com.br/assets/static/rankings/painel-rankings-warm.0804661fcc.webp';
+
+async function loadImageFromCandidates(sources) {
+    for (const source of sources || []) {
+        if (!source) continue;
+        const image = await loadImage(source);
+        if (image && image.width > 1 && image.height > 1) return image;
+    }
+    return null;
+}
 
 async function drawHudBase(ctx, w, h, options = {}) {
     const focusX = Math.max(0, Math.min(1, options.focusX ?? 0.5));
@@ -1251,11 +1262,43 @@ async function gerarBannerRankingLegacy(tipo, dados) {
 }
 
 async function gerarBannerRanking(tipo, dados) {
-    const w = 800;
-    const h = 620;
+    const w = 1200;
+    const h = 760;
     const canvas = createCanvas(w, h);
     const ctx = canvas.getContext('2d');
-    await drawHudBase(ctx, w, h);
+
+    // O ranking do site usa a linguagem de "livro de registros": papel quente,
+    // moldura de madeira e tinta marrom. Reutilizamos o mesmo asset para que
+    // Discord e navegador mantenham a mesma identidade visual.
+    ctx.fillStyle = '#dbbc92';
+    ctx.fillRect(0, 0, w, h);
+    const siteBackground = await loadImageFromCandidates([
+        './assets/ui/site-ranking-warm.webp',
+        SITE_RANKING_BACKGROUND,
+        HUD_ASSET_PATH
+    ]);
+    if (siteBackground) {
+        const scale = Math.max(w / siteBackground.width, h / siteBackground.height);
+        const sw = w / scale;
+        const sh = h / scale;
+        ctx.drawImage(siteBackground, (siteBackground.width - sw) / 2, (siteBackground.height - sh) / 2, sw, sh, 0, 0, w, h);
+    }
+
+    // O brasão decorativo do asset ocupa o canto inferior direito. Mantemos a
+    // ilustração visível, mas abrimos uma faixa de leitura para os valores das
+    // últimas posições do ranking.
+    const valueVeil = ctx.createLinearGradient(780, 0, 1140, 0);
+    valueVeil.addColorStop(0, 'rgba(246, 220, 171, 0)');
+    valueVeil.addColorStop(0.45, 'rgba(246, 220, 171, 0.42)');
+    valueVeil.addColorStop(1, 'rgba(246, 220, 171, 0.78)');
+    ctx.fillStyle = valueVeil;
+    ctx.fillRect(780, 408, 360, 292);
+
+    const paperInk = '#3B2F1C';
+    const paperMuted = '#8A7A58';
+    const paperGold = '#B9811F';
+    const paperLine = 'rgba(92, 70, 34, 0.26)';
+    const paperBox = 'rgba(92, 70, 34, 0.105)';
 
     const tipoTraduzido = {
         poder: 'Índice de Poder',
@@ -1265,45 +1308,84 @@ async function gerarBannerRanking(tipo, dados) {
         social: 'XP Social'
     }[String(tipo).toLowerCase()] || formatarTexto(tipo);
 
-    drawHudHeader(ctx, 'Ranking', tipoTraduzido, 62, 92, 676);
+    ctx.fillStyle = paperInk;
+    ctx.font = 'bold 38px "Cinzel"';
+    ctx.fillText('HALL DA FAMA', 92, 78);
+    ctx.fillStyle = paperMuted;
+    ctx.font = 'bold 14px "Baloo 2"';
+    ctx.fillText(`TALES OF ERNAS · ${String(tipoTraduzido).toUpperCase()}`, 96, 108);
+    ctx.strokeStyle = paperLine;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(92, 130);
+    ctx.lineTo(w - 92, 130);
+    ctx.stroke();
 
     const list = Array.isArray(dados) ? dados : (dados.personagens || dados.guildas || dados.rankings || dados.data || []);
     const top10 = list.slice(0, 10);
 
     if (top10.length === 0) {
-        drawHudBox(ctx, 62, 230, 676, 130, 14);
-        ctx.fillStyle = HUD_MUTED;
+        ctx.fillStyle = paperBox;
+        ctx.fillRect(92, 250, w - 184, 140);
+        ctx.strokeStyle = paperLine;
+        ctx.strokeRect(92, 250, w - 184, 140);
+        ctx.fillStyle = paperMuted;
         ctx.font = '22px "Nunito"';
         ctx.textAlign = 'center';
-        ctx.fillText('Nenhum dado encontrado no ranking no momento.', w / 2, 306);
+        ctx.fillText('Nenhum registro encontrado no ranking no momento.', w / 2, 326);
         ctx.textAlign = 'left';
         return canvas.toBuffer('image/png');
     }
 
-    const startY = 174;
-    const rowHeight = 38;
+    const startY = 154;
+    const rowHeight = 54;
 
     for (let i = 0; i < top10.length; i++) {
         const item = top10[i];
         const y = startY + i * rowHeight;
 
-        drawHudBox(ctx, 62, y, 676, 32, 9);
-        ctx.fillStyle = i === 0 ? 'rgba(212, 175, 55, 0.28)' : 'rgba(212, 175, 55, 0.12)';
-        ctx.fillRect(82, y + 8, 4, 16);
+        ctx.fillStyle = i === 0 ? 'rgba(200, 153, 46, 0.24)' : paperBox;
+        ctx.fillRect(92, y, w - 184, rowHeight - 6);
+        ctx.strokeStyle = i === 0 ? 'rgba(184, 129, 31, 0.70)' : paperLine;
+        ctx.lineWidth = i === 0 ? 2 : 1;
+        ctx.strokeRect(92, y, w - 184, rowHeight - 6);
 
-        ctx.fillStyle = i === 0 ? HUD_GOLD : HUD_MUTED;
-        ctx.font = 'bold 15px "Baloo 2"';
+        ctx.fillStyle = i === 0 ? paperGold : paperMuted;
+        ctx.font = 'bold 19px "Cinzel"';
         ctx.textAlign = 'center';
-        ctx.fillText(`#${i + 1}`, 110, y + 22);
+        ctx.fillText(`#${i + 1}`, 123, y + 31);
+
+        const avatarSource = item.avatarUrl || item.avatar_url || item.imagem_url || item.retrato_url;
+        const avatar = await loadImageFromCandidates([avatarSource]);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(174, y + 25, 18, 0, Math.PI * 2);
+        ctx.clip();
+        if (avatar) {
+            ctx.drawImage(avatar, 156, y + 7, 36, 36);
+        } else {
+            ctx.fillStyle = i === 0 ? '#C8992E' : '#B69A6D';
+            ctx.fillRect(156, y + 7, 36, 36);
+            ctx.fillStyle = '#FFF5DC';
+            ctx.font = 'bold 16px "Baloo 2"';
+            ctx.textAlign = 'center';
+            ctx.fillText(String(item.nome || '?').trim().charAt(0).toUpperCase(), 174, y + 31);
+        }
+        ctx.restore();
+        ctx.strokeStyle = i === 0 ? paperGold : 'rgba(92, 70, 34, 0.38)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(174, y + 25, 19, 0, Math.PI * 2);
+        ctx.stroke();
 
         ctx.textAlign = 'left';
-        ctx.fillStyle = i === 0 ? '#FFFFFF' : HUD_TEXT;
-        ctx.font = i === 0 ? 'bold 15px "Baloo 2"' : '14px "Nunito"';
+        ctx.fillStyle = paperInk;
+        ctx.font = i === 0 ? 'bold 17px "Baloo 2"' : 'bold 16px "Nunito"';
 
         let nomeStr = item.nome || 'Desconhecido';
         if (item.sigla) nomeStr = `${nomeStr} [${item.sigla}]`;
         if (tipo === 'social' && item.discordUsername) {
-            nomeStr = `${nomeStr} · @${String(item.discordUsername).replace(/^@/, '')}`;
+            nomeStr = `${nomeStr}`;
         }
 
         let subText = '';
@@ -1311,7 +1393,12 @@ async function gerarBannerRanking(tipo, dados) {
             subText = ` • ${formatarTexto(item.raca)} / ${formatarTexto(item.classe)}`;
         }
 
-        ctx.fillText(trimToWidth(ctx, nomeStr + subText, 410), 146, y + 22);
+        ctx.fillText(trimToWidth(ctx, nomeStr + subText, 640), 210, y + 25);
+        if (tipo === 'social' && item.discordUsername) {
+            ctx.fillStyle = paperMuted;
+            ctx.font = '12px "Nunito"';
+            ctx.fillText(trimToWidth(ctx, `@${String(item.discordUsername).replace(/^@/, '')}`, 300), 210, y + 43);
+        }
 
         let valorText = '';
         if (tipo === 'poder') {
@@ -1327,11 +1414,17 @@ async function gerarBannerRanking(tipo, dados) {
         }
 
         ctx.textAlign = 'right';
-        ctx.fillStyle = i === 0 ? HUD_GOLD : HUD_MUTED;
-        ctx.font = 'bold 14px "Baloo 2"';
-        ctx.fillText(trimToWidth(ctx, valorText, 150), 710, y + 22);
+        ctx.fillStyle = i === 0 ? paperGold : paperInk;
+        ctx.font = 'bold 16px "Baloo 2"';
+        ctx.fillText(trimToWidth(ctx, valorText, 250), w - 112, y + 31);
         ctx.textAlign = 'left';
     }
+
+    ctx.fillStyle = paperMuted;
+    ctx.font = '12px "Nunito"';
+    ctx.textAlign = 'center';
+    ctx.fillText('Atualizado pela Gaia · os valores refletem a progressão registrada no servidor.', w / 2, h - 42);
+    ctx.textAlign = 'left';
 
     return canvas.toBuffer('image/png');
 }
@@ -1632,7 +1725,12 @@ async function gerarBannerPerfilSocial(p, social = {}, fallbackAvatarUrl = null)
     ctx.fillStyle = '#0F1015';
     ctx.fillRect(0, 0, w, h);
     try {
-        const bg = await loadImage('./assets/ui/banner-perfil-social.png');
+        const bg = await loadImageFromCandidates([
+            './assets/ui/site-profile-bg.webp',
+            SITE_PROFILE_BACKGROUND,
+            './assets/ui/banner-perfil-social.png'
+        ]);
+        if (!bg) throw new Error('background unavailable');
         const scale = Math.max(w / bg.width, h / bg.height);
         const sw = w / scale;
         const sh = h / scale;
@@ -1654,7 +1752,7 @@ async function gerarBannerPerfilSocial(p, social = {}, fallbackAvatarUrl = null)
 
     const nome = formatarTexto(p.nome || 'Aventureiro');
     const subtitulo = formatarTexto(p.titulo || [p.raca, p.classe].filter(Boolean).join(' · ') || 'Perfil do personagem');
-    const avatarUrl = p.avatar_url || p.imagem_url || p.retrato_url || fallbackAvatarUrl;
+    const avatarSources = [p.avatar_url, p.imagem_url, p.retrato_url, fallbackAvatarUrl];
 
     // Avatar e identificação
     const avatarSize = 190;
@@ -1665,10 +1763,10 @@ async function gerarBannerPerfilSocial(p, social = {}, fallbackAvatarUrl = null)
     ctx.beginPath();
     ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
     ctx.clip();
-    try {
-        const avatar = await loadImage(avatarUrl || 'https://i.imgur.com/vHqB3q0.png');
+    const avatar = await loadImageFromCandidates(avatarSources);
+    if (avatar) {
         ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
-    } catch (e) {
+    } else {
         ctx.fillStyle = '#20222B';
         ctx.fillRect(avatarX, avatarY, avatarSize, avatarSize);
     }

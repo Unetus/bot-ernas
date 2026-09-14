@@ -2,11 +2,11 @@ const crypto = require('crypto');
 const fs = require('fs');
 const { EmbedBuilder } = require('discord.js');
 
-// Primeira etapa do rollout: nenhuma varredura global e nenhum membro além do
-// usuário de homologação pode ser premiado. A abertura precisa ser intencional.
-const TEST_GUILD_ID = '1514745357463195759';
-const TEST_BOOSTER_DISCORD_ID = '187348111729885184'; // unetinhus
+const GUILD_ID = '1514745357463195759';
+const BOOST_LOG_CHANNEL_ID = process.env.DISCORD_BOOST_LOG_CHANNEL_ID || '1548444809256239234';
 const RUNAS_PER_BOOST = 30;
+const BOOST_MESSAGE_TYPE = 8; // Discord MessageType.GuildBoost
+const seenEvents = new Set();
 
 function appBaseUrl() {
   const configured = String(process.env.ARKANDIA_INTERNAL_URL || process.env.ARKANDIA_API_URL || '').trim();
@@ -20,16 +20,6 @@ function boostSecret() {
   } catch {
     return '';
   }
-}
-
-function isTestBooster(member) {
-  return member?.guild?.id === TEST_GUILD_ID && member.id === TEST_BOOSTER_DISCORD_ID;
-}
-
-function boostStartedAt(member) {
-  return member?.premiumSince instanceof Date && Number.isFinite(member.premiumSince.getTime())
-    ? member.premiumSince.toISOString()
-    : null;
 }
 
 function rewardEmbed(member, personagem, saldo) {
@@ -51,11 +41,13 @@ function rewardEmbed(member, personagem, saldo) {
     .setTimestamp();
 }
 
-async function processIsolatedBoostReward(member, source) {
-  if (!isTestBooster(member)) return { skipped: 'not-test-booster' };
+function rememberEvent(eventId) {
+  seenEvents.add(eventId);
+  if (seenEvents.size > 1000) seenEvents.delete(seenEvents.values().next().value);
+}
 
-  const startedAt = boostStartedAt(member);
-  if (!startedAt) return { skipped: 'not-boosting' };
+async function processBoostReward(member, boostStartedAt, eventId, source) {
+  if (!member?.guild || member.guild.id !== GUILD_ID) return { skipped: 'wrong-guild' };
 
   const base = appBaseUrl();
   const secret = boostSecret();
@@ -75,7 +67,8 @@ async function processIsolatedBoostReward(member, source) {
       body: JSON.stringify({
         guild_id: member.guild.id,
         discord_user_id: member.id,
-        boost_started_at: startedAt,
+        discord_event_id: eventId,
+        boost_started_at: boostStartedAt,
       }),
     });
   } catch (error) {
@@ -85,8 +78,9 @@ async function processIsolatedBoostReward(member, source) {
 
   const payload = await response.json().catch(() => null);
   if (!response.ok || !payload?.ok) {
-    console.warn(`[boost-rewards] crédito recusado (${source}): HTTP ${response.status} ${payload?.code || payload?.error || ''}`);
-    return { skipped: 'rejected' };
+    const code = payload?.code || payload?.error || '';
+    console.warn(`[boost-rewards] crédito pendente (${source}): HTTP ${response.status} ${code}`);
+    return { skipped: 'rejected', code };
   }
 
   if (!payload.credited) {
@@ -104,23 +98,84 @@ async function processIsolatedBoostReward(member, source) {
   return { credited: true };
 }
 
-async function runIsolatedBoostRewardTest(client) {
-  const guild = await client.guilds.fetch(TEST_GUILD_ID).catch(() => null);
-  if (!guild) return console.warn('[boost-rewards] servidor de teste indisponível.');
-  const member = await guild.members.fetch(TEST_BOOSTER_DISCORD_ID).catch(() => null);
-  if (!member) return console.warn('[boost-rewards] membro de teste indisponível.');
-  return processIsolatedBoostReward(member, 'startup-test');
+function extractBoosterId(message, client) {
+  const mentioned = message.mentions?.users?.first();
+  if (mentioned?.id) return mentioned.id;
+
+  const contentMention = String(message.content || '').match(/<@!?([0-9]{15,22})>/);
+  if (contentMention) return contentMention[1];
+
+  const authorId = message.author?.id;
+  if (authorId && authorId !== client.user.id && /^[0-9]{15,22}$/.test(authorId)) return authorId;
+  return null;
 }
 
-async function handleBoostMemberUpdate(oldMember, newMember) {
-  if (!isTestBooster(newMember)) return;
-  const before = boostStartedAt(oldMember);
-  const after = boostStartedAt(newMember);
-  if (!after || before === after) return;
-  return processIsolatedBoostReward(newMember, 'boost-update');
+function isBoostMessage(message) {
+  return Boolean(
+    message?.guild?.id === GUILD_ID &&
+    message.channel?.id === BOOST_LOG_CHANNEL_ID &&
+    message.type === BOOST_MESSAGE_TYPE
+  );
+}
+
+async function processBoostMessage(client, message) {
+  if (!isBoostMessage(message)) return { skipped: 'not-boost-message' };
+  if (seenEvents.has(message.id)) return { skipped: 'duplicate-event' };
+
+  const boosterId = extractBoosterId(message, client);
+  if (!boosterId) {
+    console.warn(`[boost-rewards] não foi possível identificar o booster na mensagem ${message.id}.`);
+    return { skipped: 'booster-not-found' };
+  }
+
+  const member = await message.guild.members.fetch(boosterId).catch(() => null);
+  if (!member) return { skipped: 'member-not-found' };
+
+  // Cada mensagem de boost tem um timestamp próprio. Isso permite creditar
+  // dois boosts do mesmo usuário como eventos distintos sem confiar apenas em
+  // premiumSince, que representa somente a assinatura ativa do membro.
+  const result = await processBoostReward(member, message.createdAt.toISOString(), message.id, `message:${message.id}`);
+  // Só marca como concluído após crédito ou deduplicação confirmada. Falhas
+  // transitórias, conta sem personagem ou indisponibilidade do site poderão
+  // ser reprocessadas pelo próximo ciclo de reconciliação.
+  if (result?.credited === true || result?.credited === false) rememberEvent(message.id);
+  return result;
+}
+
+function retroactiveEventId(member, boostStartedAt) {
+  // Identificador determinístico para o ciclo de boost ativo no momento da
+  // reconciliação. O RPC continua protegendo contra duplicidade no banco.
+  const timestamp = Date.parse(boostStartedAt);
+  const suffix = Number.isFinite(timestamp) ? Math.abs(timestamp) : 0;
+  return (BigInt(member.id) + BigInt(suffix)).toString();
+}
+
+async function processRetroactiveBoost(member) {
+  if (!member?.premiumSince) return { skipped: 'not-boosting' };
+  const boostStartedAt = member.premiumSince.toISOString();
+  const eventId = retroactiveEventId(member, boostStartedAt);
+  return processBoostReward(member, boostStartedAt, eventId, 'retroactive-active-boost');
+}
+
+async function scanBoostLog(client) {
+  const guild = await client.guilds.fetch(GUILD_ID).catch(() => null);
+  const channel = await guild?.channels.fetch(BOOST_LOG_CHANNEL_ID).catch(() => null);
+  if (!channel?.isTextBased()) return;
+
+  const messages = await channel.messages.fetch({ limit: 100 }).catch(() => null);
+  if (!messages) return;
+
+  const ordered = [...messages.values()].sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+  for (const message of ordered) {
+    await processBoostMessage(client, message).catch((error) => {
+      console.error('[boost-rewards] erro ao processar evento do canal:', error.message);
+    });
+  }
 }
 
 module.exports = {
-  handleBoostMemberUpdate,
-  runIsolatedBoostRewardTest,
+  BOOST_LOG_CHANNEL_ID,
+  processBoostMessage,
+  processRetroactiveBoost,
+  scanBoostLog,
 };

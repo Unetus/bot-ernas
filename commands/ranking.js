@@ -20,7 +20,7 @@ function getRankingButtons(tipo) {
         ...options.map(([value, label]) => new ButtonBuilder()
             .setCustomId(`ranking_switch_${value}`)
             .setLabel(`${tipo === value ? '◆' : '◇'} ${label}`)
-            .setStyle(ButtonStyle.Secondary))
+            .setStyle(tipo === value ? ButtonStyle.Primary : ButtonStyle.Secondary))
     );
 }
 
@@ -35,6 +35,7 @@ async function getSocialRanking(interaction, limit = 10) {
             ? await interaction.guild.members.fetch(row.discordUserId).catch(() => null)
             : null;
         const discordUsername = member?.displayName || member?.user?.username || row.discordUserId;
+        const discordAvatarUrl = member?.user?.displayAvatarURL?.({ extension: 'png', size: 128, forceStatic: true }) || null;
         let personagem = null;
         try {
             const response = await axios.get(`${ARKANDIA_API}/personagens/discord/${encodeURIComponent(row.discordUserId)}`, {
@@ -50,6 +51,7 @@ async function getSocialRanking(interaction, limit = 10) {
             ...row,
             nome: personagem?.nome || 'Sem personagem',
             discordUsername,
+            avatarUrl: personagem?.avatar_url || personagem?.imagem_url || personagem?.retrato_url || discordAvatarUrl,
             discordUserId: row.discordUserId,
             xp_total: row.xpTotal,
             nivel: row.level,
