@@ -77,9 +77,12 @@ async function searchMembers(client, url) {
     const query = (url.searchParams.get('query') || '').trim().slice(0, 80);
     if (!/^\d{15,22}$/.test(guildId)) throw Object.assign(new Error('Servidor inválido.'), { status: 400 });
     const guild = await client.guilds.fetch(guildId);
-    const collection = query
-        ? await guild.members.search({ query, limit: 25 })
-        : await guild.members.fetch({ limit: 100 });
+    const ids = (url.searchParams.get('ids') || '').split(',').filter(id => /^\d{15,22}$/.test(id)).slice(0, 25);
+    const collection = ids.length
+        ? await guild.members.fetch({ user: ids })
+        : query
+            ? await guild.members.search({ query, limit: 25 })
+            : await guild.members.fetch({ limit: 100 });
     return [...collection.values()]
         .filter(member => !member.user.bot)
         .slice(0, 25)
