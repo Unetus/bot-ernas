@@ -46,7 +46,11 @@ function normalizarCategoria(value) {
 
 async function missionGuild(client, guildId) {
     if (DISCORD_ID_RE.test(String(guildId || ''))) return client.guilds.fetch(String(guildId));
-    const first = client.guilds.cache.first();
+    // A instalação da Gaia também participa do servidor de staff. Quando o
+    // site não tem um guild id configurado, escolha o servidor que realmente
+    // possui a categoria GAMEPLAY em vez de depender da ordem do cache.
+    const gameplayGuild = client.guilds.cache.find(guild => guild.channels.cache.some(channel => channel.type === ChannelType.GuildCategory && normalizarCategoria(channel.name).includes('gameplay')));
+    const first = gameplayGuild || client.guilds.cache.first();
     if (!first) throw Object.assign(new Error('Nenhum servidor Discord disponível para a sala.'), { status: 503 });
     return first;
 }
