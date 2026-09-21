@@ -1,5 +1,5 @@
 const http = require('http');
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
 
 const PORT = Number(process.env.DISCORD_ACTIVITY_BOT_PORT || 3219);
 const HOST = '127.0.0.1';
@@ -17,6 +17,190 @@ const ANNOUNCEMENT_CHANNELS = Object.freeze({
 });
 const REGISTRATION_CUSTOM_ID = /^toe_reg:v1:(join|leave):(mission|arc|tournament):[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+const MISSION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DISCORD_ID_RE = /^\d{15,22}$/;
+const MISSION_ROOM_MARKER = 'Tales of Ernas · Sala de missão';
+const MISSION_ROOM_CRON_MS = 5 * 60 * 1000;
+
+function missionRoomId(value) {
+    const id = String(value || '').trim();
+    if (!MISSION_ID_RE.test(id)) throw Object.assign(new Error('Missão inválida.'), { status: 400 });
+    return id;
+}
+
+function discordIds(values, max = 60) {
+    return [...new Set(Array.isArray(values) ? values.filter(id => DISCORD_ID_RE.test(String(id))).map(String) : [])].slice(0, max);
+}
+
+function slugifyChannelName(value) {
+    const slug = String(value || 'missao')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+        .slice(0, 62);
+    return slug || 'missao';
+}
+
+function normalizarCategoria(value) {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+async function missionGuild(client, guildId) {
+    if (DISCORD_ID_RE.test(String(guildId || ''))) return client.guilds.fetch(String(guildId));
+    const first = client.guilds.cache.first();
+    if (!first) throw Object.assign(new Error('Nenhum servidor Discord disponível para a sala.'), { status: 503 });
+    return first;
+}
+
+async function missionCategory(guild) {
+    const configured = String(process.env.DISCORD_MISSION_CATEGORY_ID || '').trim();
+    if (DISCORD_ID_RE.test(configured)) {
+        const channel = await guild.channels.fetch(configured).catch(() => null);
+        if (channel?.type === ChannelType.GuildCategory) return channel;
+    }
+    const category = guild.channels.cache.find(channel => channel.type === ChannelType.GuildCategory && normalizarCategoria(channel.name).includes('gameplay'));
+    if (!category) throw Object.assign(new Error('Categoria GAMEPLAY não encontrada no servidor.'), { status: 503 });
+    return category;
+}
+
+function missionPermissionOverwrites(guild, roleId, gmId) {
+    const allow = [
+        PermissionFlagsBits.ViewChannel,
+        PermissionFlagsBits.SendMessages,
+        PermissionFlagsBits.ReadMessageHistory,
+        PermissionFlagsBits.AttachFiles,
+        PermissionFlagsBits.EmbedLinks,
+        PermissionFlagsBits.AddReactions,
+    ];
+    return [
+        { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel] },
+        { id: roleId, allow },
+        ...(DISCORD_ID_RE.test(String(gmId || '')) ? [{ id: gmId, allow }] : []),
+    ];
+}
+
+async function ensureMissionRole(guild, name) {
+    let role = guild.roles.cache.find(candidate => candidate.name === name);
+    if (!role) {
+        role = await guild.roles.create({ name, mentionable: true, color: 0xc89b3c, reason: 'Sala temporária de missão Tales of Ernas' });
+    } else if (!role.mentionable) {
+        await role.setMentionable(true, 'Menção inicial da sala temporária de missão').catch(() => null);
+    }
+    return role;
+}
+
+async function ensureMissionChannel(guild, category, role, input) {
+    const slug = slugifyChannelName(input.missionName);
+    const name = `missao-${slug}-${input.missionId.slice(0, 8).toLowerCase()}`.slice(0, 100);
+    const topic = `toe:mission-room:${input.missionId}`;
+    let channel = guild.channels.cache.find(candidate => candidate.type === ChannelType.GuildText && candidate.topic === topic);
+    if (!channel) channel = guild.channels.cache.find(candidate => candidate.type === ChannelType.GuildText && candidate.name === name);
+    if (!channel) {
+        channel = await guild.channels.create({
+            name,
+            type: ChannelType.GuildText,
+            parent: category.id,
+            topic,
+            permissionOverwrites: missionPermissionOverwrites(guild, role.id, input.gmDiscordId),
+            reason: 'Sala temporária de comunicação de missão',
+        });
+    } else {
+        if (channel.parentId !== category.id) await channel.setParent(category.id, { lockPermissions: false }).catch(() => null);
+        await channel.setTopic(topic).catch(() => null);
+        await channel.permissionOverwrites.edit(guild.roles.everyone, { ViewChannel: false }).catch(() => null);
+        await channel.permissionOverwrites.edit(role, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true, EmbedLinks: true, AddReactions: true }).catch(() => null);
+        if (DISCORD_ID_RE.test(String(input.gmDiscordId || ''))) await channel.permissionOverwrites.edit(input.gmDiscordId, { ViewChannel: true, SendMessages: true, ReadMessageHistory: true, AttachFiles: true, EmbedLinks: true, AddReactions: true }).catch(() => null);
+    }
+    return { channel, name };
+}
+
+async function syncMissionMembers(guild, role, ids, gmId) {
+    const desired = new Set([...ids, ...(DISCORD_ID_RE.test(String(gmId || '')) ? [String(gmId)] : [])]);
+    let assigned = 0;
+    let missing = 0;
+    for (const id of desired) {
+        try {
+            const member = await guild.members.fetch(id);
+            if (!member.roles.cache.has(role.id)) {
+                await member.roles.add(role, 'Participante confirmado da missão');
+                assigned += 1;
+            }
+        } catch (error) {
+            missing += 1;
+            console.warn(`[activity-bridge] membro ${id} não encontrado para cargo de missão: ${error.code || error.message}`);
+        }
+    }
+    let removed = 0;
+    for (const member of role.members.values()) {
+        if (!desired.has(member.id)) {
+            await member.roles.remove(role, 'Participante removido da missão').then(() => { removed += 1; }).catch(() => null);
+        }
+    }
+    return { assigned, removed, missing };
+}
+
+async function sendMissionOpeningMessage(client, channel, role, input, gmName) {
+    const marker = `${MISSION_ROOM_MARKER} · ${input.missionId}`;
+    const recent = await channel.messages.fetch({ limit: 50 }).catch(() => null);
+    const previous = recent?.find(message => message.author?.id === client.user?.id && message.embeds?.some(embed => embed.footer?.text === marker));
+    if (previous) return previous;
+    const timestamp = Math.floor(new Date(input.scheduledAt).getTime() / 1000);
+    const when = Number.isFinite(timestamp) ? `<t:${timestamp}:F> (<t:${timestamp}:R>)` : 'Horário ainda não definido';
+    const embed = new EmbedBuilder()
+        .setColor(0xc89b3c)
+        .setTitle(`Missão · ${String(input.missionName || 'Missão').slice(0, 180)}`)
+        .setDescription('Este é o canal privado de comunicação da missão. Use-o para orientações, preparação, atrasos e dúvidas antes e durante a sessão.')
+        .addFields(
+            { name: 'Início', value: when, inline: true },
+            { name: 'Mestre', value: String(gmName || 'Mestre').slice(0, 100), inline: true },
+        )
+        .setFooter({ text: marker });
+    return channel.send({
+        content: `<@&${role.id}>`,
+        embeds: [embed],
+        allowedMentions: { roles: [role.id], users: [], parse: [] },
+    });
+}
+
+async function openMissionRoom(client, body) {
+    const missionId = missionRoomId(body.missionId);
+    const guild = await missionGuild(client, body.guildId);
+    const category = await missionCategory(guild);
+    const short = missionId.slice(0, 8).toLowerCase();
+    const role = await ensureMissionRole(guild, `MISSÃO · ${short}`);
+    const { channel } = await ensureMissionChannel(guild, category, role, { ...body, missionId });
+    const ids = discordIds(body.participantDiscordIds);
+    const members = await syncMissionMembers(guild, role, ids, body.gmDiscordId);
+    const message = await sendMissionOpeningMessage(client, channel, role, { ...body, missionId }, body.gmName);
+    return { ok: true, guildId: guild.id, categoryId: category.id, channelId: channel.id, roleId: role.id, openingMessageId: message.id, ...members };
+}
+
+async function syncMissionRoom(client, body) {
+    const missionId = missionRoomId(body.missionId);
+    const guild = await missionGuild(client, body.guildId);
+    const role = await guild.roles.fetch(String(body.roleId || '')).catch(() => null);
+    if (!role) throw Object.assign(new Error('Cargo temporário da missão não encontrado.'), { status: 404 });
+    const channel = await guild.channels.fetch(String(body.channelId || '')).catch(() => null);
+    if (!channel?.isTextBased()) throw Object.assign(new Error('Canal temporário da missão não encontrado.'), { status: 404 });
+    const members = await syncMissionMembers(guild, role, discordIds(body.participantDiscordIds), body.gmDiscordId);
+    return { ok: true, missionId, ...members };
+}
+
+async function closeMissionRoom(client, body) {
+    const missionId = missionRoomId(body.missionId);
+    const guild = await missionGuild(client, body.guildId);
+    let channelDeleted = true;
+    let roleDeleted = true;
+    if (DISCORD_ID_RE.test(String(body.channelId || ''))) {
+        const channel = await guild.channels.fetch(String(body.channelId)).catch(() => null);
+        if (channel) await channel.delete('Fim da janela da sala temporária da missão').catch(() => { channelDeleted = false; });
+    }
+    if (DISCORD_ID_RE.test(String(body.roleId || ''))) {
+        const role = await guild.roles.fetch(String(body.roleId)).catch(() => null);
+        if (role) await role.delete('Fim da janela da sala temporária da missão').catch(() => { roleDeleted = false; });
+    }
+    return { ok: channelDeleted && roleDeleted, missionId, channelDeleted, roleDeleted };
+}
+
 function activityChannelUrl(guildId) {
     const customUrl = String(process.env.DISCORD_ACTIVITY_CHANNEL_URL || '').trim();
     if (/^https:\/\/discord\.com\/channels\/\d{15,22}\/\d{15,22}$/.test(customUrl)) return customUrl;
@@ -28,6 +212,11 @@ function activityChannelUrl(guildId) {
 function bridgeSecret() {
     if (process.env.DISCORD_ACTIVITY_BOT_SECRET) return process.env.DISCORD_ACTIVITY_BOT_SECRET.trim();
     try { return require('fs').readFileSync('/var/tmp/ernas-activity-bot.secret', 'utf8').trim(); } catch { return ''; }
+}
+
+function activitySiteUrl() {
+    const configured = String(process.env.DISCORD_ACTIVITY_SITE_URL || '').trim().replace(/\/$/, '');
+    return configured || 'https://toe.ernas.com.br';
 }
 
 function json(response, status, payload) {
@@ -188,6 +377,9 @@ function startActivityBridge(client) {
             if (request.method === 'GET' && url.pathname === '/activity/members') return json(response, 200, { members: await searchMembers(client, url) });
             if (request.method === 'POST' && url.pathname === '/activity/notifications') return json(response, 200, await sendNotifications(client, await readBody(request)));
             if (request.method === 'POST' && url.pathname === '/activity/announcements') return json(response, 200, await sendAnnouncement(client, await readBody(request)));
+            if (request.method === 'POST' && url.pathname === '/activity/mission-rooms/open') return json(response, 200, await openMissionRoom(client, await readBody(request)));
+            if (request.method === 'POST' && url.pathname === '/activity/mission-rooms/sync') return json(response, 200, await syncMissionRoom(client, await readBody(request)));
+            if (request.method === 'POST' && url.pathname === '/activity/mission-rooms/close') return json(response, 200, await closeMissionRoom(client, await readBody(request)));
             if (request.method === 'GET' && url.pathname === '/activity/health') return json(response, 200, { ok: true, ready: client.isReady() });
             return json(response, 404, { error: 'Rota não encontrada.' });
         } catch (error) {
@@ -197,6 +389,23 @@ function startActivityBridge(client) {
     });
     server.listen(PORT, HOST, () => console.log(`[activity-bridge] ouvindo em http://${HOST}:${PORT}`));
     server.on('error', error => console.error('[activity-bridge] servidor:', error));
+    // O processo do Gaia é persistente e funciona como o worker da rotina de
+    // salas. O endpoint também aceita o CRON_SECRET da VPS, então é possível
+    // migrar para o crontab sem alterar o ciclo nem o contrato.
+    const runMissionRoomCron = async () => {
+        try {
+            const response = await fetch(`${activitySiteUrl()}/api/cron/missoes-salas-discord`, {
+                headers: { 'x-activity-secret': secret },
+                signal: AbortSignal.timeout(45_000),
+            });
+            if (!response.ok) console.warn(`[activity-bridge] cron de salas retornou HTTP ${response.status}`);
+        } catch (error) {
+            console.warn(`[activity-bridge] cron de salas indisponível: ${error.code || error.message}`);
+        }
+    };
+    const scheduler = setInterval(runMissionRoomCron, MISSION_ROOM_CRON_MS);
+    scheduler.unref?.();
+    setTimeout(runMissionRoomCron, 15_000).unref?.();
     return server;
 }
 
