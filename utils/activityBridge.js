@@ -41,7 +41,10 @@ function slugifyChannelName(value) {
 }
 
 function normalizarCategoria(value) {
-    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    // NFKC converte a tipografia full-width usada em "ＧＡＭＥＰＬＡＹ" para
+    // ASCII antes do filtro; NFD sozinho deixaria o nome ilegível para o
+    // resolvedor e a sala cairia no erro de categoria ausente.
+    return String(value || '').normalize('NFKC').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 async function missionGuild(client, guildId) {
