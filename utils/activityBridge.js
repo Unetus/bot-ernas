@@ -19,7 +19,6 @@ const REGISTRATION_CUSTOM_ID = /^toe_reg:v1:(join|leave):(mission|arc|tournament
 
 const MISSION_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DISCORD_ID_RE = /^\d{15,22}$/;
-const MISSION_ROOM_MARKER = 'Tales of Ernas · Sala de missão';
 const MISSION_ROOM_CRON_MS = 5 * 60 * 1000;
 
 function missionRoomId(value) {
@@ -146,24 +145,25 @@ async function syncMissionMembers(guild, role, ids, gmId) {
 }
 
 async function sendMissionOpeningMessage(client, channel, role, input, gmName) {
-    const marker = `${MISSION_ROOM_MARKER} · ${input.missionId}`;
     const recent = await channel.messages.fetch({ limit: 50 }).catch(() => null);
-    const previous = recent?.find(message => message.author?.id === client.user?.id && message.embeds?.some(embed => embed.footer?.text === marker));
+    const previous = recent?.find(message => message.author?.id === client.user?.id && message.content?.includes(`<@&${role.id}>`) && message.content?.includes(`MISSÃO · ${String(input.missionName || 'Missão').slice(0, 180)}`));
     if (previous) return previous;
     const timestamp = Math.floor(new Date(input.scheduledAt).getTime() / 1000);
     const when = Number.isFinite(timestamp) ? `<t:${timestamp}:F> (<t:${timestamp}:R>)` : 'Horário ainda não definido';
-    const embed = new EmbedBuilder()
-        .setColor(0xc89b3c)
-        .setTitle(`Missão · ${String(input.missionName || 'Missão').slice(0, 180)}`)
-        .setDescription('Este é o canal privado de comunicação da missão. Use-o para orientações, preparação, atrasos e dúvidas antes e durante a sessão.')
-        .addFields(
-            { name: 'Início', value: when, inline: true },
-            { name: 'Mestre', value: String(gmName || 'Mestre').slice(0, 100), inline: true },
-        )
-        .setFooter({ text: marker });
+    const name = String(input.missionName || 'Missão').slice(0, 180);
+    const text = [
+        `**MISSÃO · ${name}**`,
+        '',
+        `**Início:** ${when}`,
+        `**Mestre:** ${String(gmName || 'Mestre').slice(0, 100)}`,
+        '',
+        'Este é o canal privado de comunicação da missão. Use-o para orientações, preparação, atrasos e dúvidas antes e durante a sessão.',
+        '',
+        `A sala será removida uma hora após o encerramento e a premiação.`,
+        `<@&${role.id}>`,
+    ].join('\n');
     return channel.send({
-        content: `<@&${role.id}>`,
-        embeds: [embed],
+        content: text,
         allowedMentions: { roles: [role.id], users: [], parse: [] },
     });
 }
